@@ -5,6 +5,7 @@ import { motion, AnimatePresence } from "framer-motion"
 import { BookOpen, MessageSquare, Zap, Volume2, ImageIcon, ChevronRight } from "lucide-react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
+import { Handle, Position } from "reactflow"
 import type { GameEvent } from "@/lib/schemas/game-schema"
 
 const eventTypeIcons = {
@@ -53,7 +54,11 @@ export function EventCard({
         damping: 25,
         mass: 0.8,
       }}
+      className="relative"
     >
+      <Handle type="target" position={Position.Left} className="!bg-primary !w-3 !h-3 !border-2 !border-background" />
+      <Handle type="source" position={Position.Right} className="!bg-primary !w-3 !h-3 !border-2 !border-background" />
+
       <Card className="w-72 bg-card border-border shadow-lg shadow-background/50 overflow-hidden">
         <AnimatePresence>
           {showGradient && (

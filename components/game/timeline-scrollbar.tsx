@@ -93,12 +93,18 @@ export function TimelineScrollbar({ nodes, onSeek, currentPositionX }: TimelineS
             </div>
           ))}
 
-          {/* Current position indicator */}
           {nodes.length > 0 && (
             <div
-              className="absolute top-1/2 -translate-y-1/2 -translate-x-1/2 w-3 h-3 border-2 border-primary bg-background rounded-full shadow-lg transition-all"
+              className="absolute top-1/2 -translate-y-1/2 -translate-x-1/2 transition-all duration-300"
               style={{ left: `${currentPercent}%` }}
-            />
+            >
+              {/* Outer pulse ring */}
+              <div className="absolute inset-0 w-5 h-5 -translate-x-1/2 -translate-y-1/2 left-1/2 top-1/2">
+                <div className="absolute inset-0 rounded-full bg-primary/20 animate-ping" />
+              </div>
+              {/* Inner dot */}
+              <div className="relative w-3 h-3 border-2 border-primary bg-primary/80 rounded-full shadow-lg shadow-primary/50" />
+            </div>
           )}
         </div>
       </div>

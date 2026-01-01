@@ -11,6 +11,8 @@ import ReactFlow, {
   type Node,
   type Edge,
   Panel,
+  getSmoothStepPath,
+  type EdgeProps,
 } from "reactflow"
 import "reactflow/dist/style.css"
 import { motion, AnimatePresence } from "framer-motion"
@@ -21,6 +23,7 @@ import { useGameStore } from "@/lib/store/game-store"
 import { EventCard } from "./event-card"
 import { OptionCard } from "./option-card"
 import { TimelineScrollbar } from "./timeline-scrollbar"
+import { SaveLoadMenu } from "./save-load-menu"
 import { heroJourneySteps } from "@/lib/data/hero-journey"
 import type { GameEvent, GameOption } from "@/lib/schemas/game-schema"
 import useSWRMutation from "swr/mutation"
@@ -58,6 +61,50 @@ const nodeTypes = {
   option: OptionNode,
 }
 
+function AnimatedEdge({ id, sourceX, sourceY, targetX, targetY, sourcePosition, targetPosition, data }: EdgeProps) {
+  const [edgePath] = getSmoothStepPath({
+    sourceX,
+    sourceY,
+    targetX,
+    targetY,
+    sourcePosition,
+    targetPosition,
+    borderRadius: 16,
+  })
+
+  const isActive = data?.active ?? true
+  const strokeColor = isActive ? "#d4a574" : "#6b7280"
+  const markerId = `arrow-${id}`
+
+  return (
+    <g>
+      <defs>
+        <marker
+          id={markerId}
+          markerWidth="12"
+          markerHeight="12"
+          refX="10"
+          refY="6"
+          orient="auto"
+          markerUnits="userSpaceOnUse"
+        >
+          <path d="M2,2 L10,6 L2,10 L4,6 Z" fill={strokeColor} />
+        </marker>
+      </defs>
+      <path id={id} d={edgePath} fill="none" stroke={strokeColor} strokeWidth={2} markerEnd={`url(#${markerId})`} />
+      {isActive && (
+        <circle r="4" fill="#d4a574">
+          <animateMotion dur="2s" repeatCount="indefinite" path={edgePath} />
+        </circle>
+      )}
+    </g>
+  )
+}
+
+const edgeTypes = {
+  animated: AnimatedEdge,
+}
+
 async function generateStory(url: string, { arg }: { arg: { gameStateId: string; nodeCount: number } }) {
   const res = await fetch(url, {
     method: "POST",
@@ -71,8 +118,27 @@ async function generateStory(url: string, { arg }: { arg: { gameStateId: string;
 function GameCanvasInner() {
   const [showSidebar, setShowSidebar] = useState(false)
   const initialGenerationStarted = useRef(false)
+  const autoSaveIntervalRef = useRef<NodeJS.Timeout | null>(null)
   const handleContinueRef = useRef<() => void>(() => {})
   const handleOptionClickRef = useRef<(optionId: string) => void>(() => {})
+  const handleScrollbarSeek = useRef<(positionX: number) => void>(() => {})
+
+  useEffect(() => {
+    const originalError = console.error
+    console.error = (...args) => {
+      if (
+        typeof args[0] === "string" &&
+        args[0].includes("ResizeObserver loop completed with undelivered notifications")
+      ) {
+        return
+      }
+      originalError.apply(console, args)
+    }
+
+    return () => {
+      console.error = originalError
+    }
+  }, [])
 
   const { fitBounds, setCenter } = useReactFlow()
   const [nodes, setNodes, onNodesChange] = useNodesState([])
@@ -91,6 +157,7 @@ function GameCanvasInner() {
     clearNewFlags,
     setPendingContent,
     showNextEvent,
+    autoSave,
   } = useGameStore()
 
   const { trigger: triggerGeneration } = useSWRMutation("/api/story/generate", generateStory)
@@ -240,24 +307,15 @@ function GameCanvasInner() {
       id: conn.id,
       source: conn.fromNodeId,
       target: conn.toNodeId,
-      animated: conn.active || newConnectionIds.has(conn.id),
-      style: {
-        stroke: conn.active ? "hsl(var(--primary))" : "hsl(var(--border))",
-        strokeWidth: 2,
+      type: "animated",
+      data: {
+        active: conn.active,
       },
-      type: "smoothstep",
     }))
 
     setNodes(flowNodes)
     setEdges(flowEdges)
   }, [gameState, newNodeIds, newConnectionIds, setNodes, setEdges])
-
-  const handleScrollbarSeek = useCallback(
-    (targetX: number) => {
-      setCenter(targetX, 200, { zoom: 1, duration: 800 })
-    },
-    [setCenter],
-  )
 
   useEffect(() => {
     if (gameState && gameState.nodes.length === 0 && !isGenerating && !initialGenerationStarted.current) {
@@ -278,13 +336,53 @@ function GameCanvasInner() {
     }
   }, [newNodeIds, newConnectionIds, clearNewFlags])
 
+  useEffect(() => {
+    if (gameState && gameState.nodes.length > 0) {
+      autoSaveIntervalRef.current = setInterval(() => {
+        autoSave()
+        console.log("[v0] Auto-saved game")
+      }, 30000) // Auto-save every 30 seconds
+
+      return () => {
+        if (autoSaveIntervalRef.current) {
+          clearInterval(autoSaveIntervalRef.current)
+        }
+      }
+    }
+  }, [gameState, autoSave])
+
+  const handleScrollbarSeekCallback = useCallback(
+    (targetX: number) => {
+      if (!gameState) return
+
+      // Find the nearest node to the target X position
+      const nearestNode = gameState.nodes.reduce((closest, node) => {
+        const currentDist = Math.abs(node.position.x - targetX)
+        const closestDist = Math.abs(closest.position.x - targetX)
+        return currentDist < closestDist ? node : closest
+      })
+
+      if (nearestNode) {
+        const NODE_WIDTH = nearestNode.type === "event" ? 320 : 280
+        const NODE_HEIGHT = nearestNode.type === "event" ? 200 : 140
+        const centerX = nearestNode.position.x + NODE_WIDTH / 2
+        const centerY = nearestNode.position.y + NODE_HEIGHT / 2
+        setCenter(centerX, centerY, { zoom: 1, duration: 600 })
+      }
+    },
+    [gameState, setCenter],
+  )
+
   if (!gameState || !selectedGenre || !character) return null
 
   const currentStep = heroJourneySteps.find((s) => s.id === gameState.currentHeroStep)
 
+  const eventNodes = gameState.nodes.filter((n) => n.type === "event")
+  const lastEventNode = eventNodes[eventNodes.length - 1]
+  const currentScrollPosition = lastEventNode ? lastEventNode.position.x : 0
+
   return (
     <div className="fixed inset-0 bg-background overflow-hidden">
-      {/* Top Bar */}
       <div className="absolute top-0 left-0 right-0 z-20 bg-background/80 backdrop-blur-sm border-b border-border p-4">
         <div className="flex items-center justify-between max-w-screen-2xl mx-auto">
           <div className="flex items-center gap-4">
@@ -309,6 +407,7 @@ function GameCanvasInner() {
                 <span className="text-sm">Generating story...</span>
               </div>
             )}
+            <SaveLoadMenu />
             <Button variant="outline" size="sm" onClick={resetGame}>
               <RefreshCw className="h-4 w-4 mr-2" />
               New Game
@@ -317,7 +416,6 @@ function GameCanvasInner() {
         </div>
       </div>
 
-      {/* Sidebar */}
       <AnimatePresence>
         {showSidebar && (
           <motion.div
@@ -369,6 +467,7 @@ function GameCanvasInner() {
           onNodesChange={onNodesChange}
           onEdgesChange={onEdgesChange}
           nodeTypes={nodeTypes}
+          edgeTypes={edgeTypes}
           nodesDraggable={false}
           nodesConnectable={false}
           nodesFocusable={false}
@@ -387,8 +486,8 @@ function GameCanvasInner() {
               <div className="w-96">
                 <TimelineScrollbar
                   nodes={gameState?.nodes || []}
-                  onSeek={handleScrollbarSeek}
-                  currentPositionX={gameState?.nodes.filter((n) => n.type === "event").slice(-1)[0]?.position.x || 0}
+                  onSeek={handleScrollbarSeekCallback}
+                  currentPositionX={currentScrollPosition}
                 />
               </div>
 

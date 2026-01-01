@@ -8,6 +8,7 @@ import type {
   GameEvent,
   GameOption,
 } from "@/lib/schemas/game-schema"
+import { gamePersistence, type SavedGame } from "@/lib/utils/game-persistence"
 
 interface GameStore {
   // Game setup state
@@ -38,6 +39,13 @@ interface GameStore {
   clearNewFlags: () => void
   setPendingContent: (events: GameEvent[], options: GameOption[]) => void
   showNextEvent: () => void
+
+  // Save/Load actions
+  saveGame: (name: string) => SavedGame | null
+  loadGame: (gameId: string) => boolean
+  getSavedGames: () => SavedGame[]
+  deleteGame: (gameId: string) => void
+  autoSave: () => void
 
   // Reset
   resetGame: () => void
@@ -192,27 +200,29 @@ export const useGameStore = create<GameStore>((set, get) => ({
     let yPosition = 200
     let fromNodeId: string | null = null
 
+    // Find all existing nodes and determine the correct source for positioning
     const eventNodes = gameState.nodes.filter((n) => n.type === "event")
+    const selectedOptionNode = gameState.lastSelectedOptionId
+      ? gameState.nodes.find((n) => n.id === gameState.lastSelectedOptionId)
+      : null
 
-    if (gameState.lastSelectedOptionId) {
-      // If connecting from an option, position at the same Y level as the option
-      fromNodeId = gameState.lastSelectedOptionId
-      const fromNode = gameState.nodes.find((n) => n.id === fromNodeId)
-      if (fromNode) {
-        xOffset = fromNode.position.x + 400
-        yPosition = fromNode.position.y // Use option's exact Y position
-        console.log("[v0] Positioning from option:", fromNodeId, "at y:", yPosition)
-      }
+    if (selectedOptionNode) {
+      // Connecting from a selected option - use option's position
+      fromNodeId = selectedOptionNode.id
+      xOffset = selectedOptionNode.position.x + 400
+      yPosition = selectedOptionNode.position.y
+      console.log("[v0] Positioning from selected option:", fromNodeId, "at x:", xOffset, "y:", yPosition)
     } else if (eventNodes.length > 0) {
-      // If connecting from the last event, keep the same Y
-      const lastEventNode = eventNodes[eventNodes.length - 1]
+      // Connecting from the last event - find the rightmost event node
+      const lastEventNode = eventNodes.reduce(
+        (rightmost, node) => (node.position.x > rightmost.position.x ? node : rightmost),
+        eventNodes[0],
+      )
       fromNodeId = lastEventNode.id
       xOffset = lastEventNode.position.x + 400
       yPosition = lastEventNode.position.y
-      console.log("[v0] Positioning from event:", fromNodeId, "at y:", yPosition)
+      console.log("[v0] Positioning from last event:", fromNodeId, "at x:", xOffset, "y:", yPosition)
     }
-
-    console.log("[v0] New event position: x:", xOffset, "y:", yPosition)
 
     const newNode: CanvasNode = {
       id: nodeId,
@@ -220,6 +230,8 @@ export const useGameStore = create<GameStore>((set, get) => ({
       data: nextEvent,
       position: { x: xOffset, y: yPosition },
     }
+
+    console.log("[v0] Creating new event node at x:", xOffset, "y:", yPosition)
 
     const updatedNewNodeIds = new Set(newNodeIds)
     updatedNewNodeIds.add(nodeId)
@@ -249,7 +261,7 @@ export const useGameStore = create<GameStore>((set, get) => ({
         pendingEvents: remainingEvents,
         isWaitingForContinue: hasMoreEvents,
         isWaitingForChoice: shouldShowOptions,
-        lastSelectedOptionId: shouldShowOptions ? null : gameState.lastSelectedOptionId,
+        lastSelectedOptionId: null, // Always clear after placing an event
         currentEventId: nodeId,
       },
       newNodeIds: updatedNewNodeIds,
@@ -260,11 +272,10 @@ export const useGameStore = create<GameStore>((set, get) => ({
     if (shouldShowOptions) {
       const lastEventNodeId = nodeId
       const eventY = yPosition
-      const optionSpacing = 160
+      const optionSpacing = 200
       const totalHeight = (pendingOptions.length - 1) * optionSpacing
       const optionYStart = eventY - totalHeight / 2
-
-      console.log("[v0] Options will be placed starting at Y:", optionYStart, "centered around:", eventY)
+      const optionX = xOffset + 400
 
       pendingOptions.forEach((option, index) => {
         setTimeout(
@@ -285,7 +296,7 @@ export const useGameStore = create<GameStore>((set, get) => ({
             updatedOptNewConnIds.add(optConnId)
 
             const optionY = optionYStart + index * optionSpacing
-            console.log("[v0] Adding option", optionNodeId, "at y:", optionY)
+            console.log("[v0] Creating option node at x:", optionX, "y:", optionY)
 
             set({
               gameState: {
@@ -296,7 +307,7 @@ export const useGameStore = create<GameStore>((set, get) => ({
                     id: optionNodeId,
                     type: "option",
                     data: option,
-                    position: { x: xOffset + 400, y: optionY },
+                    position: { x: optionX, y: optionY },
                   },
                 ],
                 connections: [
@@ -309,7 +320,6 @@ export const useGameStore = create<GameStore>((set, get) => ({
                   },
                 ],
                 pendingOptions: [],
-                lastSelectedOptionId: null,
               },
               newNodeIds: updatedOptNewNodeIds,
               newConnectionIds: updatedOptNewConnIds,
@@ -319,6 +329,68 @@ export const useGameStore = create<GameStore>((set, get) => ({
         )
       })
     }
+  },
+
+  saveGame: (name: string) => {
+    const { selectedGenre, character, gameState, currentStep } = get()
+    if (!selectedGenre || !character || !gameState) {
+      console.error("Cannot save: missing game data")
+      return null
+    }
+
+    const savedGame = gamePersistence.saveGame(name, {
+      genre: selectedGenre,
+      character,
+      gameState,
+      currentStep,
+    })
+
+    return savedGame
+  },
+
+  loadGame: (gameId: string) => {
+    const savedGame = gamePersistence.loadGame(gameId)
+    if (!savedGame) {
+      console.error("Cannot load: game not found")
+      return false
+    }
+
+    // Restore Sets from arrays in saved state
+    const newNodeIds = new Set<string>()
+    const newConnectionIds = new Set<string>()
+
+    set({
+      selectedGenre: savedGame.genre,
+      character: savedGame.character,
+      gameState: savedGame.gameState,
+      currentStep: savedGame.currentStep,
+      newNodeIds,
+      newConnectionIds,
+      viewport: { x: 0, y: 0, scale: 1 },
+      isGenerating: false,
+    })
+
+    return true
+  },
+
+  getSavedGames: () => {
+    return gamePersistence.getSavedGames()
+  },
+
+  deleteGame: (gameId: string) => {
+    gamePersistence.deleteGame(gameId)
+  },
+
+  autoSave: () => {
+    const { selectedGenre, character, gameState, currentStep } = get()
+    if (!selectedGenre || !character || !gameState) return
+
+    gamePersistence.autoSave({
+      genre: selectedGenre,
+      character,
+      gameState,
+      currentStep,
+    })
   },
 
   resetGame: () =>
