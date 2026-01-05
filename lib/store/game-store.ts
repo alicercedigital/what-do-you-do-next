@@ -1,19 +1,25 @@
 import { create } from "zustand"
 import type {
   GameState,
-  GameGenre,
   PlayerCharacter,
   CanvasNode,
   CanvasConnection,
   GameEvent,
   GameOption,
 } from "@/lib/schemas/game-schema"
+import type { GameUniverse } from "@/lib/schemas/game-entity-schema"
 import { gamePersistence, type SavedGame } from "@/lib/utils/game-persistence"
+import {
+  createConflictState,
+  executeCycle,
+  type ConflictExecutionState,
+  type RoleAssignment,
+} from "@/lib/utils/conflict-executor"
 
 interface GameStore {
   // Game setup state
-  currentStep: "genre" | "character" | "playing"
-  selectedGenre: GameGenre | null
+  currentStep: "menu" | "universe-select" | "character" | "playing"
+  selectedUniverse: GameUniverse | null
   character: PlayerCharacter | null
 
   // Canvas state
@@ -23,9 +29,13 @@ interface GameStore {
   newNodeIds: Set<string>
   newConnectionIds: Set<string>
 
+  // Conflict state
+  activeConflictState: ConflictExecutionState | null
+  isConflictRunning: boolean
+
   // Actions
-  setCurrentStep: (step: "genre" | "character" | "playing") => void
-  selectGenre: (genre: GameGenre) => void
+  setCurrentStep: (step: "menu" | "universe-select" | "character" | "playing") => void
+  selectUniverse: (universe: GameUniverse) => void
   createCharacter: (character: PlayerCharacter) => void
   startGame: () => void
 
@@ -40,6 +50,16 @@ interface GameStore {
   setPendingContent: (events: GameEvent[], options: GameOption[]) => void
   showNextEvent: () => void
 
+  // Conflict actions
+  startConflict: (
+    conflictEventId: string,
+    enemyName: string,
+    enemyPortrait: string | undefined,
+    enemyAttributes: Record<string, number>,
+  ) => void
+  runConflictCycle: () => void
+  endConflict: () => void
+
   // Save/Load actions
   saveGame: (name: string) => SavedGame | null
   loadGame: (gameId: string) => boolean
@@ -49,31 +69,34 @@ interface GameStore {
 
   // Reset
   resetGame: () => void
+  goToMainMenu: () => void
 }
 
 export const useGameStore = create<GameStore>((set, get) => ({
-  currentStep: "genre",
-  selectedGenre: null,
+  currentStep: "menu",
+  selectedUniverse: null,
   character: null,
   gameState: null,
   viewport: { x: 0, y: 0, scale: 1 },
   isGenerating: false,
   newNodeIds: new Set(),
   newConnectionIds: new Set(),
+  activeConflictState: null,
+  isConflictRunning: false,
 
   setCurrentStep: (step) => set({ currentStep: step }),
 
-  selectGenre: (genre) => set({ selectedGenre: genre, currentStep: "character" }),
+  selectUniverse: (universe) => set({ selectedUniverse: universe, currentStep: "character" }),
 
   createCharacter: (character) => set({ character }),
 
   startGame: () => {
-    const { selectedGenre, character } = get()
-    if (!selectedGenre || !character) return
+    const { selectedUniverse, character } = get()
+    if (!selectedUniverse || !character) return
 
     const initialState: GameState = {
       id: crypto.randomUUID(),
-      genreId: selectedGenre.id,
+      universeId: selectedUniverse.id,
       character,
       currentHeroStep: "ordinary-world",
       nodes: [],
@@ -85,6 +108,7 @@ export const useGameStore = create<GameStore>((set, get) => ({
       pendingOptions: [],
       lastSelectedOptionId: null,
       isWaitingForContinue: false,
+      activeConflict: null,
     }
 
     set({
@@ -92,8 +116,10 @@ export const useGameStore = create<GameStore>((set, get) => ({
       currentStep: "playing",
       newNodeIds: new Set(),
       newConnectionIds: new Set(),
-      viewport: { x: 0, y: 0, scale: 1 }, // Reset viewport too
-      isGenerating: false, // Reset generating state
+      viewport: { x: 0, y: 0, scale: 1 },
+      isGenerating: false,
+      activeConflictState: null,
+      isConflictRunning: false,
     })
   },
 
@@ -155,7 +181,7 @@ export const useGameStore = create<GameStore>((set, get) => ({
         nodes: updatedNodes,
         connections: updatedConnections,
         isWaitingForChoice: false,
-        lastSelectedOptionId: optionId, // Track which option was selected
+        lastSelectedOptionId: optionId,
       },
     })
   },
@@ -200,20 +226,16 @@ export const useGameStore = create<GameStore>((set, get) => ({
     let yPosition = 200
     let fromNodeId: string | null = null
 
-    // Find all existing nodes and determine the correct source for positioning
     const eventNodes = gameState.nodes.filter((n) => n.type === "event")
     const selectedOptionNode = gameState.lastSelectedOptionId
       ? gameState.nodes.find((n) => n.id === gameState.lastSelectedOptionId)
       : null
 
     if (selectedOptionNode) {
-      // Connecting from a selected option - use option's position
       fromNodeId = selectedOptionNode.id
       xOffset = selectedOptionNode.position.x + 400
       yPosition = selectedOptionNode.position.y
-      console.log("[v0] Positioning from selected option:", fromNodeId, "at x:", xOffset, "y:", yPosition)
     } else if (eventNodes.length > 0) {
-      // Connecting from the last event - find the rightmost event node
       const lastEventNode = eventNodes.reduce(
         (rightmost, node) => (node.position.x > rightmost.position.x ? node : rightmost),
         eventNodes[0],
@@ -221,7 +243,6 @@ export const useGameStore = create<GameStore>((set, get) => ({
       fromNodeId = lastEventNode.id
       xOffset = lastEventNode.position.x + 400
       yPosition = lastEventNode.position.y
-      console.log("[v0] Positioning from last event:", fromNodeId, "at x:", xOffset, "y:", yPosition)
     }
 
     const newNode: CanvasNode = {
@@ -230,8 +251,6 @@ export const useGameStore = create<GameStore>((set, get) => ({
       data: nextEvent,
       position: { x: xOffset, y: yPosition },
     }
-
-    console.log("[v0] Creating new event node at x:", xOffset, "y:", yPosition)
 
     const updatedNewNodeIds = new Set(newNodeIds)
     updatedNewNodeIds.add(nodeId)
@@ -249,7 +268,6 @@ export const useGameStore = create<GameStore>((set, get) => ({
       updatedNewConnectionIds.add(connId)
     }
 
-    // Check if this was the last event - if so, show options next
     const hasMoreEvents = remainingEvents.length > 0
     const shouldShowOptions = !hasMoreEvents && pendingOptions.length > 0
 
@@ -261,14 +279,13 @@ export const useGameStore = create<GameStore>((set, get) => ({
         pendingEvents: remainingEvents,
         isWaitingForContinue: hasMoreEvents,
         isWaitingForChoice: shouldShowOptions,
-        lastSelectedOptionId: null, // Always clear after placing an event
+        lastSelectedOptionId: nodeId,
         currentEventId: nodeId,
       },
       newNodeIds: updatedNewNodeIds,
       newConnectionIds: updatedNewConnectionIds,
     })
 
-    // If we should show options, add them after a delay
     if (shouldShowOptions) {
       const lastEventNodeId = nodeId
       const eventY = yPosition
@@ -296,7 +313,6 @@ export const useGameStore = create<GameStore>((set, get) => ({
             updatedOptNewConnIds.add(optConnId)
 
             const optionY = optionYStart + index * optionSpacing
-            console.log("[v0] Creating option node at x:", optionX, "y:", optionY)
 
             set({
               gameState: {
@@ -320,6 +336,7 @@ export const useGameStore = create<GameStore>((set, get) => ({
                   },
                 ],
                 pendingOptions: [],
+                lastSelectedOptionId: null,
               },
               newNodeIds: updatedOptNewNodeIds,
               newConnectionIds: updatedOptNewConnIds,
@@ -331,15 +348,105 @@ export const useGameStore = create<GameStore>((set, get) => ({
     }
   },
 
+  startConflict: (conflictEventId, enemyName, enemyPortrait, enemyAttributes) => {
+    const { selectedUniverse, character } = get()
+    if (!selectedUniverse || !character) return
+
+    const conflictEvent = selectedUniverse.conflictEvents?.find((c) => c.id === conflictEventId)
+    if (!conflictEvent) {
+      console.error("Conflict event not found:", conflictEventId)
+      return
+    }
+
+    const playerAttributes: Record<string, number> = { ...character.baseAttributes }
+
+    const roleAssignments: RoleAssignment[] = [
+      {
+        roleId: "player",
+        entityName: character.name,
+        portrait: character.portraits?.neutral,
+        attributes: playerAttributes,
+      },
+      {
+        roleId: "enemy",
+        entityName: enemyName,
+        portrait: enemyPortrait,
+        attributes: enemyAttributes,
+      },
+    ]
+
+    const conflictState = createConflictState(conflictEvent, roleAssignments)
+
+    set({
+      activeConflictState: conflictState,
+      isConflictRunning: true,
+    })
+
+    const runCycles = async () => {
+      let state = get().activeConflictState
+      while (state && !state.isComplete && get().isConflictRunning) {
+        await new Promise((resolve) => setTimeout(resolve, 1500))
+        const currentState = get().activeConflictState
+        if (!currentState || currentState.isComplete) break
+
+        const newState = executeCycle(currentState)
+        set({ activeConflictState: newState })
+        state = newState
+      }
+
+      set({ isConflictRunning: false })
+    }
+
+    runCycles()
+  },
+
+  runConflictCycle: () => {
+    const { activeConflictState } = get()
+    if (!activeConflictState || activeConflictState.isComplete) return
+
+    const newState = executeCycle(activeConflictState)
+    set({ activeConflictState: newState })
+  },
+
+  endConflict: () => {
+    const { activeConflictState, gameState, character } = get()
+    if (!activeConflictState || !gameState || !character) return
+
+    if (activeConflictState.outcome) {
+      const playerRole = activeConflictState.roleStates.find((r) => r.roleId === "player")
+      if (playerRole) {
+        const updatedCharacter = {
+          ...character,
+          baseAttributes: {
+            ...character.baseAttributes,
+            ...playerRole.attributes,
+          },
+        }
+        set({
+          character: updatedCharacter,
+          gameState: {
+            ...gameState,
+            character: updatedCharacter,
+          },
+        })
+      }
+    }
+
+    set({
+      activeConflictState: null,
+      isConflictRunning: false,
+    })
+  },
+
   saveGame: (name: string) => {
-    const { selectedGenre, character, gameState, currentStep } = get()
-    if (!selectedGenre || !character || !gameState) {
+    const { selectedUniverse, character, gameState, currentStep } = get()
+    if (!selectedUniverse || !character || !gameState) {
       console.error("Cannot save: missing game data")
       return null
     }
 
     const savedGame = gamePersistence.saveGame(name, {
-      genre: selectedGenre,
+      universe: selectedUniverse,
       character,
       gameState,
       currentStep,
@@ -355,12 +462,11 @@ export const useGameStore = create<GameStore>((set, get) => ({
       return false
     }
 
-    // Restore Sets from arrays in saved state
     const newNodeIds = new Set<string>()
     const newConnectionIds = new Set<string>()
 
     set({
-      selectedGenre: savedGame.genre,
+      selectedUniverse: savedGame.universe,
       character: savedGame.character,
       gameState: savedGame.gameState,
       currentStep: savedGame.currentStep,
@@ -368,6 +474,8 @@ export const useGameStore = create<GameStore>((set, get) => ({
       newConnectionIds,
       viewport: { x: 0, y: 0, scale: 1 },
       isGenerating: false,
+      activeConflictState: null,
+      isConflictRunning: false,
     })
 
     return true
@@ -382,11 +490,11 @@ export const useGameStore = create<GameStore>((set, get) => ({
   },
 
   autoSave: () => {
-    const { selectedGenre, character, gameState, currentStep } = get()
-    if (!selectedGenre || !character || !gameState) return
+    const { selectedUniverse, character, gameState, currentStep } = get()
+    if (!selectedUniverse || !character || !gameState) return
 
     gamePersistence.autoSave({
-      genre: selectedGenre,
+      universe: selectedUniverse,
       character,
       gameState,
       currentStep,
@@ -395,13 +503,20 @@ export const useGameStore = create<GameStore>((set, get) => ({
 
   resetGame: () =>
     set({
-      currentStep: "genre",
-      selectedGenre: null,
+      currentStep: "menu",
+      selectedUniverse: null,
       character: null,
       gameState: null,
       viewport: { x: 0, y: 0, scale: 1 },
       isGenerating: false,
       newNodeIds: new Set(),
       newConnectionIds: new Set(),
+      activeConflictState: null,
+      isConflictRunning: false,
+    }),
+
+  goToMainMenu: () =>
+    set({
+      currentStep: "menu",
     }),
 }))

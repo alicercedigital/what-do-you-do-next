@@ -121,7 +121,7 @@ export function SaveLoadMenu() {
                     <div className="flex-1">
                       <div className="font-semibold">{game.name}</div>
                       <div className="text-sm text-muted-foreground">
-                        {game.genre.name} • {game.character.name}
+                        {game.genre?.name ?? "Unknown Genre"} • {game.character?.name ?? "Unknown Character"}
                       </div>
                       <div className="text-xs text-muted-foreground mt-1">{formatDate(game.timestamp)}</div>
                     </div>

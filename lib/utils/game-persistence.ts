@@ -1,4 +1,5 @@
-import type { GameState, GameGenre, PlayerCharacter } from "@/lib/schemas/game-schema"
+import type { GameState, PlayerCharacter } from "@/lib/schemas/game-schema"
+import type { GameUniverse } from "@/lib/schemas/game-entity-schema"
 
 const STORAGE_KEYS = {
   SAVED_GAMES: "game-story-generator-saved-games",
@@ -10,10 +11,10 @@ export interface SavedGame {
   id: string
   name: string
   timestamp: number
-  genre: GameGenre
+  universe: GameUniverse
   character: PlayerCharacter
   gameState: GameState
-  currentStep: "genre" | "character" | "playing"
+  currentStep: "menu" | "universe-select" | "character" | "playing"
 }
 
 export const gamePersistence = {

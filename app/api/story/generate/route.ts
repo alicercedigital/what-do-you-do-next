@@ -22,7 +22,12 @@ const storySegments = [
       },
     ],
     options: [
-      { title: "Approach with Confidence", description: "Stand tall and meet their gaze directly, showing no fear." },
+      {
+        title: "Approach with Confidence",
+        description: "Stand tall and meet their gaze directly, showing no fear.",
+        hasTest: true,
+        difficulty: 12,
+      },
       { title: "Observe from Afar", description: "Keep your distance and watch for any signs of danger." },
       { title: "Offer a Greeting", description: "Extend an open hand in peace, hoping to learn their purpose." },
     ],
@@ -47,7 +52,12 @@ const storySegments = [
     ],
     options: [
       { title: "Take the Sunlit Path", description: "Follow the well-worn road where others have traveled before." },
-      { title: "Enter the Dark Woods", description: "Brave the unknown shadows where few dare to venture." },
+      {
+        title: "Enter the Dark Woods",
+        description: "Brave the unknown shadows where few dare to venture.",
+        hasTest: true,
+        difficulty: 15,
+      },
       { title: "Forge Your Own Way", description: "Cut through the wilderness, making a new path entirely." },
     ],
   },
@@ -71,7 +81,12 @@ const storySegments = [
     options: [
       { title: "Embrace the Memory", description: "Let the past guide your present decisions and actions." },
       { title: "Push Forward", description: "Leave the past where it belongs and focus on what lies ahead." },
-      { title: "Seek Understanding", description: "Meditate on the vision to uncover its deeper meaning." },
+      {
+        title: "Seek Understanding",
+        description: "Meditate on the vision to uncover its deeper meaning.",
+        hasTest: true,
+        difficulty: 10,
+      },
     ],
   },
   {
@@ -94,7 +109,12 @@ const storySegments = [
     ],
     options: [
       { title: "Find Shelter", description: "Seek refuge and wait for the danger to pass." },
-      { title: "Press Onward", description: "Challenge the elements and continue your journey despite the odds." },
+      {
+        title: "Press Onward",
+        description: "Challenge the elements and continue your journey despite the odds.",
+        hasTest: true,
+        difficulty: 18,
+      },
       { title: "Use the Chaos", description: "Turn the storm to your advantage, letting it mask your movements." },
     ],
   },
@@ -119,7 +139,58 @@ const storySegments = [
     options: [
       { title: "Accept Their Aid", description: "Take a leap of faith and welcome this potential companion." },
       { title: "Decline Politely", description: "Thank them but continue alone, keeping your suspicions close." },
-      { title: "Test Their Loyalty", description: "Propose a small task to prove their intentions before committing." },
+      {
+        title: "Test Their Loyalty",
+        description: "Propose a small task to prove their intentions before committing.",
+        hasTest: true,
+        difficulty: 14,
+      },
+    ],
+  },
+  {
+    beats: [
+      {
+        title: "Shadows in the Mist",
+        content:
+          "The path ahead narrows as an unnatural fog rolls in. Through the haze, you glimpse movement—something large, something hungry.",
+      },
+      {
+        title: "The Creature Emerges",
+        content:
+          "A guttural growl cuts through the silence. From the mist emerges a twisted figure, its eyes gleaming with malevolent intelligence. There is no reasoning with this beast.",
+      },
+      {
+        title: "Battle Begins",
+        content:
+          "The creature lunges! You have no choice but to fight for your survival. Steel your nerves and prepare for combat.",
+        isConflict: true,
+        conflictData: {
+          conflictEventId: "combat",
+          enemyName: "Shadow Stalker",
+          enemyAttributes: {
+            hp: 50,
+            strength: 12,
+            agility: 14,
+            endurance: 10,
+          },
+        },
+      },
+    ],
+    options: [
+      {
+        title: "Aggressive Assault",
+        description: "Strike first and strike hard, overwhelming your foe with ferocity.",
+      },
+      {
+        title: "Defensive Stance",
+        description: "Weather the initial assault and look for an opening.",
+      },
+      {
+        title: "Attempt to Flee",
+        description: "Try to escape into the fog before the creature can attack.",
+        hasTest: true,
+        difficulty: 16,
+      },
     ],
   },
 ]
@@ -149,22 +220,58 @@ function generateDemoContent(step: string, stepData: (typeof heroJourneySteps)[0
   // Mix in hero journey step context for the first beat
   const stepExample = stepData?.examples[Math.floor(Math.random() * stepData.examples.length)]
 
-  const events: GameEvent[] = segment.beats.map((beat, index) => ({
-    id: `evt-${uniqueId}-${index}`,
-    type: "narrative",
-    title: index === 0 && stepData ? stepData.name : beat.title,
-    content: index === 0 && stepExample ? `${beat.content}\n\n${stepExample}` : beat.content,
-    heroJourneyStep: step as HeroJourneyStep,
-  }))
+  const events: GameEvent[] = segment.beats.map((beat, index) => {
+    const baseEvent = {
+      id: `evt-${uniqueId}-${index}`,
+      type: (beat as { isConflict?: boolean }).isConflict ? "conflict" : "narrative",
+      title: index === 0 && stepData ? stepData.name : beat.title,
+      content: index === 0 && stepExample ? `${beat.content}\n\n${stepExample}` : beat.content,
+      heroJourneyStep: step as HeroJourneyStep,
+    } as GameEvent
+
+    // Add conflict data if this is a conflict beat
+    const beatWithConflict = beat as {
+      isConflict?: boolean
+      conflictData?: {
+        conflictEventId: string
+        enemyName: string
+        enemyAttributes: Record<string, number>
+      }
+    }
+    if (beatWithConflict.isConflict && beatWithConflict.conflictData) {
+      baseEvent.conflictData = {
+        conflictEventId: beatWithConflict.conflictData.conflictEventId,
+        enemyName: beatWithConflict.conflictData.enemyName,
+        enemyPortrait: `/placeholder.svg?height=200&width=200&query=${encodeURIComponent(beatWithConflict.conflictData.enemyName)} monster dark fantasy`,
+        enemyAttributes: beatWithConflict.conflictData.enemyAttributes,
+      }
+    }
+
+    return baseEvent
+  })
 
   const lastEventId = events[events.length - 1].id
 
-  const options: GameOption[] = segment.options.map((opt, index) => ({
-    id: `opt-${uniqueId}-${index}`,
-    eventId: lastEventId,
-    title: opt.title,
-    description: opt.description,
-  }))
+  const options: GameOption[] = segment.options.map((opt, index) => {
+    const option: GameOption = {
+      id: `opt-${uniqueId}-${index}`,
+      eventId: lastEventId,
+      title: opt.title,
+      description: opt.description,
+    }
+
+    // Add attributeTest if the option has hasTest flag
+    if (opt.hasTest && opt.difficulty) {
+      option.attributeTest = {
+        attributeId: "strength", // Using a placeholder attribute
+        difficulty: opt.difficulty,
+        successEventId: `evt-${uniqueId}-success`,
+        failureEventId: `evt-${uniqueId}-failure`,
+      }
+    }
+
+    return option
+  })
 
   return { events, options }
 }

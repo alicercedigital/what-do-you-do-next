@@ -13,92 +13,92 @@ import ReactFlow, {
   Panel,
   getSmoothStepPath,
   type EdgeProps,
+  MarkerType,
 } from "reactflow"
 import "reactflow/dist/style.css"
 import { motion, AnimatePresence } from "framer-motion"
-import { Loader2, RefreshCw, Menu, X, Crosshair } from "lucide-react"
+import { Loader2, RefreshCw, Menu, X, ChevronRight } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { useGameStore } from "@/lib/store/game-store"
 import { EventCard } from "./event-card"
 import { OptionCard } from "./option-card"
+import { DiceRollCard } from "./dice-roll-card"
+import { ConflictCard } from "./conflict-card"
 import { TimelineScrollbar } from "./timeline-scrollbar"
 import { SaveLoadMenu } from "./save-load-menu"
 import { heroJourneySteps } from "@/lib/data/hero-journey"
+import { CARD_DIMENSIONS } from "./base-card"
 import type { GameEvent, GameOption } from "@/lib/schemas/game-schema"
 import useSWRMutation from "swr/mutation"
 
-const EventNode = ({ data }: { data: any }) => {
-  return (
-    <div className="pointer-events-auto">
-      <EventCard
-        event={data.event}
-        isNew={data.isNew}
-        isActive={data.isActive}
-        showContinue={data.showContinue}
-        onContinue={data.onContinue}
-      />
-    </div>
-  )
-}
+const EVENT_WIDTH = CARD_DIMENSIONS.event.width
+const EVENT_HEIGHT = CARD_DIMENSIONS.event.height
+const OPTION_WIDTH = CARD_DIMENSIONS.option.width
+const OPTION_HEIGHT = CARD_DIMENSIONS.option.height
+const DICE_ROLL_WIDTH = CARD_DIMENSIONS.diceRoll.width
+const DICE_ROLL_HEIGHT = CARD_DIMENSIONS.diceRoll.height
+const CONFLICT_WIDTH = CARD_DIMENSIONS.conflict.width
+const CONFLICT_HEIGHT = CARD_DIMENSIONS.conflict.height
 
-const OptionNode = ({ data }: { data: any }) => {
-  return (
-    <div className="pointer-events-auto">
-      <OptionCard
-        option={data.option}
-        onClick={data.onClick}
-        selected={data.selected}
-        greyedOut={data.greyedOut}
-        isNew={data.isNew}
-      />
-    </div>
-  )
-}
+const EventNode = ({ data }: { data: any }) => (
+  <div className="pointer-events-auto">
+    <EventCard
+      event={data.event}
+      isNew={data.isNew}
+      isActive={data.isActive}
+      characterPortrait={data.characterPortrait}
+      locationImage={data.locationImage}
+    />
+  </div>
+)
+
+const OptionNode = ({ data }: { data: any }) => (
+  <div className="pointer-events-auto">
+    <OptionCard
+      option={data.option}
+      onClick={data.onClick}
+      selected={data.selected}
+      greyedOut={data.greyedOut}
+      isNew={data.isNew}
+    />
+  </div>
+)
+
+const DiceRollNode = ({ data }: { data: any }) => (
+  <div className="pointer-events-auto">
+    <DiceRollCard
+      attributeName={data.attributeName}
+      targetNumber={data.targetNumber}
+      attributeValue={data.attributeValue}
+      diceRoll={data.diceRoll}
+      success={data.success}
+      characterPortrait={data.characterPortrait}
+      isNew={data.isNew}
+    />
+  </div>
+)
+
+const ConflictNode = ({ data }: { data: any }) => (
+  <div className="pointer-events-auto">
+    <ConflictCard
+      conflict={data.conflict}
+      roleStates={data.roleStates}
+      logs={data.logs}
+      currentCycle={data.currentCycle}
+      isComplete={data.isComplete}
+      outcome={data.outcome}
+      isNew={data.isNew}
+      characterPortrait={data.characterPortrait}
+    />
+  </div>
+)
 
 const nodeTypes = {
   event: EventNode,
   option: OptionNode,
-}
-
-function AnimatedEdge({ id, sourceX, sourceY, targetX, targetY, sourcePosition, targetPosition, data }: EdgeProps) {
-  const [edgePath] = getSmoothStepPath({
-    sourceX,
-    sourceY,
-    targetX,
-    targetY,
-    sourcePosition,
-    targetPosition,
-    borderRadius: 16,
-  })
-
-  const isActive = data?.active ?? true
-  const strokeColor = isActive ? "#d4a574" : "#6b7280"
-  const markerId = `arrow-${id}`
-
-  return (
-    <g>
-      <defs>
-        <marker
-          id={markerId}
-          markerWidth="12"
-          markerHeight="12"
-          refX="10"
-          refY="6"
-          orient="auto"
-          markerUnits="userSpaceOnUse"
-        >
-          <path d="M2,2 L10,6 L2,10 L4,6 Z" fill={strokeColor} />
-        </marker>
-      </defs>
-      <path id={id} d={edgePath} fill="none" stroke={strokeColor} strokeWidth={2} markerEnd={`url(#${markerId})`} />
-      {isActive && (
-        <circle r="4" fill="#d4a574">
-          <animateMotion dur="2s" repeatCount="indefinite" path={edgePath} />
-        </circle>
-      )}
-    </g>
-  )
+  diceRoll: DiceRollNode,
+  conflict: ConflictNode,
 }
 
 const edgeTypes = {
@@ -115,28 +115,52 @@ async function generateStory(url: string, { arg }: { arg: { gameStateId: string;
   return res.json()
 }
 
+function getNodeDimensions(nodeType: string, eventType?: string) {
+  if (nodeType === "option") {
+    return { width: OPTION_WIDTH, height: OPTION_HEIGHT }
+  }
+  if (nodeType === "event") {
+    if (eventType === "dice-roll") {
+      return { width: DICE_ROLL_WIDTH, height: DICE_ROLL_HEIGHT }
+    }
+    if (eventType === "conflict") {
+      return { width: CONFLICT_WIDTH, height: CONFLICT_HEIGHT }
+    }
+    return { width: EVENT_WIDTH, height: EVENT_HEIGHT }
+  }
+  return { width: EVENT_WIDTH, height: EVENT_HEIGHT }
+}
+
 function GameCanvasInner() {
   const [showSidebar, setShowSidebar] = useState(false)
   const initialGenerationStarted = useRef(false)
   const autoSaveIntervalRef = useRef<NodeJS.Timeout | null>(null)
   const handleContinueRef = useRef<() => void>(() => {})
   const handleOptionClickRef = useRef<(optionId: string) => void>(() => {})
-  const handleScrollbarSeek = useRef<(positionX: number) => void>(() => {})
 
   useEffect(() => {
-    const originalError = console.error
-    console.error = (...args) => {
-      if (
-        typeof args[0] === "string" &&
-        args[0].includes("ResizeObserver loop completed with undelivered notifications")
-      ) {
-        return
+    const handleError = (event: ErrorEvent) => {
+      if (event.message?.includes("ResizeObserver loop completed with undelivered notifications")) {
+        event.preventDefault()
+        event.stopPropagation()
+        return false
       }
-      originalError.apply(console, args)
     }
 
+    const handleUnhandledRejection = (event: PromiseRejectionEvent) => {
+      if (event.reason?.message?.includes("ResizeObserver loop completed with undelivered notifications")) {
+        event.preventDefault()
+        event.stopPropagation()
+        return false
+      }
+    }
+
+    window.addEventListener("error", handleError)
+    window.addEventListener("unhandledrejection", handleUnhandledRejection)
+
     return () => {
-      console.error = originalError
+      window.removeEventListener("error", handleError)
+      window.removeEventListener("unhandledrejection", handleUnhandledRejection)
     }
   }, [])
 
@@ -146,7 +170,7 @@ function GameCanvasInner() {
 
   const {
     gameState,
-    selectedGenre,
+    selectedUniverse,
     character,
     isGenerating,
     newNodeIds,
@@ -158,6 +182,10 @@ function GameCanvasInner() {
     setPendingContent,
     showNextEvent,
     autoSave,
+    activeConflictState,
+    isConflictRunning,
+    startConflict,
+    endConflict,
   } = useGameStore()
 
   const { trigger: triggerGeneration } = useSWRMutation("/api/story/generate", generateStory)
@@ -185,71 +213,127 @@ function GameCanvasInner() {
     }
   }, [gameState, isGenerating, triggerGeneration, setIsGenerating, setPendingContent, showNextEvent])
 
-  const centerOnLastEvent = useCallback(() => {
-    if (!gameState) return
+  const centerOnNode = useCallback(
+    (
+      node: { position: { x: number; y: number }; type: string; data?: any },
+      connectedNodes: { position: { x: number; y: number }; type: string }[] = [],
+    ) => {
+      const { width: nodeWidth, height: nodeHeight } = getNodeDimensions(
+        node.type,
+        node.type === "event" ? (node.data as GameEvent)?.type : undefined,
+      )
 
-    const eventNodes = gameState.nodes.filter((n) => n.type === "event")
+      if (connectedNodes.length > 0) {
+        const allNodes = [node, ...connectedNodes]
+        const minX = Math.min(...allNodes.map((n) => n.position.x))
+        const maxX = Math.max(
+          node.position.x + nodeWidth,
+          ...connectedNodes.map((n) => {
+            const dims = getNodeDimensions(n.type)
+            return n.position.x + dims.width
+          }),
+        )
+        const minY = Math.min(...allNodes.map((n) => n.position.y))
+        const maxY = Math.max(
+          node.position.y + nodeHeight,
+          ...connectedNodes.map((n) => {
+            const dims = getNodeDimensions(n.type)
+            return n.position.y + dims.height
+          }),
+        )
+
+        const padding = 150
+        fitBounds(
+          {
+            x: minX - padding,
+            y: minY - padding,
+            width: maxX - minX + padding * 2,
+            height: maxY - minY + padding * 2,
+          },
+          { duration: 800, padding: 80, maxZoom: 0.75 },
+        )
+      } else {
+        const centerX = node.position.x + nodeWidth / 2
+        const centerY = node.position.y + nodeHeight / 2
+        setCenter(centerX, centerY, { zoom: 0.75, duration: 800 })
+      }
+    },
+    [fitBounds, setCenter],
+  )
+
+  const centerOnLastEvent = useCallback(() => {
+    const currentGameState = useGameStore.getState().gameState
+    if (!currentGameState) return
+
+    const eventNodes = currentGameState.nodes.filter((n) => n.type === "event")
     if (eventNodes.length === 0) return
 
     const lastEvent = eventNodes[eventNodes.length - 1]
-
-    const connectedOptionIds = gameState.connections
+    const connectedOptionIds = currentGameState.connections
       .filter((conn) => conn.fromNodeId === lastEvent.id)
       .map((conn) => conn.toNodeId)
 
-    const connectedOptions = gameState.nodes.filter((n) => n.type === "option" && connectedOptionIds.includes(n.id))
+    const connectedOptions = currentGameState.nodes.filter(
+      (n) => n.type === "option" && connectedOptionIds.includes(n.id),
+    )
 
-    const EVENT_WIDTH = 320
-    const EVENT_HEIGHT = 200
-    const OPTION_WIDTH = 280
-    const OPTION_HEIGHT = 140
-
-    if (connectedOptions.length > 0) {
-      const minX = Math.min(lastEvent.position.x, ...connectedOptions.map((n) => n.position.x))
-      const maxX = Math.max(
-        lastEvent.position.x + EVENT_WIDTH,
-        ...connectedOptions.map((n) => n.position.x + OPTION_WIDTH),
-      )
-      const minY = Math.min(lastEvent.position.y, ...connectedOptions.map((n) => n.position.y))
-      const maxY = Math.max(
-        lastEvent.position.y + EVENT_HEIGHT,
-        ...connectedOptions.map((n) => n.position.y + OPTION_HEIGHT),
-      )
-
-      const padding = 80
-      fitBounds(
-        {
-          x: minX - padding,
-          y: minY - padding,
-          width: maxX - minX + padding * 2,
-          height: maxY - minY + padding * 2,
-        },
-        { duration: 800 },
-      )
-    } else {
-      const centerX = lastEvent.position.x + EVENT_WIDTH / 2
-      const centerY = lastEvent.position.y + EVENT_HEIGHT / 2
-      setCenter(centerX, centerY, { zoom: 1, duration: 800 })
-    }
-  }, [gameState, fitBounds, setCenter])
+    centerOnNode(lastEvent, connectedOptions)
+  }, [centerOnNode])
 
   const handleContinue = useCallback(() => {
-    console.log("[v0] handleContinue called")
-    showNextEvent()
+    centerOnLastEvent()
     setTimeout(() => {
-      centerOnLastEvent()
-    }, 200)
+      showNextEvent()
+    }, 500)
   }, [showNextEvent, centerOnLastEvent])
 
   const handleOptionClick = useCallback(
     (optionId: string) => {
-      console.log("[v0] handleOptionClick called:", optionId)
+      const optionNode = gameState?.nodes.find((n) => n.id === optionId)
+      if (optionNode && optionNode.type === "option") {
+        const option = optionNode.data as GameOption
+
+        if (option.attributeTest && selectedUniverse) {
+          const diceRoll = Math.floor(Math.random() * 20) + 1
+          const attributeValue = character?.baseAttributes[option.attributeTest.attributeId] || 0
+          const total = attributeValue + diceRoll
+          const success = total >= option.attributeTest.difficulty
+
+          const attribute = selectedUniverse.attributes?.find((attr) => attr.id === option.attributeTest!.attributeId)
+
+          const diceRollEvent: GameEvent = {
+            type: "dice-roll",
+            title: `${attribute?.name || "Attribute"} Test`,
+            content: `Rolling against difficulty ${option.attributeTest.difficulty}...`,
+            diceRollData: {
+              attributeName: attribute?.name || "Attribute",
+              targetNumber: option.attributeTest.difficulty,
+              attributeValue,
+              diceRoll,
+              success,
+            },
+          }
+
+          selectOption(optionId)
+          setPendingContent([diceRollEvent], [])
+
+          setTimeout(() => {
+            showNextEvent()
+            setTimeout(() => {
+              handleGenerateStory()
+            }, 3000)
+          }, 100)
+
+          return
+        }
+      }
+
       selectOption(optionId)
       setTimeout(() => {
         handleGenerateStory()
       }, 800)
     },
-    [selectOption, handleGenerateStory],
+    [selectOption, handleGenerateStory, gameState, character, selectedUniverse, setPendingContent, showNextEvent],
   )
 
   useEffect(() => {
@@ -263,12 +347,56 @@ function GameCanvasInner() {
     const eventNodes = gameState.nodes.filter((n) => n.type === "event")
     const lastEventNodeId = eventNodes.length > 0 ? eventNodes[eventNodes.length - 1].id : null
     const activeEventId = gameState.currentEventId || lastEventNodeId
-    const isWaitingForContinue = gameState.isWaitingForContinue && (gameState.pendingEvents?.length ?? 0) > 0
 
     const flowNodes: Node[] = gameState.nodes.map((node) => {
       const isNew = newNodeIds.has(node.id)
 
       if (node.type === "event") {
+        const event = node.data as GameEvent
+
+        // Dice roll nodes
+        if (event.type === "dice-roll" && event.diceRollData) {
+          return {
+            id: node.id,
+            type: "diceRoll",
+            position: node.position,
+            draggable: false,
+            selectable: false,
+            focusable: false,
+            data: {
+              ...event.diceRollData,
+              characterPortrait: character?.portraits?.neutral,
+              isNew,
+            },
+          }
+        }
+
+        // Conflict nodes
+        if (event.type === "conflict" && event.conflictData && activeConflictState) {
+          const conflictEvent = selectedUniverse?.conflictEvents?.find(
+            (c) => c.id === event.conflictData?.conflictEventId,
+          )
+          return {
+            id: node.id,
+            type: "conflict",
+            position: node.position,
+            draggable: false,
+            selectable: false,
+            focusable: false,
+            data: {
+              conflict: conflictEvent,
+              roleStates: activeConflictState.roleStates,
+              logs: activeConflictState.logs,
+              currentCycle: activeConflictState.currentCycle,
+              isComplete: activeConflictState.isComplete,
+              outcome: activeConflictState.outcome,
+              isNew,
+              characterPortrait: character?.portraits?.neutral,
+            },
+          }
+        }
+
+        // Standard event nodes
         return {
           id: node.id,
           type: "event",
@@ -277,45 +405,56 @@ function GameCanvasInner() {
           selectable: false,
           focusable: false,
           data: {
-            event: node.data as GameEvent,
+            event,
             isNew,
             isActive: node.id === activeEventId,
-            showContinue: isWaitingForContinue && node.id === lastEventNodeId,
-            onContinue: () => handleContinueRef.current(),
-          },
-        }
-      } else {
-        return {
-          id: node.id,
-          type: "option",
-          position: node.position,
-          draggable: false,
-          selectable: false,
-          focusable: false,
-          data: {
-            option: node.data as GameOption,
-            onClick: () => handleOptionClickRef.current(node.id),
-            selected: node.selected,
-            greyedOut: node.greyedOut,
-            isNew,
+            characterPortrait: character?.portraits?.neutral,
+            locationImage: event.locationChange
+              ? `/placeholder.svg?height=128&width=320&query=${encodeURIComponent(event.locationChange || "fantasy landscape")}`
+              : undefined,
           },
         }
       }
+
+      // Option nodes
+      return {
+        id: node.id,
+        type: "option",
+        position: node.position,
+        draggable: false,
+        selectable: false,
+        focusable: false,
+        data: {
+          option: node.data as GameOption,
+          onClick: () => handleOptionClickRef.current(node.id),
+          selected: node.selected,
+          greyedOut: node.greyedOut,
+          isNew,
+        },
+      }
     })
 
-    const flowEdges: Edge[] = gameState.connections.map((conn) => ({
-      id: conn.id,
-      source: conn.fromNodeId,
-      target: conn.toNodeId,
-      type: "animated",
-      data: {
-        active: conn.active,
-      },
-    }))
+    const validNodeIds = new Set(gameState.nodes.map((n) => n.id))
+
+    const flowEdges: Edge[] = gameState.connections
+      .filter((conn) => validNodeIds.has(conn.fromNodeId) && validNodeIds.has(conn.toNodeId))
+      .map((conn) => ({
+        id: conn.id,
+        source: conn.fromNodeId,
+        target: conn.toNodeId,
+        type: "animated",
+        animated: true,
+        style: { stroke: conn.active ? "#d4a574" : "#6b7280", strokeWidth: 2 },
+        markerEnd: {
+          type: MarkerType.ArrowClosed,
+          color: conn.active ? "#d4a574" : "#6b7280",
+        },
+        data: { active: conn.active },
+      }))
 
     setNodes(flowNodes)
     setEdges(flowEdges)
-  }, [gameState, newNodeIds, newConnectionIds, setNodes, setEdges])
+  }, [gameState, newNodeIds, newConnectionIds, setNodes, setEdges, character, activeConflictState, selectedUniverse])
 
   useEffect(() => {
     if (gameState && gameState.nodes.length === 0 && !isGenerating && !initialGenerationStarted.current) {
@@ -340,8 +479,7 @@ function GameCanvasInner() {
     if (gameState && gameState.nodes.length > 0) {
       autoSaveIntervalRef.current = setInterval(() => {
         autoSave()
-        console.log("[v0] Auto-saved game")
-      }, 30000) // Auto-save every 30 seconds
+      }, 30000)
 
       return () => {
         if (autoSaveIntervalRef.current) {
@@ -355,7 +493,6 @@ function GameCanvasInner() {
     (targetX: number) => {
       if (!gameState) return
 
-      // Find the nearest node to the target X position
       const nearestNode = gameState.nodes.reduce((closest, node) => {
         const currentDist = Math.abs(node.position.x - targetX)
         const closestDist = Math.abs(closest.position.x - targetX)
@@ -363,26 +500,29 @@ function GameCanvasInner() {
       })
 
       if (nearestNode) {
-        const NODE_WIDTH = nearestNode.type === "event" ? 320 : 280
-        const NODE_HEIGHT = nearestNode.type === "event" ? 200 : 140
-        const centerX = nearestNode.position.x + NODE_WIDTH / 2
-        const centerY = nearestNode.position.y + NODE_HEIGHT / 2
-        setCenter(centerX, centerY, { zoom: 1, duration: 600 })
+        const { width: nodeWidth, height: nodeHeight } = getNodeDimensions(
+          nearestNode.type,
+          nearestNode.type === "event" ? (nearestNode.data as GameEvent)?.type : undefined,
+        )
+        const centerX = nearestNode.position.x + nodeWidth / 2
+        const centerY = nearestNode.position.y + nodeHeight / 2
+        setCenter(centerX, centerY, { zoom: 0.75, duration: 600 })
       }
     },
     [gameState, setCenter],
   )
 
-  if (!gameState || !selectedGenre || !character) return null
+  if (!gameState || !selectedUniverse || !character) return null
 
   const currentStep = heroJourneySteps.find((s) => s.id === gameState.currentHeroStep)
-
   const eventNodes = gameState.nodes.filter((n) => n.type === "event")
   const lastEventNode = eventNodes[eventNodes.length - 1]
   const currentScrollPosition = lastEventNode ? lastEventNode.position.x : 0
+  const isWaitingForContinue = gameState.isWaitingForContinue && (gameState.pendingEvents?.length ?? 0) > 0
 
   return (
     <div className="fixed inset-0 bg-background overflow-hidden">
+      {/* Header */}
       <div className="absolute top-0 left-0 right-0 z-20 bg-background/80 backdrop-blur-sm border-b border-border p-4">
         <div className="flex items-center justify-between max-w-screen-2xl mx-auto">
           <div className="flex items-center gap-4">
@@ -391,7 +531,7 @@ function GameCanvasInner() {
             </Button>
             <div>
               <h1 className="font-bold">{character.name}</h1>
-              <p className="text-xs text-muted-foreground">{selectedGenre.name}</p>
+              <p className="text-xs text-muted-foreground">{selectedUniverse.name}</p>
             </div>
           </div>
 
@@ -407,6 +547,12 @@ function GameCanvasInner() {
                 <span className="text-sm">Generating story...</span>
               </div>
             )}
+            {isConflictRunning && (
+              <div className="flex items-center gap-2 text-destructive">
+                <Loader2 className="h-4 w-4 animate-spin" />
+                <span className="text-sm">Conflict in progress...</span>
+              </div>
+            )}
             <SaveLoadMenu />
             <Button variant="outline" size="sm" onClick={resetGame}>
               <RefreshCw className="h-4 w-4 mr-2" />
@@ -416,6 +562,7 @@ function GameCanvasInner() {
         </div>
       </div>
 
+      {/* Sidebar */}
       <AnimatePresence>
         {showSidebar && (
           <motion.div
@@ -426,20 +573,26 @@ function GameCanvasInner() {
           >
             <h3 className="font-semibold mb-4">Character Stats</h3>
             <div className="space-y-3">
-              {selectedGenre.attributes.map((attr) => (
-                <div key={attr.id} className="p-3 rounded-lg bg-secondary/30">
-                  <div className="flex items-center justify-between mb-1">
-                    <span className="text-sm font-medium">{attr.name}</span>
-                    <span className="text-lg font-bold text-primary">{character.attributes[attr.id]}</span>
+              {selectedUniverse.attributes
+                ?.filter((attr) => attr.category === "distributable")
+                .map((attr) => (
+                  <div key={attr.id} className="p-3 rounded-lg bg-secondary/30">
+                    <div className="flex items-center justify-between mb-1">
+                      <span className="text-sm font-medium">{attr.name}</span>
+                      <span className="text-lg font-bold text-primary">{character.baseAttributes[attr.id] || 0}</span>
+                    </div>
+                    <p className="text-xs text-muted-foreground">
+                      {
+                        attr.distributableConfig?.benchmarks.find(
+                          (b) => b.value === (character.baseAttributes[attr.id] || 0),
+                        )?.label
+                      }
+                    </p>
                   </div>
-                  <p className="text-xs text-muted-foreground">
-                    {attr.benchmarks.find((b) => b.value === character.attributes[attr.id])?.label}
-                  </p>
-                </div>
-              ))}
+                ))}
             </div>
 
-            <h3 className="font-semibold mt-6 mb-4">Hero's Journey</h3>
+            <h3 className="font-semibold mt-6 mb-4">Hero&apos;s Journey</h3>
             <div className="space-y-2">
               {heroJourneySteps.map((step, index) => (
                 <div
@@ -456,10 +609,25 @@ function GameCanvasInner() {
                 </div>
               ))}
             </div>
+
+            {/* Conflict Events */}
+            {selectedUniverse.conflictEvents && selectedUniverse.conflictEvents.length > 0 && (
+              <>
+                <h3 className="font-semibold mt-6 mb-4">Available Conflicts</h3>
+                <div className="space-y-2">
+                  {selectedUniverse.conflictEvents.map((conflict) => (
+                    <div key={conflict.id} className="p-2 rounded text-xs bg-secondary/30">
+                      {conflict.name}
+                    </div>
+                  ))}
+                </div>
+              </>
+            )}
           </motion.div>
         )}
       </AnimatePresence>
 
+      {/* Canvas */}
       <div className="absolute inset-0 pt-16">
         <ReactFlow
           nodes={nodes}
@@ -474,16 +642,21 @@ function GameCanvasInner() {
           edgesFocusable={false}
           elementsSelectable={false}
           fitView
+          fitViewOptions={{
+            padding: 0.3,
+            maxZoom: 0.75,
+            minZoom: 0.3,
+          }}
           minZoom={0.3}
           maxZoom={2}
-          defaultViewport={{ x: 0, y: 0, zoom: 1 }}
+          defaultViewport={{ x: 0, y: 0, zoom: 0.75 }}
           proOptions={{ hideAttribution: true }}
         >
           <Background />
 
           <Panel position="bottom-center" className="!m-0 !bottom-6">
             <div className="flex items-center gap-3 bg-card/90 backdrop-blur-sm border border-border rounded-lg p-3 shadow-lg">
-              <div className="w-96">
+              <div className="w-80">
                 <TimelineScrollbar
                   nodes={gameState?.nodes || []}
                   onSeek={handleScrollbarSeekCallback}
@@ -491,16 +664,37 @@ function GameCanvasInner() {
                 />
               </div>
 
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={centerOnLastEvent}
-                className="shrink-0 bg-transparent"
-                title="Center on latest event"
-              >
-                <Crosshair className="h-4 w-4 mr-2" />
-                Center
-              </Button>
+              <AnimatePresence>
+                {isWaitingForContinue && (
+                  <motion.div
+                    initial={{ opacity: 0, scale: 0.9 }}
+                    animate={{ opacity: 1, scale: 1 }}
+                    exit={{ opacity: 0, scale: 0.9 }}
+                    transition={{ type: "spring", stiffness: 300 }}
+                  >
+                    <Button onClick={handleContinue} className="group font-mono" variant="default">
+                      Continue
+                      <ChevronRight className="ml-2 h-4 w-4 transition-transform group-hover:translate-x-1" />
+                    </Button>
+                  </motion.div>
+                )}
+              </AnimatePresence>
+
+              <AnimatePresence>
+                {activeConflictState?.isComplete && (
+                  <motion.div
+                    initial={{ opacity: 0, scale: 0.9 }}
+                    animate={{ opacity: 1, scale: 1 }}
+                    exit={{ opacity: 0, scale: 0.9 }}
+                    transition={{ type: "spring", stiffness: 300 }}
+                  >
+                    <Button onClick={endConflict} className="group font-mono" variant="default">
+                      Continue Story
+                      <ChevronRight className="ml-2 h-4 w-4 transition-transform group-hover:translate-x-1" />
+                    </Button>
+                  </motion.div>
+                )}
+              </AnimatePresence>
             </div>
           </Panel>
 
@@ -516,5 +710,41 @@ export function GameCanvas() {
     <ReactFlowProvider>
       <GameCanvasInner />
     </ReactFlowProvider>
+  )
+}
+
+function AnimatedEdge({
+  id,
+  sourceX,
+  sourceY,
+  targetX,
+  targetY,
+  sourcePosition,
+  targetPosition,
+  data,
+  markerEnd,
+}: EdgeProps) {
+  const [edgePath] = getSmoothStepPath({
+    sourceX,
+    sourceY,
+    targetX,
+    targetY,
+    sourcePosition,
+    targetPosition,
+    borderRadius: 16,
+  })
+
+  const isActive = data?.active ?? true
+  const strokeColor = isActive ? "#d4a574" : "#6b7280"
+
+  return (
+    <>
+      <path id={id} d={edgePath} fill="none" stroke={strokeColor} strokeWidth={2} markerEnd={markerEnd as string} />
+      {isActive && (
+        <circle r="4" fill="#d4a574">
+          <animateMotion dur="2s" repeatCount="indefinite" path={edgePath} />
+        </circle>
+      )}
+    </>
   )
 }
