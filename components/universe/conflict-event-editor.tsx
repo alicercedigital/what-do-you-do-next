@@ -1,7 +1,5 @@
 "use client";
 
-import type React from "react";
-
 import { useState } from "react";
 import {
   Plus,
@@ -16,8 +14,8 @@ import {
   GraduationCap,
   MessageSquare,
   Sparkles,
-  AlertTriangle,
   Copy,
+  AlertTriangle,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -58,14 +56,16 @@ import {
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
 import { IconPicker } from "./icon-picker";
-import { ConflictFormulaBuilder } from "./conflict-formula-builder";
+import { GenericFormulaBuilder } from "./generic-formula-builder";
+import { ConflictRoleEditor } from "./conflict-role-editor";
+import { ConflictCycleStepEditor } from "./conflict-cycle-step-editor";
+import { ConflictOutcomeEditor } from "./conflict-outcome-editor";
 import type {
   ConflictEvent,
   ConflictRole,
   CycleStep,
   ConflictOutcome,
   CycleStepAction,
-  RoleEntityType,
 } from "@/lib/schemas/conflict-event-schema";
 import { CONFLICT_TEMPLATES } from "@/lib/schemas/conflict-event-schema";
 import type { GameAttribute } from "@/lib/schemas/game-entity-schema";
@@ -539,97 +539,12 @@ export function ConflictEventEditor({
                 <div className="space-y-4">
                   {conflict.roles.map((role) => (
                     <Card key={role.id} className="py-3">
-                      <CardContent className="p-4 space-y-4">
-                        <div className="flex items-start justify-between gap-4">
-                          <div className="flex-1 grid grid-cols-2 gap-4">
-                            <div className="space-y-2">
-                              <Label>Name</Label>
-                              <Input
-                                value={role.name}
-                                onChange={(e) =>
-                                  updateRole(role.id, { name: e.target.value })
-                                }
-                                placeholder="e.g., Player, Enemy"
-                              />
-                            </div>
-                            <div className="space-y-2">
-                              <Label>Entity Type</Label>
-                              <Select
-                                value={role.entityType}
-                                onValueChange={(value) =>
-                                  updateRole(role.id, {
-                                    entityType: value as RoleEntityType,
-                                  })
-                                }
-                              >
-                                <SelectTrigger>
-                                  <SelectValue />
-                                </SelectTrigger>
-                                <SelectContent>
-                                  <SelectItem value="character">
-                                    Character
-                                  </SelectItem>
-                                  <SelectItem value="location">
-                                    Location
-                                  </SelectItem>
-                                  <SelectItem value="item">Item</SelectItem>
-                                </SelectContent>
-                              </Select>
-                            </div>
-                          </div>
-                          <AlertDialog>
-                            <AlertDialogTrigger asChild>
-                              <Button
-                                variant="ghost"
-                                size="icon"
-                                className="text-destructive"
-                              >
-                                <Trash2 className="h-4 w-4" />
-                              </Button>
-                            </AlertDialogTrigger>
-                            <AlertDialogContent>
-                              <AlertDialogHeader>
-                                <AlertDialogTitle>Delete Role</AlertDialogTitle>
-                                <AlertDialogDescription>
-                                  Are you sure you want to delete "{role.name}"?
-                                  This will also remove any references to this
-                                  role in formulas.
-                                </AlertDialogDescription>
-                              </AlertDialogHeader>
-                              <AlertDialogFooter>
-                                <AlertDialogCancel>Cancel</AlertDialogCancel>
-                                <AlertDialogAction
-                                  onClick={() => deleteRole(role.id)}
-                                >
-                                  Delete
-                                </AlertDialogAction>
-                              </AlertDialogFooter>
-                            </AlertDialogContent>
-                          </AlertDialog>
-                        </div>
-                        <div className="space-y-2">
-                          <Label>Description</Label>
-                          <Input
-                            value={role.description}
-                            onChange={(e) =>
-                              updateRole(role.id, {
-                                description: e.target.value,
-                              })
-                            }
-                            placeholder="Describe this role's purpose"
-                          />
-                        </div>
-                        <div className="flex items-center gap-2">
-                          <Switch
-                            checked={role.required}
-                            onCheckedChange={(checked) =>
-                              updateRole(role.id, { required: checked })
-                            }
-                          />
-                          <Label className="text-sm">
-                            Required for conflict to start
-                          </Label>
-                        </div>
+                      <CardContent className="p-4">
+                        <ConflictRoleEditor
+                          role={role}
+                          onUpdate={(updates) => updateRole(role.id, updates)}
+                          onDelete={() => deleteRole(role.id)}
+                        />
                       </CardContent>
                     </Card>
                   ))}
@@ -787,132 +702,13 @@ export function ConflictEventEditor({
                             </CardHeader>
                           </CollapsibleTrigger>
                           <CollapsibleContent>
-                            <CardContent className="pt-0 pb-4 space-y-4">
-                              <div className="grid grid-cols-2 gap-4">
-                                <div className="space-y-2">
-                                  <Label>Step Name</Label>
-                                  <Input
-                                    value={step.name}
-                                    onChange={(e) =>
-                                      updateStep(step.id, {
-                                        name: e.target.value,
-                                      })
-                                    }
-                                    placeholder="Name this step"
-                                  />
-                                </div>
-                                <div className="space-y-2">
-                                  <Label>Action Type</Label>
-                                  <Select
-                                    value={step.action.type}
-                                    onValueChange={(value) => {
-                                      // Create new action based on type
-                                      let newAction: CycleStepAction;
-                                      switch (value) {
-                                        case "modify-attribute":
-                                          newAction = {
-                                            type: "modify-attribute",
-                                            roleId: conflict.roles[0]?.id || "",
-                                            attributeId: "",
-                                            operation: "subtract",
-                                            formula: [],
-                                          };
-                                          break;
-                                        case "check-condition":
-                                          newAction = {
-                                            type: "check-condition",
-                                            condition: [],
-                                            thenSteps: [],
-                                          };
-                                          break;
-                                        case "set-variable":
-                                          newAction = {
-                                            type: "set-variable",
-                                            variableName: "",
-                                            formula: [],
-                                          };
-                                          break;
-                                        case "log-message":
-                                          newAction = {
-                                            type: "log-message",
-                                            template: "",
-                                          };
-                                          break;
-                                        case "trigger-outcome":
-                                          newAction = {
-                                            type: "trigger-outcome",
-                                            outcomeId:
-                                              conflict.outcomes[0]?.id || "",
-                                          };
-                                          break;
-                                        case "roll-dice":
-                                          newAction = {
-                                            type: "roll-dice",
-                                            variableName: "roll",
-                                            diceCount: 1,
-                                            diceSides: 20,
-                                          };
-                                          break;
-                                        case "compare-attributes":
-                                          newAction = {
-                                            type: "compare-attributes",
-                                            comparisons: [],
-                                            resultVariable: "winner",
-                                          };
-                                          break;
-                                        default:
-                                          return;
-                                      }
-                                      updateStepAction(step.id, newAction);
-                                    }}
-                                  >
-                                    <SelectTrigger>
-                                      <SelectValue />
-                                    </SelectTrigger>
-                                    <SelectContent>
-                                      <SelectItem value="check-condition">
-                                        Check Condition
-                                      </SelectItem>
-                                      <SelectItem value="modify-attribute">
-                                        Modify Attribute
-                                      </SelectItem>
-                                      <SelectItem value="trigger-outcome">
-                                        Trigger Outcome
-                                      </SelectItem>
-                                      <SelectItem value="roll-dice">
-                                        Roll Dice
-                                      </SelectItem>
-                                      <SelectItem value="set-variable">
-                                        Set Variable
-                                      </SelectItem>
-                                      <SelectItem value="log-message">
-                                        Log Message
-                                      </SelectItem>
-                                      <SelectItem value="compare-attributes">
-                                        Compare Attributes
-                                      </SelectItem>
-                                    </SelectContent>
-                                  </Select>
-                                </div>
-                              </div>
-
-                              <div className="space-y-2">
-                                <Label>Description (optional)</Label>
-                                <Input
-                                  value={step.description || ""}
-                                  onChange={(e) =>
-                                    updateStep(step.id, {
-                                      description: e.target.value,
-                                    })
-                                  }
-                                  placeholder="Explain what this step does"
-                                />
-                              </div>
-
-                              {/* Action-specific fields */}
-                              <StepActionEditor
-                                action={step.action}
-                                onChange={(action) =>
+                            <CardContent className="pt-0 pb-4">
+                              <ConflictCycleStepEditor
+                                step={step}
+                                onUpdate={(updates) =>
+                                  updateStep(step.id, updates)
+                                }
+                                onActionChange={(action) =>
                                   updateStepAction(step.id, action)
                                 }
                                 roles={conflict.roles}
@@ -1042,95 +838,15 @@ export function ConflictEventEditor({
                             </CardHeader>
                           </CollapsibleTrigger>
                           <CollapsibleContent>
-                            <CardContent className="pt-0 pb-4 space-y-4">
-                              <div className="grid grid-cols-2 gap-4">
-                                <div className="space-y-2">
-                                  <Label>Name</Label>
-                                  <Input
-                                    value={outcome.name}
-                                    onChange={(e) =>
-                                      updateOutcome(outcome.id, {
-                                        name: e.target.value,
-                                      })
-                                    }
-                                    placeholder="e.g., Victory, Defeat"
-                                  />
-                                </div>
-                                <div className="space-y-2">
-                                  <Label>Type</Label>
-                                  <Select
-                                    value={outcome.type}
-                                    onValueChange={(value) =>
-                                      updateOutcome(outcome.id, {
-                                        type: value as
-                                          | "success"
-                                          | "failure"
-                                          | "neutral",
-                                      })
-                                    }
-                                  >
-                                    <SelectTrigger>
-                                      <SelectValue />
-                                    </SelectTrigger>
-                                    <SelectContent>
-                                      <SelectItem value="success">
-                                        Success
-                                      </SelectItem>
-                                      <SelectItem value="failure">
-                                        Failure
-                                      </SelectItem>
-                                      <SelectItem value="neutral">
-                                        Neutral
-                                      </SelectItem>
-                                    </SelectContent>
-                                  </Select>
-                                </div>
-                              </div>
-
-                              <div className="space-y-2">
-                                <Label>Description</Label>
-                                <Textarea
-                                  value={outcome.description}
-                                  onChange={(e) =>
-                                    updateOutcome(outcome.id, {
-                                      description: e.target.value,
-                                    })
-                                  }
-                                  placeholder="What happens when this outcome occurs"
-                                  rows={2}
-                                />
-                              </div>
-
-                              <div className="flex items-center gap-2">
-                                <Switch
-                                  checked={outcome.triggersGameOver}
-                                  onCheckedChange={(checked) =>
-                                    updateOutcome(outcome.id, {
-                                      triggersGameOver: checked,
-                                    })
-                                  }
-                                />
-                                <Label className="text-sm">
-                                  Triggers Game Over
-                                </Label>
-                              </div>
-
-                              {conflict.roles.length > 0 &&
-                                attributes.length > 0 && (
-                                  <div className="space-y-2">
-                                    <Label>Experience Formula (optional)</Label>
-                                    <ConflictFormulaBuilder
-                                      tokens={outcome.experienceFormula || []}
-                                      onChange={(tokens) =>
-                                        updateOutcome(outcome.id, {
-                                          experienceFormula: tokens,
-                                        })
-                                      }
-                                      roles={conflict.roles}
-                                      attributes={attributes}
-                                    />
-                                  </div>
-                                )}
+                            <CardContent className="pt-0 pb-4">
+                              <ConflictOutcomeEditor
+                                outcome={outcome}
+                                onUpdate={(updates) =>
+                                  updateOutcome(outcome.id, updates)
+                                }
+                                roles={conflict.roles}
+                                attributes={attributes}
+                              />
                             </CardContent>
                           </CollapsibleContent>
                         </Card>
@@ -1145,361 +861,4 @@ export function ConflictEventEditor({
       </Tabs>
     </EditorShell>
   );
-}
-
-// Step Action Editor Component
-interface StepActionEditorProps {
-  action: CycleStepAction;
-  onChange: (action: CycleStepAction) => void;
-  roles: ConflictRole[];
-  attributes: GameAttribute[];
-  outcomes: ConflictOutcome[];
-  allSteps: CycleStep[];
-}
-
-function StepActionEditor({
-  action,
-  onChange,
-  roles,
-  attributes,
-  outcomes,
-  allSteps,
-}: StepActionEditorProps) {
-  switch (action.type) {
-    case "check-condition":
-      return (
-        <div className="space-y-4 p-4 bg-muted/30 rounded-lg">
-          <Label className="text-sm font-medium">Condition</Label>
-          <ConflictFormulaBuilder
-            tokens={action.condition}
-            onChange={(tokens) => onChange({ ...action, condition: tokens })}
-            roles={roles}
-            attributes={attributes}
-            allowComparisons
-            allowLogical
-          />
-          <div className="grid grid-cols-2 gap-4">
-            <div className="space-y-2">
-              <Label className="text-sm">If TRUE, execute steps:</Label>
-              <Select
-                value={action.thenSteps[0] || "_none"}
-                onValueChange={(value) =>
-                  onChange({
-                    ...action,
-                    thenSteps: value === "_none" ? [] : [value],
-                  })
-                }
-              >
-                <SelectTrigger>
-                  <SelectValue placeholder="Select step..." />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="_none">None</SelectItem>
-                  {allSteps.map((s) => (
-                    <SelectItem key={s.id} value={s.id}>
-                      {s.name}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-            <div className="space-y-2">
-              <Label className="text-sm">
-                If FALSE, execute steps (optional):
-              </Label>
-              <Select
-                value={action.elseSteps?.[0] || "_none"}
-                onValueChange={(value) =>
-                  onChange({
-                    ...action,
-                    elseSteps: value === "_none" ? undefined : [value],
-                  })
-                }
-              >
-                <SelectTrigger>
-                  <SelectValue placeholder="Select step..." />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="_none">None</SelectItem>
-                  {allSteps.map((s) => (
-                    <SelectItem key={s.id} value={s.id}>
-                      {s.name}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-          </div>
-        </div>
-      );
-
-    case "modify-attribute":
-      return (
-        <div className="space-y-4 p-4 bg-muted/30 rounded-lg">
-          <div className="grid grid-cols-3 gap-4">
-            <div className="space-y-2">
-              <Label className="text-sm">Role</Label>
-              <Select
-                value={action.roleId}
-                onValueChange={(value) =>
-                  onChange({ ...action, roleId: value })
-                }
-              >
-                <SelectTrigger>
-                  <SelectValue placeholder="Select role..." />
-                </SelectTrigger>
-                <SelectContent>
-                  {roles.map((r) => (
-                    <SelectItem key={r.id} value={r.id}>
-                      {r.name}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-            <div className="space-y-2">
-              <Label className="text-sm">Attribute</Label>
-              <Select
-                value={action.attributeId}
-                onValueChange={(value) =>
-                  onChange({ ...action, attributeId: value })
-                }
-              >
-                <SelectTrigger>
-                  <SelectValue placeholder="Select attribute..." />
-                </SelectTrigger>
-                <SelectContent>
-                  {attributes.map((a) => (
-                    <SelectItem key={a.id} value={a.id}>
-                      {a.name}
-                      {a.shortName && ` (${a.shortName})`}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-            <div className="space-y-2">
-              <Label className="text-sm">Operation</Label>
-              <Select
-                value={action.operation}
-                onValueChange={(value) =>
-                  onChange({
-                    ...action,
-                    operation: value as
-                      | "set"
-                      | "add"
-                      | "subtract"
-                      | "multiply"
-                      | "divide",
-                  })
-                }
-              >
-                <SelectTrigger>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="set">Set to</SelectItem>
-                  <SelectItem value="add">Add</SelectItem>
-                  <SelectItem value="subtract">Subtract</SelectItem>
-                  <SelectItem value="multiply">Multiply by</SelectItem>
-                  <SelectItem value="divide">Divide by</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-          </div>
-          <div className="space-y-2">
-            <Label className="text-sm">Value Formula</Label>
-            <ConflictFormulaBuilder
-              tokens={action.formula}
-              onChange={(tokens) => onChange({ ...action, formula: tokens })}
-              roles={roles}
-              attributes={attributes}
-            />
-          </div>
-        </div>
-      );
-
-    case "trigger-outcome":
-      return (
-        <div className="space-y-2 p-4 bg-muted/30 rounded-lg">
-          <Label className="text-sm">Outcome to Trigger</Label>
-          <Select
-            value={action.outcomeId}
-            onValueChange={(value) => onChange({ ...action, outcomeId: value })}
-          >
-            <SelectTrigger>
-              <SelectValue placeholder="Select outcome..." />
-            </SelectTrigger>
-            <SelectContent>
-              {outcomes.map((o) => (
-                <SelectItem key={o.id} value={o.id}>
-                  <div className="flex items-center gap-2">
-                    <Badge
-                      variant="outline"
-                      className={cn(
-                        "text-xs",
-                        o.type === "success" &&
-                          "border-green-500 text-green-500",
-                        o.type === "failure" && "border-red-500 text-red-500"
-                      )}
-                    >
-                      {o.type}
-                    </Badge>
-                    {o.name}
-                  </div>
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        </div>
-      );
-
-    case "roll-dice":
-      return (
-        <div className="space-y-4 p-4 bg-muted/30 rounded-lg">
-          <div className="grid grid-cols-3 gap-4">
-            <div className="space-y-2">
-              <Label className="text-sm">Variable Name</Label>
-              <Input
-                value={action.variableName}
-                onChange={(e) =>
-                  onChange({ ...action, variableName: e.target.value })
-                }
-                placeholder="e.g., roll, attack"
-              />
-            </div>
-            <div className="space-y-2">
-              <Label className="text-sm">Dice Count</Label>
-              <Input
-                type="number"
-                min={1}
-                value={action.diceCount}
-                onChange={(e) =>
-                  onChange({
-                    ...action,
-                    diceCount: Number.parseInt(e.target.value) || 1,
-                  })
-                }
-              />
-            </div>
-            <div className="space-y-2">
-              <Label className="text-sm">Dice Sides</Label>
-              <Select
-                value={action.diceSides.toString()}
-                onValueChange={(value) =>
-                  onChange({ ...action, diceSides: Number.parseInt(value) })
-                }
-              >
-                <SelectTrigger>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="4">d4</SelectItem>
-                  <SelectItem value="6">d6</SelectItem>
-                  <SelectItem value="8">d8</SelectItem>
-                  <SelectItem value="10">d10</SelectItem>
-                  <SelectItem value="12">d12</SelectItem>
-                  <SelectItem value="20">d20</SelectItem>
-                  <SelectItem value="100">d100</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-          </div>
-          <div className="space-y-2">
-            <Label className="text-sm">Modifier Formula (optional)</Label>
-            <ConflictFormulaBuilder
-              tokens={action.modifier || []}
-              onChange={(tokens) =>
-                onChange({
-                  ...action,
-                  modifier: tokens.length > 0 ? tokens : undefined,
-                })
-              }
-              roles={roles}
-              attributes={attributes}
-            />
-          </div>
-        </div>
-      );
-
-    case "set-variable":
-      return (
-        <div className="space-y-4 p-4 bg-muted/30 rounded-lg">
-          <div className="space-y-2">
-            <Label className="text-sm">Variable Name</Label>
-            <Input
-              value={action.variableName}
-              onChange={(e) =>
-                onChange({ ...action, variableName: e.target.value })
-              }
-              placeholder="e.g., damage, speed"
-            />
-          </div>
-          <div className="space-y-2">
-            <Label className="text-sm">Value Formula</Label>
-            <ConflictFormulaBuilder
-              tokens={action.formula}
-              onChange={(tokens) => onChange({ ...action, formula: tokens })}
-              roles={roles}
-              attributes={attributes}
-            />
-          </div>
-        </div>
-      );
-
-    case "log-message":
-      return (
-        <div className="space-y-2 p-4 bg-muted/30 rounded-lg">
-          <Label className="text-sm">Message Template</Label>
-          <Textarea
-            value={action.template}
-            onChange={(e) => onChange({ ...action, template: e.target.value })}
-            placeholder="Use {role.attribute} for values. E.g., '{player.name} attacks for {damage} damage!'"
-            rows={2}
-          />
-          <p className="text-xs text-muted-foreground">
-            Use {"{role.attribute}"} syntax to interpolate values. Available
-            roles: {roles.map((r) => r.name.toLowerCase()).join(", ")}
-          </p>
-        </div>
-      );
-
-    case "compare-attributes":
-      return (
-        <div className="space-y-4 p-4 bg-muted/30 rounded-lg">
-          <div className="grid grid-cols-2 gap-4">
-            <div className="space-y-2">
-              <Label className="text-sm">Result Variable</Label>
-              <Input
-                value={action.resultVariable}
-                onChange={(e) =>
-                  onChange({ ...action, resultVariable: e.target.value })
-                }
-                placeholder="e.g., winner, fastest"
-              />
-            </div>
-            <div className="space-y-2">
-              <Label className="text-sm">Order Variable (optional)</Label>
-              <Input
-                value={action.orderVariable || ""}
-                onChange={(e) =>
-                  onChange({
-                    ...action,
-                    orderVariable: e.target.value || undefined,
-                  })
-                }
-                placeholder="e.g., turnOrder"
-              />
-            </div>
-          </div>
-          <p className="text-xs text-muted-foreground">
-            Add formulas for each role to compare. The role with the highest
-            value will be stored in the result variable.
-          </p>
-        </div>
-      );
-
-    default:
-      return null;
-  }
 }

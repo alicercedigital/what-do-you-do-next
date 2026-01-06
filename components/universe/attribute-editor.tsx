@@ -34,13 +34,13 @@ import {
 } from "@/components/ui/collapsible";
 import type {
   GameAttribute,
-  FormulaToken,
+  UniversalFormulaToken,
   AttributeDisplayConfig,
   DistributableConfig,
   DerivedConfig,
 } from "@/lib/schemas/game-entity-schema";
 import { SmartInput } from "@/components/ui/smart-input";
-import { FormulaBuilder } from "./formula-builder";
+import { GenericFormulaBuilder } from "./generic-formula-builder";
 import { IconPicker, getIconComponent } from "./icon-picker";
 import { ColorPicker } from "./color-picker";
 import { cn } from "@/lib/utils";
@@ -176,7 +176,7 @@ export function AttributeEditor({
     });
   };
 
-  const handleFormulaChange = (tokens: FormulaToken[]) => {
+  const handleFormulaChange = (tokens: UniversalFormulaToken[]) => {
     updateDerivedConfig({ formula: tokens });
   };
 
@@ -515,11 +515,11 @@ export function AttributeEditor({
                   {/* Formula Builder */}
                   <div className="space-y-2">
                     <Label>Formula</Label>
-                    <FormulaBuilder
+                    <GenericFormulaBuilder
                       tokens={data.derivedConfig?.formula || []}
                       onChange={handleFormulaChange}
                       availableAttributes={otherAttributes}
-                      currentAttributeId={data.id}
+                      allowRoleAttributes={false}
                     />
                   </div>
 

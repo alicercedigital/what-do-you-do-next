@@ -15,7 +15,7 @@ import {
   type ConflictExecutionState,
   type RoleAssignment,
   startConflict as startConflictUtil,
-} from "@/lib/utils/conflict-executor";
+} from "@/lib/game-engine/conflict-system";
 import {
   generateId,
   createEventNode,

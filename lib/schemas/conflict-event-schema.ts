@@ -41,18 +41,21 @@ export type ConflictRole = z.infer<typeof ConflictRoleSchema>;
 
 // Extended formula token that can reference role attributes
 // e.g., "player.strength" or "opponent.hp" or "arena.difficulty"
+// Now uses UniversalFormulaToken for consistency
 export const ConflictFormulaTokenSchema = z.object({
   type: z.enum([
-    "role-attribute",
-    "operator",
-    "number",
-    "function",
-    "parenthesis",
-    "comparison",
-    "logical",
-    "string",
+    "attribute", // Basic: attribute ID
+    "role-attribute", // Conflict: "roleId.attributeId"
+    "operator", // +, -, *, /
+    "number", // Numeric values
+    "function", // min, max, floor, ceil
+    "parenthesis", // (, )
+    "comparison", // =, !=, <, >, <=, >= (for conditions)
+    "logical", // and, or, not (for conditions)
+    "string", // String literals
   ]),
-  value: z.string(), // For role-attribute: "roleId.attributeId", for others: same as FormulaTokenSchema
+  value: z.string(), // Attribute ID, operator, number, function name, or "roleId.attributeId"
+  target: z.string().optional(), // Optional target: "self", "role:id", or other context
 });
 
 export type ConflictFormulaToken = z.infer<typeof ConflictFormulaTokenSchema>;

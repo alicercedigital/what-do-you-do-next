@@ -1,6 +1,6 @@
 "use client";
 
-import { useRef, useState, useEffect, useCallback } from "react";
+import { useRef, useEffect, useCallback, useState } from "react";
 import ReactFlow, {
   Background,
   Controls,
@@ -11,8 +11,6 @@ import ReactFlow, {
   type Node,
   type Edge,
   Panel,
-  getSmoothStepPath,
-  type EdgeProps,
   MarkerType,
 } from "reactflow";
 import "reactflow/dist/style.css";
@@ -29,15 +27,12 @@ import { TimelineScrollbar } from "./timeline-scrollbar";
 import { SaveLoadMenu } from "./save-load-menu";
 import { heroJourneySteps } from "@/lib/data/hero-journey";
 import type { GameEvent, GameOption } from "@/lib/schemas/game-schema";
-import useSWRMutation from "swr/mutation";
 import {
   calculateNodeDimensions,
-  createDiceRollEvent,
-  delay,
-  isDiceRollEvent,
-  isConflictEvent,
   mapToFlowNodes,
 } from "@/lib/utils/game-helpers";
+import { useGameController } from "@/lib/hooks/use-game-controller";
+import { useConflictRunner } from "@/lib/hooks/use-conflict-runner";
 
 // Node Components
 const EventNode = ({ data }: { data: any }) => (
@@ -100,31 +95,92 @@ const nodeTypes = {
   conflict: ConflictNode,
 };
 
+function AnimatedEdge({
+  id,
+  sourceX,
+  sourceY,
+  targetX,
+  targetY,
+  sourcePosition,
+  targetPosition,
+  data,
+  markerEnd,
+}: any) {
+  const [edgePath] = require("reactflow").getSmoothStepPath({
+    sourceX,
+    sourceY,
+    targetX,
+    targetY,
+    sourcePosition,
+    targetPosition,
+    borderRadius: 16,
+  });
+
+  const isActive = data?.active ?? true;
+  const strokeColor = isActive ? "#d4a574" : "#6b7280";
+
+  return (
+    <>
+      <path
+        id={id}
+        d={edgePath}
+        fill="none"
+        stroke={strokeColor}
+        strokeWidth={2}
+        markerEnd={markerEnd}
+      />
+      {isActive && (
+        <circle r="4" fill="#d4a574">
+          <animateMotion dur="2s" repeatCount="indefinite" path={edgePath} />
+        </circle>
+      )}
+    </>
+  );
+}
+
 const edgeTypes = {
   animated: AnimatedEdge,
 };
 
-async function generateStory(
-  url: string,
-  { arg }: { arg: { gameStateId: string; nodeCount: number } }
-) {
-  const res = await fetch(url, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(arg),
-  });
-  if (!res.ok) throw new Error("Failed to generate story");
-  return res.json();
-}
-
 function GameCanvasInner() {
   const [showSidebar, setShowSidebar] = useState(false);
-  const initialGenerationStarted = useRef(false);
   const autoSaveIntervalRef = useRef<NodeJS.Timeout | null>(null);
-  const handleContinueRef = useRef<() => void>(() => {});
-  const handleOptionClickRef = useRef<(optionId: string) => void>(() => {});
 
-  // Error handling effect
+  // Use new hooks
+  const {
+    isGenerating,
+    isWaitingForContinue,
+    handleGenerateStory,
+    handleOptionClick,
+    handleContinue,
+    handleStartConflict,
+  } = useGameController();
+
+  const {
+    isRunning: isConflictRunning,
+    currentCycle,
+    logs,
+    outcome,
+    isComplete,
+    stop: stopConflict,
+  } = useConflictRunner();
+
+  const {
+    gameState,
+    selectedUniverse,
+    character,
+    newNodeIds,
+    newConnectionIds,
+    resetGame,
+    clearNewFlags,
+    autoSave,
+  } = useGameStore();
+
+  const { fitBounds, setCenter } = useReactFlow();
+  const [nodes, setNodes, onNodesChange] = useNodesState([]);
+  const [edges, setEdges, onEdgesChange] = useEdgesState([]);
+
+  // Error handling effect (same as before)
   useEffect(() => {
     const handleError = (event: ErrorEvent) => {
       if (
@@ -162,65 +218,7 @@ function GameCanvasInner() {
     };
   }, []);
 
-  const { fitBounds, setCenter } = useReactFlow();
-  const [nodes, setNodes, onNodesChange] = useNodesState([]);
-  const [edges, setEdges, onEdgesChange] = useEdgesState([]);
-
-  const {
-    gameState,
-    selectedUniverse,
-    character,
-    isGenerating,
-    newNodeIds,
-    newConnectionIds,
-    selectOption,
-    setIsGenerating,
-    resetGame,
-    clearNewFlags,
-    setPendingContent,
-    showNextEvent,
-    autoSave,
-    activeConflictState,
-    isConflictRunning,
-    startConflict,
-    endConflict,
-  } = useGameStore();
-
-  const { trigger: triggerGeneration } = useSWRMutation(
-    "/api/story/generate",
-    generateStory
-  );
-
-  const handleGenerateStory = useCallback(async () => {
-    if (!gameState || isGenerating) return;
-
-    setIsGenerating(true);
-    try {
-      const result = await triggerGeneration({
-        gameStateId: gameState.id,
-        nodeCount: gameState.nodes.length,
-      });
-
-      if (result.events && result.options) {
-        setPendingContent(result.events, result.options);
-        setTimeout(() => {
-          showNextEvent();
-        }, 100);
-      }
-    } catch (error) {
-      console.error("Failed to generate story:", error);
-    } finally {
-      setIsGenerating(false);
-    }
-  }, [
-    gameState,
-    isGenerating,
-    triggerGeneration,
-    setIsGenerating,
-    setPendingContent,
-    showNextEvent,
-  ]);
-
+  // Center on node helper
   const centerOnNode = useCallback(
     (
       node: { position: { x: number; y: number }; type: string; data?: any },
@@ -291,77 +289,18 @@ function GameCanvasInner() {
     centerOnNode(lastEvent, connectedOptions);
   }, [centerOnNode]);
 
-  const handleContinue = useCallback(() => {
+  // Update handleContinue to use the hook
+  const handleContinueClick = useCallback(() => {
     centerOnLastEvent();
     setTimeout(() => {
-      showNextEvent();
+      handleContinue();
     }, 500);
-  }, [showNextEvent, centerOnLastEvent]);
+  }, [handleContinue, centerOnLastEvent]);
 
-  const handleOptionClick = useCallback(
-    (optionId: string) => {
-      const optionNode = gameState?.nodes.find((n) => n.id === optionId);
-      if (optionNode && optionNode.type === "option") {
-        const option = optionNode.data as GameOption;
-
-        if (option.attributeTest && selectedUniverse) {
-          const diceRoll = Math.floor(Math.random() * 20) + 1;
-          const attributeValue =
-            character?.baseAttributes[option.attributeTest.attributeId] || 0;
-          const total = attributeValue + diceRoll;
-          const success = total >= option.attributeTest.difficulty;
-
-          const attribute = selectedUniverse.attributes?.find(
-            (attr) => attr.id === option.attributeTest!.attributeId
-          );
-
-          const diceRollEvent = createDiceRollEvent(
-            attribute?.name || "Attribute",
-            option.attributeTest.difficulty,
-            attributeValue,
-            diceRoll,
-            success
-          );
-
-          selectOption(optionId);
-          setPendingContent([diceRollEvent], []);
-
-          setTimeout(() => {
-            showNextEvent();
-            setTimeout(() => {
-              handleGenerateStory();
-            }, 3000);
-          }, 100);
-
-          return;
-        }
-      }
-
-      selectOption(optionId);
-      setTimeout(() => {
-        handleGenerateStory();
-      }, 800);
-    },
-    [
-      selectOption,
-      handleGenerateStory,
-      gameState,
-      character,
-      selectedUniverse,
-      setPendingContent,
-      showNextEvent,
-    ]
-  );
-
-  useEffect(() => {
-    handleContinueRef.current = handleContinue;
-    handleOptionClickRef.current = handleOptionClick;
-  }, [handleContinue, handleOptionClick]);
-
+  // Update nodes and edges when game state changes
   useEffect(() => {
     if (!gameState) return;
 
-    // Use helper function to map game state to ReactFlow nodes
     const flowNodes: Node[] = mapToFlowNodes(
       {
         ...gameState,
@@ -370,8 +309,11 @@ function GameCanvasInner() {
         currentEventId: gameState.currentEventId,
       },
       newNodeIds,
-      activeConflictState,
-      { onOptionClick: (id) => handleOptionClickRef.current(id) }
+      useGameStore.getState().activeConflictState,
+      {
+        onOptionClick: handleOptionClick,
+        onConflictEnd: stopConflict,
+      }
     );
 
     const validNodeIds = new Set(gameState.nodes.map((n) => n.id));
@@ -404,25 +346,20 @@ function GameCanvasInner() {
     setNodes,
     setEdges,
     character,
-    activeConflictState,
+    useGameStore.getState().activeConflictState,
     selectedUniverse,
+    handleOptionClick,
+    stopConflict,
   ]);
 
+  // Auto-generate initial story
   useEffect(() => {
-    if (
-      gameState &&
-      gameState.nodes.length === 0 &&
-      !isGenerating &&
-      !initialGenerationStarted.current
-    ) {
-      initialGenerationStarted.current = true;
+    if (gameState && gameState.nodes.length === 0 && !isGenerating) {
       handleGenerateStory();
     }
-    if (gameState && gameState.nodes.length > 0) {
-      initialGenerationStarted.current = false;
-    }
-  }, [gameState]);
+  }, [gameState, isGenerating, handleGenerateStory]);
 
+  // Clear new flags after animation
   useEffect(() => {
     if (newNodeIds.size > 0 || newConnectionIds.size > 0) {
       const timer = setTimeout(() => {
@@ -432,6 +369,7 @@ function GameCanvasInner() {
     }
   }, [newNodeIds, newConnectionIds, clearNewFlags]);
 
+  // Auto-save
   useEffect(() => {
     if (gameState && gameState.nodes.length > 0) {
       autoSaveIntervalRef.current = setInterval(() => {
@@ -446,6 +384,7 @@ function GameCanvasInner() {
     }
   }, [gameState, autoSave]);
 
+  // Scrollbar seek callback
   const handleScrollbarSeekCallback = useCallback(
     (targetX: number) => {
       if (!gameState) return;
@@ -480,7 +419,7 @@ function GameCanvasInner() {
   const eventNodes = gameState.nodes.filter((n) => n.type === "event");
   const lastEventNode = eventNodes[eventNodes.length - 1];
   const currentScrollPosition = lastEventNode ? lastEventNode.position.x : 0;
-  const isWaitingForContinue =
+  const isWaitingForContinueState =
     gameState.isWaitingForContinue &&
     (gameState.pendingEvents?.length ?? 0) > 0;
 
@@ -641,7 +580,7 @@ function GameCanvasInner() {
         >
           <Background />
 
-          <Panel position="bottom-center" className="!m-0 !bottom-6">
+          <Panel position="bottom-center" className="m-0! bottom-6!">
             <div className="flex items-center gap-3 bg-card/90 backdrop-blur-sm border border-border rounded-lg p-3 shadow-lg">
               <div className="w-80">
                 <TimelineScrollbar
@@ -652,7 +591,7 @@ function GameCanvasInner() {
               </div>
 
               <AnimatePresence>
-                {isWaitingForContinue && (
+                {isWaitingForContinueState && (
                   <motion.div
                     initial={{ opacity: 0, scale: 0.9 }}
                     animate={{ opacity: 1, scale: 1 }}
@@ -660,7 +599,7 @@ function GameCanvasInner() {
                     transition={{ type: "spring", stiffness: 300 }}
                   >
                     <Button
-                      onClick={handleContinue}
+                      onClick={handleContinueClick}
                       className="group font-mono"
                       variant="default"
                     >
@@ -672,7 +611,7 @@ function GameCanvasInner() {
               </AnimatePresence>
 
               <AnimatePresence>
-                {activeConflictState?.isComplete && (
+                {useGameStore.getState().activeConflictState?.isComplete && (
                   <motion.div
                     initial={{ opacity: 0, scale: 0.9 }}
                     animate={{ opacity: 1, scale: 1 }}
@@ -680,7 +619,7 @@ function GameCanvasInner() {
                     transition={{ type: "spring", stiffness: 300 }}
                   >
                     <Button
-                      onClick={endConflict}
+                      onClick={stopConflict}
                       className="group font-mono"
                       variant="default"
                     >
@@ -705,48 +644,5 @@ export function GameCanvas() {
     <ReactFlowProvider>
       <GameCanvasInner />
     </ReactFlowProvider>
-  );
-}
-
-function AnimatedEdge({
-  id,
-  sourceX,
-  sourceY,
-  targetX,
-  targetY,
-  sourcePosition,
-  targetPosition,
-  data,
-  markerEnd,
-}: EdgeProps) {
-  const [edgePath] = getSmoothStepPath({
-    sourceX,
-    sourceY,
-    targetX,
-    targetY,
-    sourcePosition,
-    targetPosition,
-    borderRadius: 16,
-  });
-
-  const isActive = data?.active ?? true;
-  const strokeColor = isActive ? "#d4a574" : "#6b7280";
-
-  return (
-    <>
-      <path
-        id={id}
-        d={edgePath}
-        fill="none"
-        stroke={strokeColor}
-        strokeWidth={2}
-        markerEnd={markerEnd as string}
-      />
-      {isActive && (
-        <circle r="4" fill="#d4a574">
-          <animateMotion dur="2s" repeatCount="indefinite" path={edgePath} />
-        </circle>
-      )}
-    </>
   );
 }

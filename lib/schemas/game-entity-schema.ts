@@ -78,10 +78,29 @@ export const GameCharacterSchema = GameEntitySchema.extend({
 
 export type GameCharacter = z.infer<typeof GameCharacterSchema>;
 
-// Formula Token for visual formula builder
+// Universal Formula Token Schema - handles both basic attributes and role-based conflict formulas
+export const UniversalFormulaTokenSchema = z.object({
+  type: z.enum([
+    "attribute", // Basic: attribute ID
+    "role-attribute", // Conflict: "roleId.attributeId"
+    "operator", // +, -, *, /
+    "number", // Numeric values
+    "function", // min, max, floor, ceil
+    "parenthesis", // (, )
+    "comparison", // =, !=, <, >, <=, >= (for conditions)
+    "logical", // and, or, not (for conditions)
+    "string", // String literals
+  ]),
+  value: z.string(), // Attribute ID, operator, number, function name, or "roleId.attributeId"
+  target: z.string().optional(), // Optional target: "self", "role:id", or other context
+});
+
+export type UniversalFormulaToken = z.infer<typeof UniversalFormulaTokenSchema>;
+
+// Legacy Formula Token Schema (for backward compatibility during migration)
 export const FormulaTokenSchema = z.object({
   type: z.enum(["attribute", "operator", "number", "function", "parenthesis"]),
-  value: z.string(), // Attribute ID, operator (+,-,*,/), number, or function name (min, max, floor, ceil)
+  value: z.string(),
 });
 
 export type FormulaToken = z.infer<typeof FormulaTokenSchema>;
@@ -124,7 +143,7 @@ export type DistributableConfig = z.infer<typeof DistributableConfigSchema>;
 
 // Derived Attribute Config (for attributes like HP, AP, Mana)
 export const DerivedConfigSchema = z.object({
-  formula: z.array(FormulaTokenSchema).default([]),
+  formula: z.array(UniversalFormulaTokenSchema).default([]),
   minValue: z.number().optional(), // Floor value
   maxValue: z.number().optional(), // Ceiling value (optional cap)
 });
