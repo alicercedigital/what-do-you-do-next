@@ -1,21 +1,19 @@
 "use client";
 
-import { useState, useCallback, useMemo } from "react";
-import type {
-  FormulaToken,
-  GameAttribute,
-} from "@/lib/schemas/game-entity-schema";
-import {
-  evaluateFormula,
-  validateFormula,
-  formulaToString,
-} from "@/lib/utils/formula-parser";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
-import { Calculator, AlertCircle } from "lucide-react";
+import type {
+    FormulaToken,
+    GameAttribute
+} from "@/lib/schemas/game-entity-schema";
 import { cn } from "@/lib/utils";
-import { FormulaTokenList } from "./formula-token-list";
+import {
+    evaluateFormula, formulaToString, validateFormula
+} from "@/lib/utils/formula-parser";
+import { AlertCircle, Calculator } from "lucide-react";
+import { useCallback, useMemo } from "react";
 import { BasicFormulaControls } from "./formula-controls";
+import { FormulaTokenList } from "./formula-token-list";
 
 interface FormulaBuilderProps {
   tokens: FormulaToken[];

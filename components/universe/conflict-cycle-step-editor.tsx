@@ -1,23 +1,20 @@
 "use client";
 
-import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
+    Select,
+    SelectContent,
+    SelectItem,
+    SelectTrigger,
+    SelectValue
 } from "@/components/ui/select";
-import { GenericFormulaBuilder } from "./generic-formula-builder";
 import type {
-  CycleStep,
-  CycleStepAction,
-  ConflictRole,
-  ConflictOutcome,
+    ConflictOutcome, ConflictRole, CycleStep,
+    CycleStepAction
 } from "@/lib/schemas/conflict-event-schema";
 import type { GameAttribute } from "@/lib/schemas/game-entity-schema";
+import { GenericFormulaBuilder } from "./generic-formula-builder";
 
 interface ConflictCycleStepEditorProps {
   step: CycleStep;

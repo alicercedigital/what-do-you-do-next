@@ -1,76 +1,62 @@
 "use client";
 
-import { useState } from "react";
 import {
-  Plus,
-  Trash2,
-  ChevronDown,
-  ChevronUp,
-  Users,
-  RotateCcw,
-  Trophy,
-  Swords,
-  Timer,
-  GraduationCap,
-  MessageSquare,
-  Sparkles,
-  Copy,
-  AlertTriangle,
-} from "lucide-react";
+    AlertDialog,
+    AlertDialogAction,
+    AlertDialogCancel,
+    AlertDialogContent,
+    AlertDialogDescription,
+    AlertDialogFooter,
+    AlertDialogHeader,
+    AlertDialogTitle,
+    AlertDialogTrigger
+} from "@/components/ui/alert-dialog";
+import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import {
+    Card,
+    CardContent,
+    CardDescription,
+    CardHeader,
+    CardTitle
+} from "@/components/ui/card";
+import {
+    Collapsible,
+    CollapsibleContent,
+    CollapsibleTrigger
+} from "@/components/ui/collapsible";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
-import { Switch } from "@/components/ui/switch";
-import { Badge } from "@/components/ui/badge";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import {
-  Collapsible,
-  CollapsibleContent,
-  CollapsibleTrigger,
-} from "@/components/ui/collapsible";
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-  AlertDialogTrigger,
-} from "@/components/ui/alert-dialog";
-import { IconPicker } from "./icon-picker";
-import { GenericFormulaBuilder } from "./generic-formula-builder";
-import { ConflictRoleEditor } from "./conflict-role-editor";
-import { ConflictCycleStepEditor } from "./conflict-cycle-step-editor";
-import { ConflictOutcomeEditor } from "./conflict-outcome-editor";
+    Select,
+    SelectContent,
+    SelectItem,
+    SelectTrigger,
+    SelectValue
+} from "@/components/ui/select";
+import { Switch } from "@/components/ui/switch";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Textarea } from "@/components/ui/textarea";
 import type {
-  ConflictEvent,
-  ConflictRole,
-  CycleStep,
-  ConflictOutcome,
-  CycleStepAction,
+    ConflictEvent, ConflictOutcome, ConflictRole,
+    CycleStep, CycleStepAction
 } from "@/lib/schemas/conflict-event-schema";
 import { CONFLICT_TEMPLATES } from "@/lib/schemas/conflict-event-schema";
 import type { GameAttribute } from "@/lib/schemas/game-entity-schema";
 import { cn } from "@/lib/utils";
+import {
+    AlertTriangle, ChevronDown,
+    ChevronUp, Copy, GraduationCap,
+    MessageSquare, Plus, RotateCcw, Sparkles, Swords,
+    Timer, Trash2, Trophy, Users
+} from "lucide-react";
+import { useState } from "react";
+import { ConflictCycleStepEditor } from "./conflict-cycle-step-editor";
+import { ConflictOutcomeEditor } from "./conflict-outcome-editor";
+import { ConflictRoleEditor } from "./conflict-role-editor";
 import { EditorShell } from "./editor-shell";
+import { IconPicker } from "./icon-picker";
 
 interface ConflictEventEditorProps {
   conflictEvent: ConflictEvent | null;

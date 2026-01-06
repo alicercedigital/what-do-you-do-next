@@ -1,50 +1,45 @@
 "use client";
 
-import { useState, useMemo } from "react";
-import {
-  Plus,
-  Trash2,
-  GripVertical,
-  ChevronDown,
-  ChevronUp,
-} from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
+    Card,
+    CardContent,
+    CardDescription,
+    CardHeader,
+    CardTitle
 } from "@/components/ui/card";
+import {
+    Collapsible,
+    CollapsibleContent,
+    CollapsibleTrigger
+} from "@/components/ui/collapsible";
+import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import {
+    Select,
+    SelectContent,
+    SelectItem,
+    SelectTrigger,
+    SelectValue
+} from "@/components/ui/select";
+import { SmartInput } from "@/components/ui/smart-input";
 import { Switch } from "@/components/ui/switch";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
-import {
-  Collapsible,
-  CollapsibleContent,
-  CollapsibleTrigger,
-} from "@/components/ui/collapsible";
 import type {
-  GameAttribute,
-  UniversalFormulaToken,
-  AttributeDisplayConfig,
-  DistributableConfig,
-  DerivedConfig,
+    AttributeDisplayConfig, DerivedConfig, DistributableConfig, GameAttribute,
+    UniversalFormulaToken
 } from "@/lib/schemas/game-entity-schema";
-import { SmartInput } from "@/components/ui/smart-input";
-import { GenericFormulaBuilder } from "./generic-formula-builder";
-import { IconPicker, getIconComponent } from "./icon-picker";
-import { ColorPicker } from "./color-picker";
 import { cn } from "@/lib/utils";
+import {
+    ChevronDown,
+    ChevronUp, GripVertical, Plus,
+    Trash2
+} from "lucide-react";
+import { useMemo, useState } from "react";
+import { ColorPicker } from "./color-picker";
 import { EditorShell } from "./editor-shell";
+import { GenericFormulaBuilder } from "./generic-formula-builder";
+import { getIconComponent, IconPicker } from "./icon-picker";
 
 interface AttributeEditorProps {
   attribute: GameAttribute | null;

@@ -1,21 +1,18 @@
 import { z } from "zod";
 import {
-  GameAttributeSchema,
-  GameCharacterSchema,
-  CharacterPortraitsSchema,
-  type GameAttribute,
-  type GameCharacter,
-  type CharacterPortraits,
+    CharacterPortraitsSchema, GameAttributeSchema,
+    GameCharacterSchema, type CharacterPortraits, type GameAttribute,
+    type GameCharacter
 } from "./game-entity-schema";
 
 // Re-export entity types
 export {
-  GameAttributeSchema,
-  GameCharacterSchema,
-  CharacterPortraitsSchema,
-  type GameAttribute,
-  type GameCharacter,
-  type CharacterPortraits,
+    GameAttributeSchema,
+    GameCharacterSchema,
+    CharacterPortraitsSchema,
+    type GameAttribute,
+    type GameCharacter,
+    type CharacterPortraits,
 };
 
 export const PlayerCharacterSchema = z.object({

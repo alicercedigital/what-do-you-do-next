@@ -1,16 +1,15 @@
 "use client";
 
-import { useState, useCallback, useMemo } from "react";
-import type {
-  UniversalFormulaToken,
-  GameAttribute,
-} from "@/lib/schemas/game-entity-schema";
-import type { ConflictRole } from "@/lib/schemas/conflict-event-schema";
-import { UnifiedFormulaEvaluator } from "@/lib/utils/unified-formula-evaluator";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
-import { Calculator, AlertCircle } from "lucide-react";
+import type { ConflictRole } from "@/lib/schemas/conflict-event-schema";
+import type {
+    GameAttribute, UniversalFormulaToken
+} from "@/lib/schemas/game-entity-schema";
 import { cn } from "@/lib/utils";
+import { UnifiedFormulaEvaluator } from "@/lib/utils/unified-formula-evaluator";
+import { AlertCircle, Calculator } from "lucide-react";
+import { useCallback, useMemo, useState } from "react";
 
 // Token List Component
 interface FormulaTokenListProps {

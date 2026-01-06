@@ -1,7 +1,6 @@
 "use client";
 
-import { motion, AnimatePresence, type Transition } from "framer-motion";
-import { ANIMATION } from "@/lib/constants/game";
+import { AnimatePresence, motion } from "framer-motion";
 
 interface CardHeaderImageProps {
   characterPortrait?: string;

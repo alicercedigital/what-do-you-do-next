@@ -1,29 +1,29 @@
 "use client";
 
-import { motion } from "framer-motion";
-import { Users, MapPin, Pencil, Trash2 } from "lucide-react";
+import {
+    AlertDialog,
+    AlertDialogAction,
+    AlertDialogCancel,
+    AlertDialogContent,
+    AlertDialogDescription,
+    AlertDialogFooter,
+    AlertDialogHeader,
+    AlertDialogTitle,
+    AlertDialogTrigger
+} from "@/components/ui/alert-dialog";
 import { Button } from "@/components/ui/button";
 import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
+    Card,
+    CardContent,
+    CardDescription,
+    CardHeader,
+    CardTitle
 } from "@/components/ui/card";
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-  AlertDialogTrigger,
-} from "@/components/ui/alert-dialog";
-import Link from "next/link";
-import { universePersistence } from "@/lib/utils/universe-persistence";
 import type { GameUniverse } from "@/lib/schemas/game-entity-schema";
+import { universePersistence } from "@/lib/utils/universe-persistence";
+import { motion } from "framer-motion";
+import { MapPin, Pencil, Trash2, Users } from "lucide-react";
+import Link from "next/link";
 
 interface UniverseCardProps {
   universe: GameUniverse;

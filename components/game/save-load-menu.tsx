@@ -1,22 +1,22 @@
 "use client";
 
-import { useState } from "react";
-import { useGameStore } from "@/lib/store/game-store";
 import { Button } from "@/components/ui/button";
 import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger,
+    Dialog,
+    DialogContent,
+    DialogDescription,
+    DialogFooter,
+    DialogHeader,
+    DialogTitle,
+    DialogTrigger
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { Save, FolderOpen, Trash2 } from "lucide-react";
+import { useGameStore } from "@/lib/store/game-store";
 import type { SavedGame } from "@/lib/utils/game-persistence";
+import { FolderOpen, Save, Trash2 } from "lucide-react";
+import { useState } from "react";
 
 export function SaveLoadMenu() {
   const [saveDialogOpen, setSaveDialogOpen] = useState(false);

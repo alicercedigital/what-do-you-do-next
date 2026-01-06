@@ -1,11 +1,9 @@
 import type {
-  FormulaToken,
-  GameAttribute,
+    FormulaToken,
+    GameAttribute
 } from "@/lib/schemas/game-entity-schema";
 import {
-  validateFormulaStructure,
-  validateAttributesExist,
-  type ValidationResult,
+    validateAttributesExist, validateFormulaStructure, type ValidationResult
 } from "./formula-shared";
 
 /**

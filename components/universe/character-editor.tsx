@@ -1,22 +1,20 @@
 "use client";
 
-import { useState } from "react";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Textarea } from "@/components/ui/textarea";
 import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
+    Card,
+    CardContent,
+    CardDescription,
+    CardHeader,
+    CardTitle
 } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Slider } from "@/components/ui/slider";
+import { Textarea } from "@/components/ui/textarea";
 import type {
-  GameCharacter,
-  GameAttribute,
+    GameAttribute, GameCharacter
 } from "@/lib/schemas/game-entity-schema";
+import { useState } from "react";
 import { EditorShell } from "./editor-shell";
 
 interface CharacterEditorProps {

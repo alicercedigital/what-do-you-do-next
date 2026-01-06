@@ -1,13 +1,13 @@
 "use client";
 
-import { useState, useEffect } from "react";
-import { motion } from "framer-motion";
-import { ArrowLeft, Globe } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { UniverseCard } from "@/components/universe/universe-card";
+import type { GameUniverse } from "@/lib/schemas/game-entity-schema";
 import { useGameStore } from "@/lib/store/game-store";
 import { universePersistence } from "@/lib/utils/universe-persistence";
-import type { GameUniverse } from "@/lib/schemas/game-entity-schema";
-import { UniverseCard } from "@/components/universe/universe-card";
+import { motion } from "framer-motion";
+import { ArrowLeft, Globe } from "lucide-react";
+import { useEffect, useState } from "react";
 
 export function UniverseSelector() {
   const { selectUniverse, setCurrentStep } = useGameStore();

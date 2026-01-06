@@ -1,20 +1,14 @@
 "use client";
 
-import { useState, useEffect } from "react";
-import { motion } from "framer-motion";
-import {
-  BookOpen,
-  MessageSquare,
-  Zap,
-  Volume2,
-  ImageIcon,
-  DicesIcon,
-  SwordsIcon,
-} from "lucide-react";
 import { CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { type GameEvent } from "@/lib/schemas/game-schema";
-import { CardWrapper } from "./card-wrapper";
 import { truncateText } from "@/lib/utils/game-helpers";
+import { motion } from "framer-motion";
+import {
+    BookOpen, DicesIcon, ImageIcon, MessageSquare, SwordsIcon, Volume2, Zap
+} from "lucide-react";
+import { useEffect, useState } from "react";
+import { CardWrapper } from "./card-wrapper";
 
 const eventTypeIcons: Record<string, React.ReactNode> = {
   narrative: <BookOpen className="h-4 w-4" />,

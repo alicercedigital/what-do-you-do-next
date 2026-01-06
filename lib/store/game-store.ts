@@ -1,38 +1,21 @@
-import { create } from "zustand";
-import type {
-  GameState,
-  PlayerCharacter,
-  CanvasNode,
-  CanvasConnection,
-  GameEvent,
-  GameOption,
-} from "@/lib/schemas/game-schema";
-import type { GameUniverse } from "@/lib/schemas/game-entity-schema";
-import { gamePersistence, type SavedGame } from "@/lib/utils/game-persistence";
 import {
-  createConflictState,
-  executeCycle,
-  type ConflictExecutionState,
-  type RoleAssignment,
-  startConflict as startConflictUtil,
-} from "@/lib/game-engine/conflict-system";
-import {
-  generateId,
-  createEventNode,
-  createOptionNode,
-  createConnection,
-  calculateNextEventPosition,
-  calculateOptionPositions,
-  delay,
-  calculateNextNodes,
-  calculateOptionNodes,
-} from "@/lib/utils/game-helpers";
-import {
-  TIMING,
-  GAME_DEFAULTS,
-  POSITIONING,
-  ANIMATION,
+    ANIMATION, GAME_DEFAULTS, TIMING
 } from "@/lib/constants/game";
+import {
+    executeCycle, startConflict as startConflictUtil, type ConflictExecutionState
+} from "@/lib/game-engine/conflict-system";
+import type { GameUniverse } from "@/lib/schemas/game-entity-schema";
+import type {
+    CanvasConnection, CanvasNode, GameEvent,
+    GameOption, GameState,
+    PlayerCharacter
+} from "@/lib/schemas/game-schema";
+import {
+    calculateNextNodes,
+    calculateOptionNodes, createConnection, delay, generateId
+} from "@/lib/utils/game-helpers";
+import { gamePersistence, type SavedGame } from "@/lib/utils/game-persistence";
+import { create } from "zustand";
 
 interface GameStore {
   // Game setup state

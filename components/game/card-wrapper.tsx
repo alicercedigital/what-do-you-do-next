@@ -1,11 +1,11 @@
 "use client";
 
+import { Card } from "@/components/ui/card";
+import type { CardType } from "@/lib/constants/game";
+import { ANIMATION, CARD_DIMENSIONS } from "@/lib/constants/game";
+import { cn } from "@/lib/utils";
 import { motion, type Transition } from "framer-motion";
 import { Handle, Position } from "reactflow";
-import { Card } from "@/components/ui/card";
-import { cn } from "@/lib/utils";
-import { ANIMATION, CARD_DIMENSIONS } from "@/lib/constants/game";
-import type { CardType } from "@/lib/constants/game";
 import { CardHeaderImage } from "./card-header-image";
 
 interface CardWrapperProps {

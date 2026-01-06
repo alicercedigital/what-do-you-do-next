@@ -1,11 +1,11 @@
 "use client";
 
-import { motion } from "framer-motion";
-import { MousePointer, Dices, Check } from "lucide-react";
-import { CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import type { GameOption } from "@/lib/schemas/game-schema";
 import { cn } from "@/lib/utils";
+import { motion } from "framer-motion";
+import { Check, Dices, MousePointer } from "lucide-react";
 import { CardWrapper } from "./card-wrapper";
 
 interface OptionCardProps {

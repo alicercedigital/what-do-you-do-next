@@ -1,12 +1,10 @@
 "use client";
 
 import { Badge } from "@/components/ui/badge";
-import { X } from "lucide-react";
+import type { ConflictFormulaToken, ConflictRole } from "@/lib/schemas/conflict-event-schema";
+import type { FormulaToken, GameAttribute } from "@/lib/schemas/game-entity-schema";
 import { cn } from "@/lib/utils";
-import type { FormulaToken } from "@/lib/schemas/game-entity-schema";
-import type { ConflictFormulaToken } from "@/lib/schemas/conflict-event-schema";
-import type { GameAttribute } from "@/lib/schemas/game-entity-schema";
-import type { ConflictRole } from "@/lib/schemas/conflict-event-schema";
+import { X } from "lucide-react";
 
 interface FormulaTokenListProps {
   tokens: (FormulaToken | ConflictFormulaToken)[];

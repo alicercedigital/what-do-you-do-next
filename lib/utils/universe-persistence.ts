@@ -1,5 +1,5 @@
-import type { GameUniverse } from "@/lib/schemas/game-entity-schema"
 import { defaultUniverses } from "@/lib/data/default-universes"
+import type { GameUniverse } from "@/lib/schemas/game-entity-schema"
 
 const STORAGE_KEY = "game-story-generator-universes"
 

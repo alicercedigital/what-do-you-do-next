@@ -1,10 +1,10 @@
 "use client"
 
 import { useGameStore } from "@/lib/store/game-store"
-import { MainMenu } from "./main-menu"
-import { UniverseSelector } from "./universe-selector"
 import { CharacterCreator } from "./character-creator"
 import { GameCanvas } from "./game-canvas"
+import { MainMenu } from "./main-menu"
+import { UniverseSelector } from "./universe-selector"
 
 export function GameContainer() {
   const { currentStep } = useGameStore()

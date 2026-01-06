@@ -3,23 +3,21 @@
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
 import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
+    Select,
+    SelectContent,
+    SelectItem,
+    SelectTrigger,
+    SelectValue
 } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
-import { Badge } from "@/components/ui/badge";
-import { GenericFormulaBuilder } from "./generic-formula-builder";
-import { cn } from "@/lib/utils";
+import { Textarea } from "@/components/ui/textarea";
 import type {
-  ConflictOutcome,
-  ConflictRole,
+    ConflictOutcome,
+    ConflictRole
 } from "@/lib/schemas/conflict-event-schema";
 import type { GameAttribute } from "@/lib/schemas/game-entity-schema";
+import { GenericFormulaBuilder } from "./generic-formula-builder";
 
 interface ConflictOutcomeEditorProps {
   outcome: ConflictOutcome;

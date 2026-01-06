@@ -1,38 +1,30 @@
 "use client";
 
-import { useRef, useEffect, useCallback, useState } from "react";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { heroJourneySteps } from "@/lib/data/hero-journey";
+import { useConflictRunner } from "@/lib/hooks/use-conflict-runner";
+import { useGameController } from "@/lib/hooks/use-game-controller";
+import type { GameEvent } from "@/lib/schemas/game-schema";
+import { useGameStore } from "@/lib/store/game-store";
+import {
+    calculateNodeDimensions,
+    mapToFlowNodes
+} from "@/lib/utils/game-helpers";
+import { AnimatePresence, motion } from "framer-motion";
+import { ChevronRight, Loader2, Menu, RefreshCw, X } from "lucide-react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import ReactFlow, {
-  Background,
-  Controls,
-  useNodesState,
-  useEdgesState,
-  useReactFlow,
-  ReactFlowProvider,
-  type Node,
-  type Edge,
-  Panel,
-  MarkerType,
+    Background,
+    Controls, MarkerType, Panel, ReactFlowProvider, useEdgesState, useNodesState, useReactFlow, type Edge, type Node
 } from "reactflow";
 import "reactflow/dist/style.css";
-import { motion, AnimatePresence } from "framer-motion";
-import { Loader2, RefreshCw, Menu, X, ChevronRight } from "lucide-react";
-import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
-import { useGameStore } from "@/lib/store/game-store";
+import { ConflictCard } from "./conflict-card";
+import { DiceRollCard } from "./dice-roll-card";
 import { EventCard } from "./event-card";
 import { OptionCard } from "./option-card";
-import { DiceRollCard } from "./dice-roll-card";
-import { ConflictCard } from "./conflict-card";
-import { TimelineScrollbar } from "./timeline-scrollbar";
 import { SaveLoadMenu } from "./save-load-menu";
-import { heroJourneySteps } from "@/lib/data/hero-journey";
-import type { GameEvent, GameOption } from "@/lib/schemas/game-schema";
-import {
-  calculateNodeDimensions,
-  mapToFlowNodes,
-} from "@/lib/utils/game-helpers";
-import { useGameController } from "@/lib/hooks/use-game-controller";
-import { useConflictRunner } from "@/lib/hooks/use-conflict-runner";
+import { TimelineScrollbar } from "./timeline-scrollbar";
 
 // Node Components
 const EventNode = ({ data }: { data: any }) => (
@@ -174,6 +166,7 @@ function GameCanvasInner() {
     resetGame,
     clearNewFlags,
     autoSave,
+    activeConflictState,
   } = useGameStore();
 
   const { fitBounds, setCenter } = useReactFlow();
@@ -309,7 +302,7 @@ function GameCanvasInner() {
         currentEventId: gameState.currentEventId,
       },
       newNodeIds,
-      useGameStore.getState().activeConflictState,
+      activeConflictState,
       {
         onOptionClick: handleOptionClick,
         onConflictEnd: stopConflict,
@@ -346,7 +339,7 @@ function GameCanvasInner() {
     setNodes,
     setEdges,
     character,
-    useGameStore.getState().activeConflictState,
+    activeConflictState,
     selectedUniverse,
     handleOptionClick,
     stopConflict,
@@ -611,7 +604,7 @@ function GameCanvasInner() {
               </AnimatePresence>
 
               <AnimatePresence>
-                {useGameStore.getState().activeConflictState?.isComplete && (
+                {activeConflictState?.isComplete && (
                   <motion.div
                     initial={{ opacity: 0, scale: 0.9 }}
                     animate={{ opacity: 1, scale: 1 }}
@@ -632,7 +625,7 @@ function GameCanvasInner() {
             </div>
           </Panel>
 
-          <Controls className="!bottom-24" />
+          <Controls className="bottom-24!" />
         </ReactFlow>
       </div>
     </div>

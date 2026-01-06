@@ -1,7 +1,7 @@
 "use client";
 
-import { CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { CardContent } from "@/components/ui/card";
 import { motion } from "framer-motion";
 import { Dices } from "lucide-react";
 import { useEffect, useState } from "react";

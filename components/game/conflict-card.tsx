@@ -2,27 +2,22 @@
 
 import type React from "react";
 
-import { useState, useEffect, useRef } from "react";
-import { motion, AnimatePresence } from "framer-motion";
-import {
-  Swords,
-  Timer,
-  GraduationCap,
-  MessageSquare,
-  Trophy,
-  Skull,
-  Scale,
-  Zap,
-} from "lucide-react";
-import { CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { CardContent } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { CardWrapper } from "./card-wrapper";
 import type {
-  ConflictEvent,
-  ConflictOutcome,
+    ConflictEvent,
+    ConflictOutcome
 } from "@/lib/schemas/conflict-event-schema";
+import { AnimatePresence, motion } from "framer-motion";
+import {
+    GraduationCap,
+    MessageSquare, Scale, Skull, Swords,
+    Timer, Trophy, Zap
+} from "lucide-react";
+import { useEffect, useRef, useState } from "react";
+import { CardWrapper } from "./card-wrapper";
 
 const conflictIcons: Record<string, React.ReactNode> = {
   swords: <Swords className="h-4 w-4" />,

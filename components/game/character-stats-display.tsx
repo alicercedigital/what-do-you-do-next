@@ -1,11 +1,11 @@
 "use client"
 
-import { useMemo } from "react"
+import { getIconComponent } from "@/components/universe/icon-picker"
 import type { GameAttribute, GameItem } from "@/lib/schemas/game-entity-schema"
 import type { PlayerCharacter } from "@/lib/schemas/game-schema"
-import { recalculateCharacterAttributes } from "@/lib/utils/character-attributes"
-import { getIconComponent } from "@/components/universe/icon-picker"
 import { cn } from "@/lib/utils"
+import { recalculateCharacterAttributes } from "@/lib/utils/character-attributes"
+import { useMemo } from "react"
 
 interface CharacterStatsDisplayProps {
   character: PlayerCharacter

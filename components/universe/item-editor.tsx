@@ -1,36 +1,34 @@
 "use client";
 
-import { useState } from "react";
-import { Plus, Trash2 } from "lucide-react";
+import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
+    Card,
+    CardContent,
+    CardDescription,
+    CardHeader,
+    CardTitle
 } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import {
+    Select,
+    SelectContent,
+    SelectItem,
+    SelectTrigger,
+    SelectValue
+} from "@/components/ui/select";
+import { SmartInput } from "@/components/ui/smart-input";
 import { Switch } from "@/components/ui/switch";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
-import { Badge } from "@/components/ui/badge";
 import type {
-  GameItem,
-  GameAttribute,
-  ItemAttributeModifier,
+    GameAttribute, GameItem, ItemAttributeModifier
 } from "@/lib/schemas/game-entity-schema";
-import { SmartInput } from "@/components/ui/smart-input";
-import { IconPicker, getIconComponent } from "./icon-picker";
 import { cn } from "@/lib/utils";
+import { Plus, Trash2 } from "lucide-react";
+import { useState } from "react";
 import { EditorShell } from "./editor-shell";
+import { getIconComponent, IconPicker } from "./icon-picker";
 
 interface ItemEditorProps {
   item: GameItem | null;

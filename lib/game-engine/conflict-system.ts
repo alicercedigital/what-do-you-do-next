@@ -1,13 +1,10 @@
 import type {
-  ConflictEvent,
-  CycleStep,
-  ConflictOutcome,
-  ConflictFormulaToken,
-} from "@/lib/schemas/conflict-event-schema";
-import type {
-  ConflictLogEntry,
-  ConflictRoleState,
+    ConflictLogEntry,
+    ConflictRoleState
 } from "@/components/game/conflict-card";
+import type {
+    ConflictEvent, ConflictFormulaToken, ConflictOutcome, CycleStep
+} from "@/lib/schemas/conflict-event-schema";
 
 export interface ConflictExecutionState {
   conflictId: string;

@@ -1,16 +1,16 @@
 "use client";
 
-import { useState, useMemo, useCallback } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
-  Popover,
-  PopoverContent,
-  PopoverTrigger,
+    Popover,
+    PopoverContent,
+    PopoverTrigger
 } from "@/components/ui/popover";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { cn } from "@/lib/utils";
 import * as Lucide from "lucide-react";
+import { useCallback, useMemo, useState } from "react";
 
 // Curated list of commonly used icons for quick access
 export const COMMON_ICONS = [

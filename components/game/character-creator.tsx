@@ -1,23 +1,23 @@
 "use client";
 
-import { useState, useMemo } from "react";
-import { motion } from "framer-motion";
-import { ArrowLeft, Plus, Minus, User, Sparkles } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
+    Card,
+    CardContent,
+    CardDescription,
+    CardHeader,
+    CardTitle
 } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
 import { Progress } from "@/components/ui/progress";
-import { useGameStore } from "@/lib/store/game-store";
-import type { PlayerCharacter } from "@/lib/schemas/game-schema";
-import { calculateDerivedAttributes } from "@/lib/utils/formula-parser";
 import { getIconComponent } from "@/components/universe/icon-picker";
+import type { PlayerCharacter } from "@/lib/schemas/game-schema";
+import { useGameStore } from "@/lib/store/game-store";
 import { cn } from "@/lib/utils";
+import { calculateDerivedAttributes } from "@/lib/utils/formula-parser";
+import { motion } from "framer-motion";
+import { ArrowLeft, Minus, Plus, Sparkles, User } from "lucide-react";
+import { useMemo, useState } from "react";
 
 export function CharacterCreator() {
   const { selectedUniverse, createCharacter, startGame, setCurrentStep } =

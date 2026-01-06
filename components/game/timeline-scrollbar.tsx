@@ -2,9 +2,8 @@
 
 import type React from "react";
 
-import { useMemo } from "react";
 import type { CanvasNode } from "@/lib/schemas/game-schema";
-import { heroJourneySteps } from "@/lib/data/hero-journey";
+import { useMemo } from "react";
 
 interface TimelineScrollbarProps {
   nodes: CanvasNode[];

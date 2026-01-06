@@ -1,20 +1,17 @@
 "use client"
 
-import type * as React from "react"
-import { useState, useCallback } from "react"
-import { Input } from "@/components/ui/input"
-import { Textarea } from "@/components/ui/textarea"
 import { Button } from "@/components/ui/button"
 import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-  DropdownMenuSeparator,
-  DropdownMenuLabel,
+    DropdownMenu,
+    DropdownMenuContent,
+    DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger
 } from "@/components/ui/dropdown-menu"
-import { Sparkles, Wand2, AlignLeft, FileText, Loader2, ChevronDown, Lightbulb } from "lucide-react"
+import { Input } from "@/components/ui/input"
+import { Textarea } from "@/components/ui/textarea"
 import { cn } from "@/lib/utils"
+import { AlignLeft, ChevronDown, FileText, Lightbulb, Loader2, Sparkles, Wand2 } from "lucide-react"
+import type * as React from "react"
+import { useCallback, useState } from "react"
 
 export type SmartInputAction = {
   id: "generate" | "expand" | "improve" | "summarize" | "suggest-names"

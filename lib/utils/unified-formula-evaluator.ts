@@ -1,6 +1,5 @@
-import type { UniversalFormulaToken } from "@/lib/schemas/game-entity-schema";
 import type { ConflictRole } from "@/lib/schemas/conflict-event-schema";
-import type { GameAttribute } from "@/lib/schemas/game-entity-schema";
+import type { GameAttribute, UniversalFormulaToken } from "@/lib/schemas/game-entity-schema";
 
 /**
  * Context for formula evaluation

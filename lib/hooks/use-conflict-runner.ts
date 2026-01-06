@@ -1,10 +1,9 @@
-import { useEffect, useRef, useState } from "react";
-import { useGameStore } from "@/lib/store/game-store";
-import {
-  executeCycle,
-  type ConflictExecutionState,
-} from "@/lib/game-engine/conflict-system";
 import { TIMING } from "@/lib/constants/game";
+import {
+    executeCycle
+} from "@/lib/game-engine/conflict-system";
+import { useGameStore } from "@/lib/store/game-store";
+import { useEffect, useRef, useState } from "react";
 
 interface UseConflictRunnerReturn {
   isRunning: boolean;

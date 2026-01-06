@@ -1,14 +1,14 @@
 "use client";
 
-import { useState, useEffect } from "react";
-import { motion } from "framer-motion";
-import { ArrowLeft, Plus, Globe, Search } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import Link from "next/link";
-import { universePersistence } from "@/lib/utils/universe-persistence";
-import type { GameUniverse } from "@/lib/schemas/game-entity-schema";
 import { UniverseCard } from "@/components/universe/universe-card";
+import type { GameUniverse } from "@/lib/schemas/game-entity-schema";
+import { universePersistence } from "@/lib/utils/universe-persistence";
+import { motion } from "framer-motion";
+import { ArrowLeft, Globe, Plus, Search } from "lucide-react";
+import Link from "next/link";
+import { useEffect, useState } from "react";
 
 export default function UniversesPage() {
   const [universes, setUniverses] = useState<GameUniverse[]>([]);

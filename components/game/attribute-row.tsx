@@ -1,6 +1,6 @@
 import { getIconComponent } from "@/components/universe/icon-picker";
-import { cn } from "@/lib/utils";
 import type { GameAttribute } from "@/lib/schemas/game-entity-schema";
+import { cn } from "@/lib/utils";
 
 interface AttributeRowProps {
   attribute: GameAttribute;

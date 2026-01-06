@@ -1,5 +1,5 @@
-import type { GameState, PlayerCharacter } from "@/lib/schemas/game-schema"
 import type { GameUniverse } from "@/lib/schemas/game-entity-schema"
+import type { GameState, PlayerCharacter } from "@/lib/schemas/game-schema"
 
 const STORAGE_KEYS = {
   SAVED_GAMES: "game-story-generator-saved-games",

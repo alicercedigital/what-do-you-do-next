@@ -1,21 +1,13 @@
 "use client";
 
-import type {
-  GameEvent,
-  GameOption,
-  CanvasNode,
-  CanvasConnection,
-  PlayerCharacter,
-} from "@/lib/schemas/game-schema";
-import type { GameUniverse } from "@/lib/schemas/game-entity-schema";
 import {
-  CARD_DIMENSIONS,
-  POSITIONING,
-  ANIMATION,
-  TIMING,
-  COLORS,
-  UI,
+    ANIMATION, CARD_DIMENSIONS, COLORS, POSITIONING, TIMING, UI
 } from "@/lib/constants/game";
+import type { GameUniverse } from "@/lib/schemas/game-entity-schema";
+import type {
+    CanvasConnection, CanvasNode, GameEvent,
+    GameOption, PlayerCharacter
+} from "@/lib/schemas/game-schema";
 
 /**
  * Common utility functions to reduce repetition across the game codebase

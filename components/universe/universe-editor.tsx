@@ -1,57 +1,44 @@
 "use client"
 
-import { useState, useEffect } from "react"
-import { useRouter } from "next/navigation"
+import {
+    AlertDialog,
+    AlertDialogAction,
+    AlertDialogCancel,
+    AlertDialogContent,
+    AlertDialogDescription,
+    AlertDialogFooter,
+    AlertDialogHeader,
+    AlertDialogTitle,
+    AlertDialogTrigger
+} from "@/components/ui/alert-dialog"
+import { Badge } from "@/components/ui/badge"
+import { Button } from "@/components/ui/button"
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
+import { Input } from "@/components/ui/input"
+import { Label } from "@/components/ui/label"
+import { ScrollArea } from "@/components/ui/scroll-area"
+import { SmartInput } from "@/components/ui/smart-input"
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
+import type { ConflictEvent } from "@/lib/schemas/conflict-event-schema"
+import type {
+    GameAttribute, GameCharacter, GameItem, GameLocation, GameUniverse
+} from "@/lib/schemas/game-entity-schema"
+import { cn } from "@/lib/utils"
+import { universePersistence } from "@/lib/utils/universe-persistence"
 import { motion } from "framer-motion"
 import {
-  ArrowLeft,
-  Save,
-  Plus,
-  Trash2,
-  Users,
-  MapPin,
-  Settings,
-  ChevronRight,
-  Sliders,
-  Package,
-  Swords,
+    ArrowLeft, ChevronRight, MapPin, Package, Plus, Save, Settings, Sliders, Swords, Trash2,
+    Users
 } from "lucide-react"
-import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { Label } from "@/components/ui/label"
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-  AlertDialogTrigger,
-} from "@/components/ui/alert-dialog"
-import { ScrollArea } from "@/components/ui/scroll-area"
-import { Badge } from "@/components/ui/badge"
-import { universePersistence } from "@/lib/utils/universe-persistence"
-import type {
-  GameUniverse,
-  GameCharacter,
-  GameLocation,
-  GameAttribute,
-  GameItem,
-} from "@/lib/schemas/game-entity-schema"
-import type { ConflictEvent } from "@/lib/schemas/conflict-event-schema"
+import Link from "next/link"
+import { useRouter } from "next/navigation"
+import { useEffect, useState } from "react"
 import { AttributeEditor } from "./attribute-editor"
 import { CharacterEditor } from "./character-editor"
-import { LocationEditor } from "./location-editor"
-import { ItemEditor } from "./item-editor"
 import { ConflictEventEditor } from "./conflict-event-editor"
-import { SmartInput } from "@/components/ui/smart-input"
 import { getIconComponent } from "./icon-picker"
-import Link from "next/link"
-import { cn } from "@/lib/utils"
+import { ItemEditor } from "./item-editor"
+import { LocationEditor } from "./location-editor"
 
 interface UniverseEditorProps {
   universeId?: string

@@ -1,25 +1,25 @@
 "use client"
 
-import { useState, useEffect } from "react"
-import { motion } from "framer-motion"
-import { Play, FolderOpen, Globe, Trash2, Clock } from "lucide-react"
+import {
+    AlertDialog,
+    AlertDialogAction,
+    AlertDialogCancel,
+    AlertDialogContent,
+    AlertDialogDescription,
+    AlertDialogFooter,
+    AlertDialogHeader,
+    AlertDialogTitle,
+    AlertDialogTrigger
+} from "@/components/ui/alert-dialog"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-  AlertDialogTrigger,
-} from "@/components/ui/alert-dialog"
 import { ScrollArea } from "@/components/ui/scroll-area"
 import { useGameStore } from "@/lib/store/game-store"
 import type { SavedGame } from "@/lib/utils/game-persistence"
+import { motion } from "framer-motion"
+import { Clock, FolderOpen, Globe, Play, Trash2 } from "lucide-react"
 import Link from "next/link"
+import { useEffect, useState } from "react"
 
 export function MainMenu() {
   const { setCurrentStep, loadGame, getSavedGames, deleteGame } = useGameStore()
