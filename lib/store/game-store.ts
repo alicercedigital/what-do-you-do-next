@@ -15,6 +15,21 @@ import {
   type ConflictExecutionState,
   type RoleAssignment,
 } from "@/lib/utils/conflict-executor";
+import {
+  generateId,
+  createEventNode,
+  createOptionNode,
+  createConnection,
+  calculateNextEventPosition,
+  calculateOptionPositions,
+  delay,
+} from "@/lib/utils/game-helpers";
+import {
+  TIMING,
+  GAME_DEFAULTS,
+  POSITIONING,
+  ANIMATION,
+} from "@/lib/constants/game";
 
 interface GameStore {
   // Game setup state
@@ -98,10 +113,10 @@ export const useGameStore = create<GameStore>((set, get) => ({
     if (!selectedUniverse || !character) return;
 
     const initialState: GameState = {
-      id: crypto.randomUUID(),
+      id: generateId("game"),
       universeId: selectedUniverse.id,
       character,
-      currentHeroStep: "ordinary-world",
+      currentHeroStep: GAME_DEFAULTS.heroStep,
       nodes: [],
       connections: [],
       currentEventId: null,
@@ -228,9 +243,9 @@ export const useGameStore = create<GameStore>((set, get) => ({
       .substring(2, 7)}`;
     const nodeId = `event-${batchId}`;
 
-    let xOffset = 100;
-    let yPosition = 200;
+    // Calculate position using helper
     let fromNodeId: string | null = null;
+    let position = { x: 100, y: 200 };
 
     const eventNodes = gameState.nodes.filter((n) => n.type === "event");
     const selectedOptionNode = gameState.lastSelectedOptionId
@@ -239,8 +254,7 @@ export const useGameStore = create<GameStore>((set, get) => ({
 
     if (selectedOptionNode) {
       fromNodeId = selectedOptionNode.id;
-      xOffset = selectedOptionNode.position.x + 400;
-      yPosition = selectedOptionNode.position.y;
+      position = calculateNextEventPosition(selectedOptionNode.position);
     } else if (eventNodes.length > 0) {
       const lastEventNode = eventNodes.reduce(
         (rightmost, node) =>
@@ -248,16 +262,11 @@ export const useGameStore = create<GameStore>((set, get) => ({
         eventNodes[0]
       );
       fromNodeId = lastEventNode.id;
-      xOffset = lastEventNode.position.x + 400;
-      yPosition = lastEventNode.position.y;
+      position = calculateNextEventPosition(lastEventNode.position);
     }
 
-    const newNode: CanvasNode = {
-      id: nodeId,
-      type: "event",
-      data: nextEvent,
-      position: { x: xOffset, y: yPosition },
-    };
+    const newNode = createEventNode(nextEvent, position);
+    newNode.id = nodeId; // Override with batch ID
 
     const updatedNewNodeIds = new Set(newNodeIds);
     updatedNewNodeIds.add(nodeId);
@@ -265,14 +274,9 @@ export const useGameStore = create<GameStore>((set, get) => ({
     const updatedNewConnectionIds = new Set(newConnectionIds);
 
     if (fromNodeId) {
-      const connId = `conn-${batchId}`;
-      updatedConnections.push({
-        id: connId,
-        fromNodeId,
-        toNodeId: nodeId,
-        active: true,
-      });
-      updatedNewConnectionIds.add(connId);
+      const connection = createConnection(fromNodeId, nodeId, true);
+      updatedConnections.push(connection);
+      updatedNewConnectionIds.add(connection.id);
     }
 
     const hasMoreEvents = remainingEvents.length > 0;
@@ -294,12 +298,10 @@ export const useGameStore = create<GameStore>((set, get) => ({
     });
 
     if (shouldShowOptions) {
-      const lastEventNodeId = nodeId;
-      const eventY = yPosition;
-      const optionSpacing = 200;
-      const totalHeight = (pendingOptions.length - 1) * optionSpacing;
-      const optionYStart = eventY - totalHeight / 2;
-      const optionX = xOffset + 400;
+      const optionPositions = calculateOptionPositions(
+        position,
+        pendingOptions.length
+      );
 
       pendingOptions.forEach((option, index) => {
         setTimeout(() => {
@@ -318,36 +320,34 @@ export const useGameStore = create<GameStore>((set, get) => ({
           const updatedOptNewConnIds = new Set(currentNewConnIds);
           updatedOptNewConnIds.add(optConnId);
 
-          const optionY = optionYStart + index * optionSpacing;
+          const optionNode = createOptionNode(
+            option,
+            optionPositions[index],
+            true,
+            false,
+            false
+          );
+          optionNode.id = optionNodeId;
+
+          const optionConnection = createConnection(
+            nodeId,
+            optionNodeId,
+            false
+          );
+          optionConnection.id = optConnId;
 
           set({
             gameState: {
               ...currentState,
-              nodes: [
-                ...currentState.nodes,
-                {
-                  id: optionNodeId,
-                  type: "option",
-                  data: option,
-                  position: { x: optionX, y: optionY },
-                },
-              ],
-              connections: [
-                ...currentState.connections,
-                {
-                  id: optConnId,
-                  fromNodeId: lastEventNodeId,
-                  toNodeId: optionNodeId,
-                  active: false,
-                },
-              ],
+              nodes: [...currentState.nodes, optionNode],
+              connections: [...currentState.connections, optionConnection],
               pendingOptions: [],
               lastSelectedOptionId: null,
             },
             newNodeIds: updatedOptNewNodeIds,
             newConnectionIds: updatedOptNewConnIds,
           });
-        }, 300 + index * 200);
+        }, TIMING.optionClickDelay + index * ANIMATION.delay.medium);
       });
     }
   },
@@ -398,7 +398,7 @@ export const useGameStore = create<GameStore>((set, get) => ({
     const runCycles = async () => {
       let state = get().activeConflictState;
       while (state && !state.isComplete && get().isConflictRunning) {
-        await new Promise((resolve) => setTimeout(resolve, 1500));
+        await delay(TIMING.conflictCycleDelay);
         const currentState = get().activeConflictState;
         if (!currentState || currentState.isComplete) break;
 

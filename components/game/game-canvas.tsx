@@ -28,19 +28,17 @@ import { ConflictCard } from "./conflict-card";
 import { TimelineScrollbar } from "./timeline-scrollbar";
 import { SaveLoadMenu } from "./save-load-menu";
 import { heroJourneySteps } from "@/lib/data/hero-journey";
-import { CARD_DIMENSIONS } from "./base-card";
 import type { GameEvent, GameOption } from "@/lib/schemas/game-schema";
 import useSWRMutation from "swr/mutation";
+import {
+  calculateNodeDimensions,
+  createDiceRollEvent,
+  delay,
+  isDiceRollEvent,
+  isConflictEvent,
+} from "@/lib/utils/game-helpers";
 
-const EVENT_WIDTH = CARD_DIMENSIONS.event.width;
-const EVENT_HEIGHT = CARD_DIMENSIONS.event.height;
-const OPTION_WIDTH = CARD_DIMENSIONS.option.width;
-const OPTION_HEIGHT = CARD_DIMENSIONS.option.height;
-const DICE_ROLL_WIDTH = CARD_DIMENSIONS.diceRoll.width;
-const DICE_ROLL_HEIGHT = CARD_DIMENSIONS.diceRoll.height;
-const CONFLICT_WIDTH = CARD_DIMENSIONS.conflict.width;
-const CONFLICT_HEIGHT = CARD_DIMENSIONS.conflict.height;
-
+// Node Components
 const EventNode = ({ data }: { data: any }) => (
   <div className="pointer-events-auto">
     <EventCard
@@ -118,22 +116,6 @@ async function generateStory(
   return res.json();
 }
 
-function getNodeDimensions(nodeType: string, eventType?: string) {
-  if (nodeType === "option") {
-    return { width: OPTION_WIDTH, height: OPTION_HEIGHT };
-  }
-  if (nodeType === "event") {
-    if (eventType === "dice-roll") {
-      return { width: DICE_ROLL_WIDTH, height: DICE_ROLL_HEIGHT };
-    }
-    if (eventType === "conflict") {
-      return { width: CONFLICT_WIDTH, height: CONFLICT_HEIGHT };
-    }
-    return { width: EVENT_WIDTH, height: EVENT_HEIGHT };
-  }
-  return { width: EVENT_WIDTH, height: EVENT_HEIGHT };
-}
-
 function GameCanvasInner() {
   const [showSidebar, setShowSidebar] = useState(false);
   const initialGenerationStarted = useRef(false);
@@ -141,6 +123,7 @@ function GameCanvasInner() {
   const handleContinueRef = useRef<() => void>(() => {});
   const handleOptionClickRef = useRef<(optionId: string) => void>(() => {});
 
+  // Error handling effect
   useEffect(() => {
     const handleError = (event: ErrorEvent) => {
       if (
@@ -245,7 +228,7 @@ function GameCanvasInner() {
         type: string;
       }[] = []
     ) => {
-      const { width: nodeWidth, height: nodeHeight } = getNodeDimensions(
+      const { width: nodeWidth, height: nodeHeight } = calculateNodeDimensions(
         node.type,
         node.type === "event" ? (node.data as GameEvent)?.type : undefined
       );
@@ -256,7 +239,7 @@ function GameCanvasInner() {
         const maxX = Math.max(
           node.position.x + nodeWidth,
           ...connectedNodes.map((n) => {
-            const dims = getNodeDimensions(n.type);
+            const dims = calculateNodeDimensions(n.type);
             return n.position.x + dims.width;
           })
         );
@@ -264,7 +247,7 @@ function GameCanvasInner() {
         const maxY = Math.max(
           node.position.y + nodeHeight,
           ...connectedNodes.map((n) => {
-            const dims = getNodeDimensions(n.type);
+            const dims = calculateNodeDimensions(n.type);
             return n.position.y + dims.height;
           })
         );
@@ -331,20 +314,13 @@ function GameCanvasInner() {
             (attr) => attr.id === option.attributeTest!.attributeId
           );
 
-          const diceRollEvent: GameEvent = {
-            id: crypto.randomUUID(),
-            heroJourneyStep: "tests-allies-enemies",
-            type: "dice-roll",
-            title: `${attribute?.name || "Attribute"} Test`,
-            content: `Rolling against difficulty ${option.attributeTest.difficulty}...`,
-            diceRollData: {
-              attributeName: attribute?.name || "Attribute",
-              targetNumber: option.attributeTest.difficulty,
-              attributeValue,
-              diceRoll,
-              success,
-            },
-          };
+          const diceRollEvent = createDiceRollEvent(
+            attribute?.name || "Attribute",
+            option.attributeTest.difficulty,
+            attributeValue,
+            diceRoll,
+            success
+          );
 
           selectOption(optionId);
           setPendingContent([diceRollEvent], []);
@@ -396,7 +372,7 @@ function GameCanvasInner() {
         const event = node.data as GameEvent;
 
         // Dice roll nodes
-        if (event.type === "dice-roll" && event.diceRollData) {
+        if (isDiceRollEvent(event)) {
           return {
             id: node.id,
             type: "diceRoll",
@@ -413,11 +389,7 @@ function GameCanvasInner() {
         }
 
         // Conflict nodes
-        if (
-          event.type === "conflict" &&
-          event.conflictData &&
-          activeConflictState
-        ) {
+        if (isConflictEvent(event) && activeConflictState) {
           const conflictEvent = selectedUniverse?.conflictEvents?.find(
             (c) => c.id === event.conflictData?.conflictEventId
           );
@@ -564,12 +536,13 @@ function GameCanvasInner() {
       });
 
       if (nearestNode) {
-        const { width: nodeWidth, height: nodeHeight } = getNodeDimensions(
-          nearestNode.type,
-          nearestNode.type === "event"
-            ? (nearestNode.data as GameEvent)?.type
-            : undefined
-        );
+        const { width: nodeWidth, height: nodeHeight } =
+          calculateNodeDimensions(
+            nearestNode.type,
+            nearestNode.type === "event"
+              ? (nearestNode.data as GameEvent)?.type
+              : undefined
+          );
         const centerX = nearestNode.position.x + nodeWidth / 2;
         const centerY = nearestNode.position.y + nodeHeight / 2;
         setCenter(centerX, centerY, { zoom: 0.75, duration: 600 });
@@ -676,7 +649,7 @@ function GameCanvasInner() {
                 ))}
             </div>
 
-            <h3 className="font-semibold mt-6 mb-4">Hero&apos;s Journey</h3>
+            <h3 className="font-semibold mt-6 mb-4">Hero's Journey</h3>
             <div className="space-y-2">
               {heroJourneySteps.map((step, index) => (
                 <div
