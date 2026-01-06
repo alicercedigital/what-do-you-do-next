@@ -310,3 +310,198 @@ export const getConnectionColor = (active: boolean): string => {
 export const getTiming = (key: keyof typeof TIMING): number => {
   return TIMING[key];
 };
+
+// Node mapping helper for ReactFlow
+export const mapToFlowNodes = (
+  gameState: any,
+  newNodeIds: Set<string>,
+  activeConflictState: any,
+  handlers: { onOptionClick: (id: string) => void }
+) => {
+  if (!gameState) return [];
+
+  return gameState.nodes.map((node: any) => {
+    const isNew = newNodeIds.has(node.id);
+
+    if (node.type === "event") {
+      const event = node.data;
+
+      // Dice roll nodes
+      if (event.type === "dice-roll") {
+        return {
+          id: node.id,
+          type: "diceRoll",
+          position: node.position,
+          draggable: false,
+          selectable: false,
+          focusable: false,
+          data: {
+            ...event.diceRollData,
+            characterPortrait: gameState.character?.portraits?.confident,
+            isNew,
+          },
+        };
+      }
+
+      // Conflict nodes
+      if (event.type === "conflict" && activeConflictState) {
+        const conflictEvent = gameState.selectedUniverse?.conflictEvents?.find(
+          (c: any) => c.id === event.conflictData?.conflictEventId
+        );
+        return {
+          id: node.id,
+          type: "conflict",
+          position: node.position,
+          draggable: false,
+          selectable: false,
+          focusable: false,
+          data: {
+            conflict: conflictEvent,
+            roleStates: activeConflictState.roleStates,
+            logs: activeConflictState.logs,
+            currentCycle: activeConflictState.currentCycle,
+            isComplete: activeConflictState.isComplete,
+            outcome: activeConflictState.outcome,
+            isNew,
+            characterPortrait: gameState.character?.portraits?.confident,
+          },
+        };
+      }
+
+      // Standard event nodes
+      return {
+        id: node.id,
+        type: "event",
+        position: node.position,
+        draggable: false,
+        selectable: false,
+        focusable: false,
+        data: {
+          event,
+          isNew,
+          isActive: node.id === gameState.currentEventId,
+          characterPortrait: gameState.character?.portraits?.confident,
+          locationImage: event.locationChange
+            ? `/placeholder.svg?height=128&width=320&query=${encodeURIComponent(
+                event.locationChange || "fantasy landscape"
+              )}`
+            : undefined,
+        },
+      };
+    }
+
+    // Option nodes
+    if (node.type === "option") {
+      return {
+        id: node.id,
+        type: "option",
+        position: node.position,
+        draggable: false,
+        selectable: false,
+        focusable: false,
+        data: {
+          option: node.data,
+          onClick: () => handlers.onOptionClick(node.id),
+          selected: node.selected,
+          greyedOut: node.greyedOut,
+          isNew,
+        },
+      };
+    }
+
+    return {
+      id: node.id,
+      position: node.position,
+      data: { ...node.data, isNew },
+    };
+  });
+};
+
+/**
+ * Calculates the next nodes to be displayed in the game flow
+ * This logic was moved from the game store to reduce complexity
+ */
+export const calculateNextNodes = (
+  gameState: any,
+  pendingEvents: any[],
+  pendingOptions: any[]
+) => {
+  if (pendingEvents.length === 0) return null;
+
+  const [nextEvent, ...remainingEvents] = pendingEvents;
+  const batchId = `${Date.now()}-${Math.random().toString(36).substring(2, 7)}`;
+  const nodeId = `event-${batchId}`;
+
+  // Calculate position using helper
+  let fromNodeId: string | null = null;
+  let position = { x: 100, y: 200 };
+
+  const eventNodes = gameState.nodes.filter((n: any) => n.type === "event");
+  const selectedOptionNode = gameState.lastSelectedOptionId
+    ? gameState.nodes.find((n: any) => n.id === gameState.lastSelectedOptionId)
+    : null;
+
+  if (selectedOptionNode) {
+    fromNodeId = selectedOptionNode.id;
+    position = calculateNextEventPosition(selectedOptionNode.position);
+  } else if (eventNodes.length > 0) {
+    const lastEventNode = eventNodes.reduce(
+      (rightmost: any, node: any) =>
+        node.position.x > rightmost.position.x ? node : rightmost,
+      eventNodes[0]
+    );
+    fromNodeId = lastEventNode.id;
+    position = calculateNextEventPosition(lastEventNode.position);
+  }
+
+  const newNode = createEventNode(nextEvent, position);
+  newNode.id = nodeId; // Override with batch ID
+
+  const hasMoreEvents = remainingEvents.length > 0;
+  const shouldShowOptions = !hasMoreEvents && pendingOptions.length > 0;
+
+  return {
+    newNode,
+    fromNodeId,
+    position,
+    hasMoreEvents,
+    shouldShowOptions,
+    remainingEvents,
+    batchId,
+    nodeId,
+  };
+};
+
+/**
+ * Calculates option nodes to be displayed after events
+ */
+export const calculateOptionNodes = (
+  position: { x: number; y: number },
+  pendingOptions: any[],
+  batchId: string,
+  nodeId: string
+) => {
+  const optionPositions = calculateOptionPositions(
+    position,
+    pendingOptions.length
+  );
+
+  return pendingOptions.map((option, index) => {
+    const optionNodeId = `option-${batchId}-${index}`;
+    const optConnId = `conn-option-${batchId}-${index}`;
+
+    const optionNode = createOptionNode(
+      option,
+      optionPositions[index],
+      true,
+      false,
+      false
+    );
+    optionNode.id = optionNodeId;
+
+    const optionConnection = createConnection(nodeId, optionNodeId, false);
+    optionConnection.id = optConnId;
+
+    return { optionNode, optionConnection, optionNodeId, optConnId };
+  });
+};

@@ -14,6 +14,7 @@ import {
   executeCycle,
   type ConflictExecutionState,
   type RoleAssignment,
+  startConflict as startConflictUtil,
 } from "@/lib/utils/conflict-executor";
 import {
   generateId,
@@ -23,6 +24,8 @@ import {
   calculateNextEventPosition,
   calculateOptionPositions,
   delay,
+  calculateNextNodes,
+  calculateOptionNodes,
 } from "@/lib/utils/game-helpers";
 import {
   TIMING,
@@ -235,38 +238,19 @@ export const useGameStore = create<GameStore>((set, get) => ({
     const pendingEvents = gameState.pendingEvents || [];
     const pendingOptions = gameState.pendingOptions || [];
 
-    if (pendingEvents.length === 0) return;
+    const result = calculateNextNodes(gameState, pendingEvents, pendingOptions);
+    if (!result) return;
 
-    const [nextEvent, ...remainingEvents] = pendingEvents;
-    const batchId = `${Date.now()}-${Math.random()
-      .toString(36)
-      .substring(2, 7)}`;
-    const nodeId = `event-${batchId}`;
-
-    // Calculate position using helper
-    let fromNodeId: string | null = null;
-    let position = { x: 100, y: 200 };
-
-    const eventNodes = gameState.nodes.filter((n) => n.type === "event");
-    const selectedOptionNode = gameState.lastSelectedOptionId
-      ? gameState.nodes.find((n) => n.id === gameState.lastSelectedOptionId)
-      : null;
-
-    if (selectedOptionNode) {
-      fromNodeId = selectedOptionNode.id;
-      position = calculateNextEventPosition(selectedOptionNode.position);
-    } else if (eventNodes.length > 0) {
-      const lastEventNode = eventNodes.reduce(
-        (rightmost, node) =>
-          node.position.x > rightmost.position.x ? node : rightmost,
-        eventNodes[0]
-      );
-      fromNodeId = lastEventNode.id;
-      position = calculateNextEventPosition(lastEventNode.position);
-    }
-
-    const newNode = createEventNode(nextEvent, position);
-    newNode.id = nodeId; // Override with batch ID
+    const {
+      newNode,
+      fromNodeId,
+      position,
+      hasMoreEvents,
+      shouldShowOptions,
+      remainingEvents,
+      batchId,
+      nodeId,
+    } = result;
 
     const updatedNewNodeIds = new Set(newNodeIds);
     updatedNewNodeIds.add(nodeId);
@@ -278,9 +262,6 @@ export const useGameStore = create<GameStore>((set, get) => ({
       updatedConnections.push(connection);
       updatedNewConnectionIds.add(connection.id);
     }
-
-    const hasMoreEvents = remainingEvents.length > 0;
-    const shouldShowOptions = !hasMoreEvents && pendingOptions.length > 0;
 
     set({
       gameState: {
@@ -298,57 +279,42 @@ export const useGameStore = create<GameStore>((set, get) => ({
     });
 
     if (shouldShowOptions) {
-      const optionPositions = calculateOptionPositions(
+      const optionResults = calculateOptionNodes(
         position,
-        pendingOptions.length
+        pendingOptions,
+        batchId,
+        nodeId
       );
 
-      pendingOptions.forEach((option, index) => {
-        setTimeout(() => {
-          const optionNodeId = `option-${batchId}-${index}`;
-          const optConnId = `conn-option-${batchId}-${index}`;
+      optionResults.forEach(
+        ({ optionNode, optionConnection, optionNodeId, optConnId }, index) => {
+          setTimeout(() => {
+            const {
+              gameState: currentState,
+              newNodeIds: currentNewNodeIds,
+              newConnectionIds: currentNewConnIds,
+            } = get();
+            if (!currentState) return;
 
-          const {
-            gameState: currentState,
-            newNodeIds: currentNewNodeIds,
-            newConnectionIds: currentNewConnIds,
-          } = get();
-          if (!currentState) return;
+            const updatedOptNewNodeIds = new Set(currentNewNodeIds);
+            updatedOptNewNodeIds.add(optionNodeId);
+            const updatedOptNewConnIds = new Set(currentNewConnIds);
+            updatedOptNewConnIds.add(optConnId);
 
-          const updatedOptNewNodeIds = new Set(currentNewNodeIds);
-          updatedOptNewNodeIds.add(optionNodeId);
-          const updatedOptNewConnIds = new Set(currentNewConnIds);
-          updatedOptNewConnIds.add(optConnId);
-
-          const optionNode = createOptionNode(
-            option,
-            optionPositions[index],
-            true,
-            false,
-            false
-          );
-          optionNode.id = optionNodeId;
-
-          const optionConnection = createConnection(
-            nodeId,
-            optionNodeId,
-            false
-          );
-          optionConnection.id = optConnId;
-
-          set({
-            gameState: {
-              ...currentState,
-              nodes: [...currentState.nodes, optionNode],
-              connections: [...currentState.connections, optionConnection],
-              pendingOptions: [],
-              lastSelectedOptionId: null,
-            },
-            newNodeIds: updatedOptNewNodeIds,
-            newConnectionIds: updatedOptNewConnIds,
-          });
-        }, TIMING.optionClickDelay + index * ANIMATION.delay.medium);
-      });
+            set({
+              gameState: {
+                ...currentState,
+                nodes: [...currentState.nodes, optionNode],
+                connections: [...currentState.connections, optionConnection],
+                pendingOptions: [],
+                lastSelectedOptionId: null,
+              },
+              newNodeIds: updatedOptNewNodeIds,
+              newConnectionIds: updatedOptNewConnIds,
+            });
+          }, TIMING.optionClickDelay + index * ANIMATION.delay.medium);
+        }
+      );
     }
   },
 
@@ -359,36 +325,17 @@ export const useGameStore = create<GameStore>((set, get) => ({
     enemyAttributes
   ) => {
     const { selectedUniverse, character } = get();
-    if (!selectedUniverse || !character) return;
 
-    const conflictEvent = selectedUniverse.conflictEvents?.find(
-      (c) => c.id === conflictEventId
+    const conflictState = startConflictUtil(
+      conflictEventId,
+      enemyName,
+      enemyPortrait,
+      enemyAttributes,
+      selectedUniverse,
+      character
     );
-    if (!conflictEvent) {
-      console.error("Conflict event not found:", conflictEventId);
-      return;
-    }
 
-    const playerAttributes: Record<string, number> = {
-      ...character.baseAttributes,
-    };
-
-    const roleAssignments: RoleAssignment[] = [
-      {
-        roleId: "player",
-        entityName: character.name,
-        portrait: character.portraits?.confident,
-        attributes: playerAttributes,
-      },
-      {
-        roleId: "enemy",
-        entityName: enemyName,
-        portrait: enemyPortrait,
-        attributes: enemyAttributes,
-      },
-    ];
-
-    const conflictState = createConflictState(conflictEvent, roleAssignments);
+    if (!conflictState) return;
 
     set({
       activeConflictState: conflictState,

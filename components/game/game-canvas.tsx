@@ -36,6 +36,7 @@ import {
   delay,
   isDiceRollEvent,
   isConflictEvent,
+  mapToFlowNodes,
 } from "@/lib/utils/game-helpers";
 
 // Node Components
@@ -360,98 +361,18 @@ function GameCanvasInner() {
   useEffect(() => {
     if (!gameState) return;
 
-    const eventNodes = gameState.nodes.filter((n) => n.type === "event");
-    const lastEventNodeId =
-      eventNodes.length > 0 ? eventNodes[eventNodes.length - 1].id : null;
-    const activeEventId = gameState.currentEventId || lastEventNodeId;
-
-    const flowNodes: Node[] = gameState.nodes.map((node) => {
-      const isNew = newNodeIds.has(node.id);
-
-      if (node.type === "event") {
-        const event = node.data as GameEvent;
-
-        // Dice roll nodes
-        if (isDiceRollEvent(event)) {
-          return {
-            id: node.id,
-            type: "diceRoll",
-            position: node.position,
-            draggable: false,
-            selectable: false,
-            focusable: false,
-            data: {
-              ...event.diceRollData,
-              characterPortrait: character?.portraits?.confident,
-              isNew,
-            },
-          };
-        }
-
-        // Conflict nodes
-        if (isConflictEvent(event) && activeConflictState) {
-          const conflictEvent = selectedUniverse?.conflictEvents?.find(
-            (c) => c.id === event.conflictData?.conflictEventId
-          );
-          return {
-            id: node.id,
-            type: "conflict",
-            position: node.position,
-            draggable: false,
-            selectable: false,
-            focusable: false,
-            data: {
-              conflict: conflictEvent,
-              roleStates: activeConflictState.roleStates,
-              logs: activeConflictState.logs,
-              currentCycle: activeConflictState.currentCycle,
-              isComplete: activeConflictState.isComplete,
-              outcome: activeConflictState.outcome,
-              isNew,
-              characterPortrait: character?.portraits?.confident,
-            },
-          };
-        }
-
-        // Standard event nodes
-        return {
-          id: node.id,
-          type: "event",
-          position: node.position,
-          draggable: false,
-          selectable: false,
-          focusable: false,
-          data: {
-            event,
-            isNew,
-            isActive: node.id === activeEventId,
-            characterPortrait: character?.portraits?.confident,
-            locationImage: event.locationChange
-              ? `/placeholder.svg?height=128&width=320&query=${encodeURIComponent(
-                  event.locationChange || "fantasy landscape"
-                )}`
-              : undefined,
-          },
-        };
-      }
-
-      // Option nodes
-      return {
-        id: node.id,
-        type: "option",
-        position: node.position,
-        draggable: false,
-        selectable: false,
-        focusable: false,
-        data: {
-          option: node.data as GameOption,
-          onClick: () => handleOptionClickRef.current(node.id),
-          selected: node.selected,
-          greyedOut: node.greyedOut,
-          isNew,
-        },
-      };
-    });
+    // Use helper function to map game state to ReactFlow nodes
+    const flowNodes: Node[] = mapToFlowNodes(
+      {
+        ...gameState,
+        character,
+        selectedUniverse,
+        currentEventId: gameState.currentEventId,
+      },
+      newNodeIds,
+      activeConflictState,
+      { onOptionClick: (id) => handleOptionClickRef.current(id) }
+    );
 
     const validNodeIds = new Set(gameState.nodes.map((n) => n.id));
 
