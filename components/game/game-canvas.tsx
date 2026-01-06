@@ -290,6 +290,22 @@ function GameCanvasInner() {
     }, 500);
   }, [handleContinue, centerOnLastEvent]);
 
+  // Use refs to avoid dependencies on functions that change
+  const handleOptionClickRef = useRef(handleOptionClick);
+  handleOptionClickRef.current = handleOptionClick;
+  
+  const stopConflictRef = useRef(stopConflict);
+  stopConflictRef.current = stopConflict;
+
+  // Create stable callback functions
+  const stableOptionClick = useCallback((optionId: string) => {
+    handleOptionClickRef.current(optionId);
+  }, []);
+
+  const stableStopConflict = useCallback(() => {
+    stopConflictRef.current();
+  }, []);
+
   // Update nodes and edges when game state changes
   useEffect(() => {
     if (!gameState) return;
@@ -304,8 +320,8 @@ function GameCanvasInner() {
       newNodeIds,
       activeConflictState,
       {
-        onOptionClick: handleOptionClick,
-        onConflictEnd: stopConflict,
+        onOptionClick: stableOptionClick,
+        onConflictEnd: stableStopConflict,
       }
     );
 
@@ -333,16 +349,17 @@ function GameCanvasInner() {
     setNodes(flowNodes);
     setEdges(flowEdges);
   }, [
-    gameState,
+    gameState?.nodes,
+    gameState?.connections,
+    gameState?.currentEventId,
     newNodeIds,
-    newConnectionIds,
-    setNodes,
-    setEdges,
     character,
     activeConflictState,
     selectedUniverse,
-    handleOptionClick,
-    stopConflict,
+    stableOptionClick,
+    stableStopConflict,
+    setNodes,
+    setEdges,
   ]);
 
   // Auto-generate initial story

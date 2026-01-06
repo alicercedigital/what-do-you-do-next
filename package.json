@@ -70,6 +70,7 @@
     "zustand": "5.0.9"
   },
   "devDependencies": {
+    "@locator/runtime": "^0.5.1",
     "@tailwindcss/postcss": "^4.1.18",
     "@types/node": "^25",
     "@types/react": "^19",
