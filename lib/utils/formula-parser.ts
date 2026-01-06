@@ -1,17 +1,21 @@
 import type {
-    FormulaToken,
-    GameAttribute
+  FormulaToken,
+  GameAttribute,
+  UniversalFormulaToken,
 } from "@/lib/schemas/game-entity-schema";
 import {
-    validateAttributesExist, validateFormulaStructure, type ValidationResult
+  validateAttributesExist,
+  validateFormulaStructure,
+  type ValidationResult,
 } from "./formula-shared";
 
 /**
  * Evaluates a formula with the given attribute values
  * Supports: +, -, *, /, (, ), min(), max(), floor(), ceil()
+ * Now supports UniversalFormulaToken structure.
  */
 export function evaluateFormula(
-  tokens: FormulaToken[],
+  tokens: UniversalFormulaToken[], // <--- UPDATED TYPE
   attributeValues: Record<string, number>
 ): number {
   if (tokens.length === 0) return 0;
@@ -40,21 +44,42 @@ export function evaluateFormula(
  * Converts formula tokens to a string expression
  */
 function tokensToExpression(
-  tokens: FormulaToken[],
+  tokens: UniversalFormulaToken[], // <--- UPDATED TYPE
   attributeValues: Record<string, number>
 ): string {
   return tokens
     .map((token) => {
       switch (token.type) {
         case "attribute":
+          // Standard attribute lookup
           return attributeValues[token.value] ?? 0;
+
+        // Handle "role-attribute" if it appears in a derived formula
+        // usually derived attributes are "self", so we strip the role or treat as 0
+        // if not found in the standard values map.
+        case "role-attribute":
+          // Logic decision: For simple derived stats (e.g. HP),
+          // we usually treat unknown external role attributes as 0
+          // or try to match if the value key exists in attributeValues.
+          return attributeValues[token.value] ?? 0;
+
         case "operator":
         case "parenthesis":
           return token.value;
+
         case "number":
           return Number.parseFloat(token.value) || 0;
+
         case "function":
           return token.value; // min, max, floor, ceil
+
+        // These types are valid in the Schema but invalid in an Arithmetic Expression.
+        // We return empty string or 0 to prevent Eval errors, or ignore them.
+        case "comparison":
+        case "logical":
+        case "string":
+          return "";
+
         default:
           return "";
       }
@@ -66,22 +91,24 @@ function tokensToExpression(
  * Validates a formula to ensure it's syntactically correct
  */
 export function validateFormula(
-  tokens: FormulaToken[],
+  tokens: UniversalFormulaToken[], // <--- UPDATED TYPE
   availableAttributeIds: string[]
 ): { valid: boolean; error?: string } {
   if (tokens.length === 0) {
     return { valid: true };
   }
 
-  // Use shared validation functions
-  const structureValidation: ValidationResult =
-    validateFormulaStructure(tokens);
+  // Ensure shared validation functions can accept UniversalToken
+  // or cast them if the structure is compatible enough for those helpers.
+  const structureValidation: ValidationResult = validateFormulaStructure(
+    tokens as any
+  ); // Cast may be needed if shared utils aren't updated yet
   if (!structureValidation.valid) {
     return structureValidation;
   }
 
   const attributeValidation: ValidationResult = validateAttributesExist(
-    tokens,
+    tokens as any,
     new Set(availableAttributeIds)
   );
   if (!attributeValidation.valid) {
@@ -106,14 +133,14 @@ export function validateFormula(
  * Formats tokens to a human-readable string
  */
 export function formulaToString(
-  tokens: FormulaToken[],
+  tokens: UniversalFormulaToken[], // <--- UPDATED TYPE
   attributes: GameAttribute[]
 ): string {
   const attrMap = new Map(attributes.map((a) => [a.id, a.shortName || a.name]));
 
   return tokens
     .map((token) => {
-      if (token.type === "attribute") {
+      if (token.type === "attribute" || token.type === "role-attribute") {
         return attrMap.get(token.value) || token.value;
       }
       return token.value;

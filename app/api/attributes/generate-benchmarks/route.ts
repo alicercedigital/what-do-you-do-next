@@ -1,12 +1,17 @@
-import { generateText, Output } from "ai"
-import { GameAttributeSchema } from "@/lib/schemas/game-schema"
+import { generateText, Output } from "ai";
+import { GameAttributeSchema } from "@/lib/schemas/game-schema";
+import { DistributableConfigSchema } from "@/lib/schemas/game-entity-schema";
 
 export async function POST(request: Request) {
   try {
-    const { attributeName, attributeSummary, genreSetting } = await request.json()
+    const { attributeName, attributeSummary, genreSetting } =
+      await request.json();
 
     if (!attributeName || !attributeSummary || !genreSetting) {
-      return Response.json({ error: "Missing required fields" }, { status: 400 })
+      return Response.json(
+        { error: "Missing required fields" },
+        { status: 400 }
+      );
     }
 
     const { output } = await generateText({
@@ -29,17 +34,23 @@ Requirements:
 - Show clear progression from beginner to legendary levels
 - Make it appropriate for the genre setting`,
       output: Output.object({
-        schema: GameAttributeSchema.pick({ benchmarks: true }),
+        schema: DistributableConfigSchema.pick({ benchmarks: true }),
       }),
-    })
+    });
 
     if (!output?.benchmarks) {
-      return Response.json({ error: "Failed to generate benchmarks" }, { status: 500 })
+      return Response.json(
+        { error: "Failed to generate benchmarks" },
+        { status: 500 }
+      );
     }
 
-    return Response.json({ benchmarks: output.benchmarks })
+    return Response.json({ benchmarks: output.benchmarks });
   } catch (error) {
-    console.error("Error generating benchmarks:", error)
-    return Response.json({ error: "Failed to generate benchmarks" }, { status: 500 })
+    console.error("Error generating benchmarks:", error);
+    return Response.json(
+      { error: "Failed to generate benchmarks" },
+      { status: 500 }
+    );
   }
 }

@@ -162,7 +162,7 @@ export const GameAttributeSchema = z.object({
     .string()
     .describe("A brief explanation of what the attribute represents"),
   category: z.enum(["distributable", "derived"]).default("distributable"),
-  display: AttributeDisplayConfigSchema.default({}),
+  display: AttributeDisplayConfigSchema,
   // Category-specific config (only one should be set based on category)
   distributableConfig: DistributableConfigSchema.optional(),
   derivedConfig: DerivedConfigSchema.optional(),
@@ -212,7 +212,7 @@ export const GameUniverseSchema = z.object({
   setting: z.string(),
   thumbnailUrl: z.string().optional(),
   // Attribute system
-  attributeConfig: AttributeSystemConfigSchema.default({}),
+  attributeConfig: AttributeSystemConfigSchema,
   attributes: z.array(GameAttributeSchema).default([]),
   // Item system
   equipmentSlots: z
