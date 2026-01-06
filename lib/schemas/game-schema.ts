@@ -1,4 +1,4 @@
-import { z } from "zod"
+import { z } from "zod";
 import {
   GameAttributeSchema,
   GameCharacterSchema,
@@ -6,7 +6,7 @@ import {
   type GameAttribute,
   type GameCharacter,
   type CharacterPortraits,
-} from "./game-entity-schema"
+} from "./game-entity-schema";
 
 // Re-export entity types
 export {
@@ -16,7 +16,7 @@ export {
   type GameAttribute,
   type GameCharacter,
   type CharacterPortraits,
-}
+};
 
 export const PlayerCharacterSchema = z.object({
   id: z.string(),
@@ -33,7 +33,7 @@ export const PlayerCharacterSchema = z.object({
       z.object({
         itemId: z.string(),
         quantity: z.number(),
-      }),
+      })
     )
     .default([]),
   // Character level for attribute progression
@@ -44,9 +44,9 @@ export const PlayerCharacterSchema = z.object({
   portraits: CharacterPortraitsSchema.default({}),
   type: z.literal("character").default("character"),
   description: z.string().default(""),
-})
+});
 
-export type PlayerCharacter = z.infer<typeof PlayerCharacterSchema>
+export type PlayerCharacter = z.infer<typeof PlayerCharacterSchema>;
 
 // Hero Journey Step
 export const HeroJourneyStepSchema = z.enum([
@@ -62,9 +62,9 @@ export const HeroJourneyStepSchema = z.enum([
   "road-back",
   "resurrection",
   "return-with-elixir",
-])
+]);
 
-export type HeroJourneyStep = z.infer<typeof HeroJourneyStepSchema>
+export type HeroJourneyStep = z.infer<typeof HeroJourneyStepSchema>;
 
 // Attribute Test Schema
 export const AttributeTestSchema = z.object({
@@ -72,14 +72,26 @@ export const AttributeTestSchema = z.object({
   difficulty: z.number(),
   successEventId: z.string(),
   failureEventId: z.string(),
-})
+});
 
-export type AttributeTest = z.infer<typeof AttributeTestSchema>
+export type AttributeTest = z.infer<typeof AttributeTestSchema>;
+
+const eventTypes = [
+  "narrative",
+  "dialogue",
+  "action",
+  "audio",
+  "image",
+  "dice-roll",
+  "conflict",
+] as const;
+
+export type EventType = (typeof eventTypes)[number];
 
 // Game Event Schema
 export const GameEventSchema = z.object({
   id: z.string(),
-  type: z.enum(["narrative", "dialogue", "action", "audio", "image", "dice-roll", "conflict"]),
+  type: z.enum(eventTypes),
   title: z.string(),
   content: z.string(),
   imageUrl: z.string().optional(),
@@ -104,9 +116,9 @@ export const GameEventSchema = z.object({
       enemyAttributes: z.record(z.string(), z.number()),
     })
     .optional(),
-})
+});
 
-export type GameEvent = z.infer<typeof GameEventSchema>
+export type GameEvent = z.infer<typeof GameEventSchema>;
 
 // Game Option Schema
 export const GameOptionSchema = z.object({
@@ -116,9 +128,9 @@ export const GameOptionSchema = z.object({
   description: z.string(),
   attributeTest: AttributeTestSchema.optional(),
   nextEventId: z.string().optional(),
-})
+});
 
-export type GameOption = z.infer<typeof GameOptionSchema>
+export type GameOption = z.infer<typeof GameOptionSchema>;
 
 // Canvas Node Schema (for positioning)
 export const CanvasNodeSchema = z.object({
@@ -131,9 +143,9 @@ export const CanvasNodeSchema = z.object({
   }),
   selected: z.boolean().optional(),
   greyedOut: z.boolean().optional(),
-})
+});
 
-export type CanvasNode = z.infer<typeof CanvasNodeSchema>
+export type CanvasNode = z.infer<typeof CanvasNodeSchema>;
 
 // Canvas Connection Schema
 export const CanvasConnectionSchema = z.object({
@@ -141,9 +153,9 @@ export const CanvasConnectionSchema = z.object({
   fromNodeId: z.string(),
   toNodeId: z.string(),
   active: z.boolean(),
-})
+});
 
-export type CanvasConnection = z.infer<typeof CanvasConnectionSchema>
+export type CanvasConnection = z.infer<typeof CanvasConnectionSchema>;
 
 // Conflict Execution State Schema
 export const ConflictExecutionStateSchema = z.object({
@@ -157,9 +169,12 @@ export const ConflictExecutionStateSchema = z.object({
       portrait: z.string().optional(),
       attributes: z.record(z.string(), z.number()),
       maxAttributes: z.record(z.string(), z.number()),
-    }),
+    })
   ),
-  variables: z.record(z.string(), z.union([z.number(), z.string(), z.boolean()])),
+  variables: z.record(
+    z.string(),
+    z.union([z.number(), z.string(), z.boolean()])
+  ),
   currentCycle: z.number(),
   logs: z.array(
     z.object({
@@ -167,14 +182,16 @@ export const ConflictExecutionStateSchema = z.object({
       message: z.string(),
       type: z.enum(["action", "damage", "info", "success", "failure"]),
       timestamp: z.number(),
-    }),
+    })
   ),
   isComplete: z.boolean(),
   outcomeId: z.string().optional(),
   currentStepIndex: z.number(),
-})
+});
 
-export type ConflictExecutionState = z.infer<typeof ConflictExecutionStateSchema>
+export type ConflictExecutionState = z.infer<
+  typeof ConflictExecutionStateSchema
+>;
 
 export const GameStateSchema = z.object({
   id: z.string(),
@@ -192,6 +209,6 @@ export const GameStateSchema = z.object({
   isWaitingForContinue: z.boolean().optional(),
   currentLocationId: z.string().optional(),
   activeConflict: ConflictExecutionStateSchema.nullable().optional(),
-})
+});
 
-export type GameState = z.infer<typeof GameStateSchema>
+export type GameState = z.infer<typeof GameStateSchema>;

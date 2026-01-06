@@ -1,26 +1,36 @@
-"use client"
+"use client";
 
-import { useState, useEffect } from "react"
-import { motion, AnimatePresence } from "framer-motion"
-import { BookOpen, MessageSquare, Zap, Volume2, ImageIcon } from "lucide-react"
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { Handle, Position } from "reactflow"
-import type { GameEvent } from "@/lib/schemas/game-schema"
+import { useState, useEffect } from "react";
+import { motion, AnimatePresence } from "framer-motion";
+import {
+  BookOpen,
+  MessageSquare,
+  Zap,
+  Volume2,
+  ImageIcon,
+  DicesIcon,
+  SwordsIcon,
+} from "lucide-react";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Handle, Position } from "reactflow";
+import { EventType, type GameEvent } from "@/lib/schemas/game-schema";
 
-const eventTypeIcons = {
+const eventTypeIcons: Record<EventType, React.ReactNode> = {
   narrative: <BookOpen className="h-4 w-4" />,
   dialogue: <MessageSquare className="h-4 w-4" />,
   action: <Zap className="h-4 w-4" />,
   audio: <Volume2 className="h-4 w-4" />,
   image: <ImageIcon className="h-4 w-4" />,
-}
+  "dice-roll": <DicesIcon className="h-4 w-4" />,
+  conflict: <SwordsIcon className="h-4 w-4" />,
+};
 
 interface EventCardProps {
-  event: GameEvent
-  isNew?: boolean
-  isActive?: boolean
-  characterPortrait?: string
-  locationImage?: string
+  event: GameEvent;
+  isNew?: boolean;
+  isActive?: boolean;
+  characterPortrait?: string;
+  locationImage?: string;
 }
 
 export function EventCard({
@@ -30,19 +40,22 @@ export function EventCard({
   characterPortrait,
   locationImage,
 }: EventCardProps) {
-  const [wasActive, setWasActive] = useState(false)
-  const [showGradient, setShowGradient] = useState(isActive)
+  const [wasActive, setWasActive] = useState(false);
+  const [showGradient, setShowGradient] = useState(isActive);
 
   useEffect(() => {
     if (isActive) {
-      setShowGradient(true)
-      setWasActive(true)
+      setShowGradient(true);
+      setWasActive(true);
     } else if (wasActive) {
-      setShowGradient(false)
+      setShowGradient(false);
     }
-  }, [isActive, wasActive])
+  }, [isActive, wasActive]);
 
-  const truncatedContent = event.content.length > 320 ? event.content.slice(0, 317) + "..." : event.content
+  const truncatedContent =
+    event.content.length > 320
+      ? event.content.slice(0, 317) + "..."
+      : event.content;
 
   return (
     <motion.div
@@ -56,16 +69,30 @@ export function EventCard({
       }}
       className="relative"
     >
-      <Handle type="target" position={Position.Left} className="!bg-primary !w-3 !h-3 !border-2 !border-background" />
-      <Handle type="source" position={Position.Right} className="!bg-primary !w-3 !h-3 !border-2 !border-background" />
+      <Handle
+        type="target"
+        position={Position.Left}
+        className="!bg-primary !w-3 !h-3 !border-2 !border-background"
+      />
+      <Handle
+        type="source"
+        position={Position.Right}
+        className="!bg-primary !w-3 !h-3 !border-2 !border-background"
+      />
 
       <Card className="w-80 h-[420px] bg-card border-border shadow-lg shadow-background/50 overflow-hidden !py-0 flex flex-col relative">
         <div className="relative h-32 bg-secondary/30 overflow-hidden shrink-0">
           {locationImage ? (
-            <img src={locationImage || "/placeholder.svg"} alt="Location" className="w-full h-full object-cover" />
+            <img
+              src={locationImage || "/placeholder.svg"}
+              alt="Location"
+              className="w-full h-full object-cover"
+            />
           ) : (
             <div className="w-full h-full bg-gradient-to-br from-secondary/50 to-secondary/20 flex items-center justify-center">
-              <span className="text-muted-foreground/40 text-xs font-mono">Location</span>
+              <span className="text-muted-foreground/40 text-xs font-mono">
+                Location
+              </span>
             </div>
           )}
 
@@ -76,14 +103,26 @@ export function EventCard({
                   className="h-1 bg-gradient-to-r from-primary/0 via-primary to-primary/0 relative overflow-hidden"
                   initial={{ scaleX: 0, opacity: 0 }}
                   animate={{ scaleX: 1, opacity: 1 }}
-                  exit={{ scaleX: 0, opacity: 0, transition: { duration: 0.4, ease: "easeInOut" } }}
+                  exit={{
+                    scaleX: 0,
+                    opacity: 0,
+                    transition: { duration: 0.4, ease: "easeInOut" },
+                  }}
                   transition={{ duration: 0.5, delay: 0.2 }}
                 >
                   <motion.div
                     className="absolute inset-0 bg-gradient-to-r from-transparent via-white/30 to-transparent"
                     initial={{ x: "-100%" }}
-                    animate={isNew ? { x: ["100%", "-100%"] } : { x: "100%", opacity: 0 }}
-                    transition={isNew ? { x: { duration: 1.5, repeat: 2, ease: "easeInOut" } } : { duration: 0.8 }}
+                    animate={
+                      isNew
+                        ? { x: ["100%", "-100%"] }
+                        : { x: "100%", opacity: 0 }
+                    }
+                    transition={
+                      isNew
+                        ? { x: { duration: 1.5, repeat: 2, ease: "easeInOut" } }
+                        : { duration: 0.8 }
+                    }
                   />
                 </motion.div>
               )}
@@ -101,7 +140,9 @@ export function EventCard({
               />
             ) : (
               <div className="w-full h-full bg-gradient-to-br from-primary/30 to-primary/10 flex items-center justify-center">
-                <span className="text-primary/60 text-lg font-bold font-mono">?</span>
+                <span className="text-primary/60 text-lg font-bold font-mono">
+                  ?
+                </span>
               </div>
             )}
           </div>
@@ -115,9 +156,13 @@ export function EventCard({
             transition={{ delay: 0.1 }}
           >
             {eventTypeIcons[event.type]}
-            <span className="text-xs uppercase tracking-wider font-mono">{event.type}</span>
+            <span className="text-xs uppercase tracking-wider font-mono">
+              {event.type}
+            </span>
           </motion.div>
-          <CardTitle className="text-base leading-tight font-mono line-clamp-2">{event.title}</CardTitle>
+          <CardTitle className="text-base leading-tight font-mono line-clamp-2">
+            {event.title}
+          </CardTitle>
         </CardHeader>
 
         <CardContent className="pb-4 flex-1 overflow-hidden">
@@ -132,5 +177,5 @@ export function EventCard({
         </CardContent>
       </Card>
     </motion.div>
-  )
+  );
 }

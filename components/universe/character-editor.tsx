@@ -1,23 +1,37 @@
-"use client"
+"use client";
 
-import { useState } from "react"
-import { ArrowLeft } from "lucide-react"
-import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
-import { Textarea } from "@/components/ui/textarea"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import { Label } from "@/components/ui/label"
-import { Slider } from "@/components/ui/slider"
-import type { GameCharacter, GameAttribute } from "@/lib/schemas/game-entity-schema"
+import { useState } from "react";
+import { ArrowLeft } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import { Label } from "@/components/ui/label";
+import { Slider } from "@/components/ui/slider";
+import type {
+  GameCharacter,
+  GameAttribute,
+} from "@/lib/schemas/game-entity-schema";
 
 interface CharacterEditorProps {
-  character: GameCharacter | null
-  attributes: GameAttribute[]
-  onSave: (character: GameCharacter) => void
-  onCancel: () => void
+  character: GameCharacter | null;
+  attributes: GameAttribute[];
+  onSave: (character: GameCharacter) => void;
+  onCancel: () => void;
 }
 
-export function CharacterEditor({ character, attributes, onSave, onCancel }: CharacterEditorProps) {
+export function CharacterEditor({
+  character,
+  attributes,
+  onSave,
+  onCancel,
+}: CharacterEditorProps) {
   const [data, setData] = useState<GameCharacter>(
     character || {
       id: crypto.randomUUID(),
@@ -27,17 +41,17 @@ export function CharacterEditor({ character, attributes, onSave, onCancel }: Cha
       role: "",
       attributes: Object.fromEntries(attributes.map((a) => [a.id, 1])),
       portraits: {},
-    },
-  )
+    }
+  );
 
   const updateAttribute = (attrId: string, value: number) => {
     setData({
       ...data,
       attributes: { ...data.attributes, [attrId]: value },
-    })
-  }
+    });
+  };
 
-  const canSave = data.name.trim().length > 0 && data.role.trim().length > 0
+  const canSave = data.name.trim().length > 0 && data.role.trim().length > 0;
 
   return (
     <div className="min-h-screen bg-background">
@@ -47,7 +61,9 @@ export function CharacterEditor({ character, attributes, onSave, onCancel }: Cha
             <ArrowLeft className="h-5 w-5" />
           </Button>
           <div className="flex-1">
-            <h1 className="text-2xl font-bold">{character ? "Edit Character" : "Create Character"}</h1>
+            <h1 className="text-2xl font-bold">
+              {character ? "Edit Character" : "Create Character"}
+            </h1>
           </div>
           <Button onClick={() => onSave(data)} disabled={!canSave}>
             Save Character
@@ -58,7 +74,9 @@ export function CharacterEditor({ character, attributes, onSave, onCancel }: Cha
           <Card>
             <CardHeader>
               <CardTitle>Character Details</CardTitle>
-              <CardDescription>Basic information about this character</CardDescription>
+              <CardDescription>
+                Basic information about this character
+              </CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
               <div className="space-y-2">
@@ -87,7 +105,9 @@ export function CharacterEditor({ character, attributes, onSave, onCancel }: Cha
                   id="description"
                   placeholder="Character backstory and personality..."
                   value={data.description}
-                  onChange={(e) => setData({ ...data, description: e.target.value })}
+                  onChange={(e) =>
+                    setData({ ...data, description: e.target.value })
+                  }
                   rows={4}
                 />
               </div>
@@ -97,22 +117,34 @@ export function CharacterEditor({ character, attributes, onSave, onCancel }: Cha
           <Card>
             <CardHeader>
               <CardTitle>Attributes</CardTitle>
-              <CardDescription>Set this character's attribute values</CardDescription>
+              <CardDescription>
+                Set this character's attribute values
+              </CardDescription>
             </CardHeader>
             <CardContent className="space-y-6">
               {attributes.map((attr) => {
-                const value = data.attributes[attr.id] || 1
-                const benchmark = attr.benchmarks.find((b) => b.value === value)
-                const maxValue = Math.max(...attr.benchmarks.map((b) => b.value))
+                const value = data.attributes[attr.id] || 1;
+                const benchmark = attr.distributableConfig?.benchmarks.find(
+                  (b) => b.value === value
+                );
+                const maxValue = Math.max(
+                  ...(attr.distributableConfig?.benchmarks || []).map(
+                    (b) => b.value
+                  )
+                );
 
                 return (
                   <div key={attr.id} className="space-y-3">
                     <div className="flex items-center justify-between">
                       <div>
                         <p className="font-medium">{attr.name}</p>
-                        <p className="text-xs text-muted-foreground">{attr.summary}</p>
+                        <p className="text-xs text-muted-foreground">
+                          {attr.summary}
+                        </p>
                       </div>
-                      <span className="text-2xl font-bold text-primary">{value}</span>
+                      <span className="text-2xl font-bold text-primary">
+                        {value}
+                      </span>
                     </div>
                     <Slider
                       value={[value]}
@@ -127,16 +159,18 @@ export function CharacterEditor({ character, attributes, onSave, onCancel }: Cha
                       </p>
                     )}
                   </div>
-                )
+                );
               })}
 
               {attributes.length === 0 && (
-                <p className="text-center text-muted-foreground py-4">No attributes defined for this universe.</p>
+                <p className="text-center text-muted-foreground py-4">
+                  No attributes defined for this universe.
+                </p>
               )}
             </CardContent>
           </Card>
         </div>
       </div>
     </div>
-  )
+  );
 }

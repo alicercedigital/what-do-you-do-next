@@ -1,33 +1,37 @@
-"use client"
+"use client";
 
-import type React from "react"
+import type React from "react";
 
-import { useMemo } from "react"
-import type { CanvasNode } from "@/lib/schemas/game-schema"
-import { heroJourneySteps } from "@/lib/data/hero-journey"
+import { useMemo } from "react";
+import type { CanvasNode } from "@/lib/schemas/game-schema";
+import { heroJourneySteps } from "@/lib/data/hero-journey";
 
 interface TimelineScrollbarProps {
-  nodes: CanvasNode[]
-  onSeek: (positionX: number) => void
-  currentPositionX: number
+  nodes: CanvasNode[];
+  onSeek: (positionX: number) => void;
+  currentPositionX: number;
 }
 
-export function TimelineScrollbar({ nodes, onSeek, currentPositionX }: TimelineScrollbarProps) {
+export function TimelineScrollbar({
+  nodes,
+  onSeek,
+  currentPositionX,
+}: TimelineScrollbarProps) {
   // Calculate timeline metrics
   const { minX, maxX, range, marks } = useMemo(() => {
     if (nodes.length === 0) {
-      return { minX: 0, maxX: 1000, range: 1000, marks: [] }
+      return { minX: 0, maxX: 1000, range: 1000, marks: [] };
     }
 
-    const positions = nodes.map((n) => n.position.x)
-    const minX = Math.min(...positions)
-    const maxX = Math.max(...positions)
-    const range = maxX - minX || 1000
+    const positions = nodes.map((n) => n.position.x);
+    const minX = Math.min(...positions);
+    const maxX = Math.max(...positions);
+    const range = maxX - minX || 1000;
 
     // Create marks for each node
     const marks = nodes.map((node) => {
-      const eventData = node.type === "event" ? node.data : null
-      const stepChange = eventData?.heroStep ? heroJourneySteps.findIndex((s) => s.id === eventData.heroStep) : null
+      const eventData = node.type === "event" ? node.data : null;
+      const stepChange = null;
 
       return {
         id: node.id,
@@ -36,24 +40,24 @@ export function TimelineScrollbar({ nodes, onSeek, currentPositionX }: TimelineS
         selected: node.selected,
         greyedOut: node.greyedOut,
         stepChange: stepChange,
-      }
-    })
+      };
+    });
 
-    return { minX, maxX, range, marks }
-  }, [nodes])
+    return { minX, maxX, range, marks };
+  }, [nodes]);
 
   // Calculate current position percentage
-  const currentPercent = ((currentPositionX - minX) / range) * 100
+  const currentPercent = ((currentPositionX - minX) / range) * 100;
 
   const handleClick = (e: React.MouseEvent<HTMLDivElement>) => {
-    const rect = e.currentTarget.getBoundingClientRect()
-    const clickX = e.clientX - rect.left
-    const clickPercent = (clickX / rect.width) * 100
+    const rect = e.currentTarget.getBoundingClientRect();
+    const clickX = e.clientX - rect.left;
+    const clickPercent = (clickX / rect.width) * 100;
 
     // Convert back to canvas X position
-    const targetX = minX + (clickPercent / 100) * range
-    onSeek(targetX)
-  }
+    const targetX = minX + (clickPercent / 100) * range;
+    onSeek(targetX);
+  };
 
   return (
     <div
@@ -66,7 +70,11 @@ export function TimelineScrollbar({ nodes, onSeek, currentPositionX }: TimelineS
         <div className="relative w-full h-0.5 bg-muted/30 rounded-full overflow-visible">
           {/* Marks */}
           {marks.map((mark) => (
-            <div key={mark.id} className="absolute" style={{ left: `${mark.position}%` }}>
+            <div
+              key={mark.id}
+              className="absolute"
+              style={{ left: `${mark.position}%` }}
+            >
               {/* Step change indicator - larger vertical line */}
               {mark.stepChange !== null && (
                 <div className="absolute -top-3 left-1/2 -translate-x-1/2">
@@ -86,7 +94,11 @@ export function TimelineScrollbar({ nodes, onSeek, currentPositionX }: TimelineS
               {mark.type === "option" && (
                 <div
                   className={`absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-1.5 h-1.5 rotate-45 border border-background ${
-                    mark.selected ? "bg-green-500" : mark.greyedOut ? "bg-muted-foreground/30" : "bg-muted-foreground"
+                    mark.selected
+                      ? "bg-green-500"
+                      : mark.greyedOut
+                      ? "bg-muted-foreground/30"
+                      : "bg-muted-foreground"
                   }`}
                 />
               )}
@@ -115,5 +127,5 @@ export function TimelineScrollbar({ nodes, onSeek, currentPositionX }: TimelineS
         <span>Timeline</span>
       </div>
     </div>
-  )
+  );
 }

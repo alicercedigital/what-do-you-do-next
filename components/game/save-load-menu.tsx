@@ -1,8 +1,8 @@
-"use client"
+"use client";
 
-import { useState } from "react"
-import { useGameStore } from "@/lib/store/game-store"
-import { Button } from "@/components/ui/button"
+import { useState } from "react";
+import { useGameStore } from "@/lib/store/game-store";
+import { Button } from "@/components/ui/button";
 import {
   Dialog,
   DialogContent,
@@ -11,51 +11,51 @@ import {
   DialogHeader,
   DialogTitle,
   DialogTrigger,
-} from "@/components/ui/dialog"
-import { Input } from "@/components/ui/input"
-import { Label } from "@/components/ui/label"
-import { ScrollArea } from "@/components/ui/scroll-area"
-import { Save, FolderOpen, Trash2 } from "lucide-react"
-import type { SavedGame } from "@/lib/utils/game-persistence"
+} from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { ScrollArea } from "@/components/ui/scroll-area";
+import { Save, FolderOpen, Trash2 } from "lucide-react";
+import type { SavedGame } from "@/lib/utils/game-persistence";
 
 export function SaveLoadMenu() {
-  const [saveDialogOpen, setSaveDialogOpen] = useState(false)
-  const [loadDialogOpen, setLoadDialogOpen] = useState(false)
-  const [saveName, setSaveName] = useState("")
-  const [savedGames, setSavedGames] = useState<SavedGame[]>([])
+  const [saveDialogOpen, setSaveDialogOpen] = useState(false);
+  const [loadDialogOpen, setLoadDialogOpen] = useState(false);
+  const [saveName, setSaveName] = useState("");
+  const [savedGames, setSavedGames] = useState<SavedGame[]>([]);
 
-  const { saveGame, loadGame, getSavedGames, deleteGame } = useGameStore()
+  const { saveGame, loadGame, getSavedGames, deleteGame } = useGameStore();
 
   const handleSave = () => {
-    if (!saveName.trim()) return
+    if (!saveName.trim()) return;
 
-    const saved = saveGame(saveName.trim())
+    const saved = saveGame(saveName.trim());
     if (saved) {
-      setSaveName("")
-      setSaveDialogOpen(false)
+      setSaveName("");
+      setSaveDialogOpen(false);
     }
-  }
+  };
 
   const handleOpenLoad = () => {
-    setSavedGames(getSavedGames())
-    setLoadDialogOpen(true)
-  }
+    setSavedGames(getSavedGames());
+    setLoadDialogOpen(true);
+  };
 
   const handleLoad = (gameId: string) => {
-    const success = loadGame(gameId)
+    const success = loadGame(gameId);
     if (success) {
-      setLoadDialogOpen(false)
+      setLoadDialogOpen(false);
     }
-  }
+  };
 
   const handleDelete = (gameId: string) => {
-    deleteGame(gameId)
-    setSavedGames(getSavedGames())
-  }
+    deleteGame(gameId);
+    setSavedGames(getSavedGames());
+  };
 
   const formatDate = (timestamp: number) => {
-    return new Date(timestamp).toLocaleString()
-  }
+    return new Date(timestamp).toLocaleString();
+  };
 
   return (
     <div className="flex gap-2">
@@ -69,7 +69,9 @@ export function SaveLoadMenu() {
         <DialogContent>
           <DialogHeader>
             <DialogTitle>Save Game</DialogTitle>
-            <DialogDescription>Enter a name for your saved game</DialogDescription>
+            <DialogDescription>
+              Enter a name for your saved game
+            </DialogDescription>
           </DialogHeader>
           <div className="space-y-4 py-4">
             <div className="space-y-2">
@@ -80,7 +82,7 @@ export function SaveLoadMenu() {
                 onChange={(e) => setSaveName(e.target.value)}
                 placeholder="My Epic Adventure"
                 onKeyDown={(e) => {
-                  if (e.key === "Enter") handleSave()
+                  if (e.key === "Enter") handleSave();
                 }}
               />
             </div>
@@ -106,11 +108,15 @@ export function SaveLoadMenu() {
         <DialogContent className="max-w-2xl">
           <DialogHeader>
             <DialogTitle>Load Game</DialogTitle>
-            <DialogDescription>Select a saved game to continue your adventure</DialogDescription>
+            <DialogDescription>
+              Select a saved game to continue your adventure
+            </DialogDescription>
           </DialogHeader>
           <ScrollArea className="h-[400px] pr-4">
             {savedGames.length === 0 ? (
-              <div className="text-center py-8 text-muted-foreground">No saved games found</div>
+              <div className="text-center py-8 text-muted-foreground">
+                No saved games found
+              </div>
             ) : (
               <div className="space-y-2">
                 {savedGames.map((game) => (
@@ -121,12 +127,19 @@ export function SaveLoadMenu() {
                     <div className="flex-1">
                       <div className="font-semibold">{game.name}</div>
                       <div className="text-sm text-muted-foreground">
-                        {game.genre?.name ?? "Unknown Genre"} • {game.character?.name ?? "Unknown Character"}
+                        {game.name} •{" "}
+                        {game.character?.name ?? "Unknown Character"}
                       </div>
-                      <div className="text-xs text-muted-foreground mt-1">{formatDate(game.timestamp)}</div>
+                      <div className="text-xs text-muted-foreground mt-1">
+                        {formatDate(game.timestamp)}
+                      </div>
                     </div>
                     <div className="flex gap-2">
-                      <Button size="sm" variant="outline" onClick={() => handleDelete(game.id)}>
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={() => handleDelete(game.id)}
+                      >
                         <Trash2 className="h-4 w-4" />
                       </Button>
                       <Button size="sm" onClick={() => handleLoad(game.id)}>
@@ -141,5 +154,5 @@ export function SaveLoadMenu() {
         </DialogContent>
       </Dialog>
     </div>
-  )
+  );
 }
