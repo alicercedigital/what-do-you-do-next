@@ -2,7 +2,7 @@
 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { UniverseCard } from "@/components/universe/universe-card";
+import { UniverseCard } from "@/components/universe-card";
 import type { Universe } from "@/core/types";
 import { getUniverses, deleteUniverse } from "@/core/storage";
 import { STARTER_UNIVERSES } from "@/data/starter-universes";
