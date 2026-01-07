@@ -1,5 +1,5 @@
-import { UniverseEditor } from "@/components/universe/universe-editor"
+import { UniverseEditor } from "@/editor/universe-editor";
 
 export default function NewUniversePage() {
-  return <UniverseEditor />
+  return <UniverseEditor universeId={crypto.randomUUID()} />;
 }

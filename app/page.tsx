@@ -1,9 +1,5 @@
-import { GameContainer } from "@/components/game/game-container"
+import { MainMenu } from "@/game/main-menu";
 
 export default function HomePage() {
-  return (
-    <main className="min-h-screen bg-background">
-      <GameContainer />
-    </main>
-  )
+  return <MainMenu />;
 }

@@ -1,6 +1,11 @@
-import { NextResponse } from "next/server"
-import { heroJourneySteps } from "@/lib/data/hero-journey"
-import type { GameEvent, GameOption, HeroJourneyStep } from "@/lib/schemas/game-schema"
+import { NextResponse } from "next/server";
+import type {
+  Card,
+  ChoiceCard,
+  StoryCard,
+  ChallengeCard,
+  OutcomeCard,
+} from "@/core/types";
 
 const storySegments = [
   {
@@ -24,12 +29,20 @@ const storySegments = [
     options: [
       {
         title: "Approach with Confidence",
-        description: "Stand tall and meet their gaze directly, showing no fear.",
+        description:
+          "Stand tall and meet their gaze directly, showing no fear.",
         hasTest: true,
         difficulty: 12,
       },
-      { title: "Observe from Afar", description: "Keep your distance and watch for any signs of danger." },
-      { title: "Offer a Greeting", description: "Extend an open hand in peace, hoping to learn their purpose." },
+      {
+        title: "Observe from Afar",
+        description: "Keep your distance and watch for any signs of danger.",
+      },
+      {
+        title: "Offer a Greeting",
+        description:
+          "Extend an open hand in peace, hoping to learn their purpose.",
+      },
     ],
   },
   {
@@ -51,21 +64,29 @@ const storySegments = [
       },
     ],
     options: [
-      { title: "Take the Sunlit Path", description: "Follow the well-worn road where others have traveled before." },
+      {
+        title: "Take the Sunlit Path",
+        description:
+          "Follow the well-worn road where others have traveled before.",
+      },
       {
         title: "Enter the Dark Woods",
         description: "Brave the unknown shadows where few dare to venture.",
         hasTest: true,
         difficulty: 15,
       },
-      { title: "Forge Your Own Way", description: "Cut through the wilderness, making a new path entirely." },
+      {
+        title: "Forge Your Own Way",
+        description: "Cut through the wilderness, making a new path entirely.",
+      },
     ],
   },
   {
     beats: [
       {
         title: "Echoes of the Past",
-        content: "A memory stirs, unbidden yet powerful. The faces of those you've left behind flash before your eyes.",
+        content:
+          "A memory stirs, unbidden yet powerful. The faces of those you've left behind flash before your eyes.",
       },
       {
         title: "Voices from Memory",
@@ -79,8 +100,15 @@ const storySegments = [
       },
     ],
     options: [
-      { title: "Embrace the Memory", description: "Let the past guide your present decisions and actions." },
-      { title: "Push Forward", description: "Leave the past where it belongs and focus on what lies ahead." },
+      {
+        title: "Embrace the Memory",
+        description: "Let the past guide your present decisions and actions.",
+      },
+      {
+        title: "Push Forward",
+        description:
+          "Leave the past where it belongs and focus on what lies ahead.",
+      },
       {
         title: "Seek Understanding",
         description: "Meditate on the vision to uncover its deeper meaning.",
@@ -108,14 +136,22 @@ const storySegments = [
       },
     ],
     options: [
-      { title: "Find Shelter", description: "Seek refuge and wait for the danger to pass." },
+      {
+        title: "Find Shelter",
+        description: "Seek refuge and wait for the danger to pass.",
+      },
       {
         title: "Press Onward",
-        description: "Challenge the elements and continue your journey despite the odds.",
+        description:
+          "Challenge the elements and continue your journey despite the odds.",
         hasTest: true,
         difficulty: 18,
       },
-      { title: "Use the Chaos", description: "Turn the storm to your advantage, letting it mask your movements." },
+      {
+        title: "Use the Chaos",
+        description:
+          "Turn the storm to your advantage, letting it mask your movements.",
+      },
     ],
   },
   {
@@ -137,11 +173,20 @@ const storySegments = [
       },
     ],
     options: [
-      { title: "Accept Their Aid", description: "Take a leap of faith and welcome this potential companion." },
-      { title: "Decline Politely", description: "Thank them but continue alone, keeping your suspicions close." },
+      {
+        title: "Accept Their Aid",
+        description:
+          "Take a leap of faith and welcome this potential companion.",
+      },
+      {
+        title: "Decline Politely",
+        description:
+          "Thank them but continue alone, keeping your suspicions close.",
+      },
       {
         title: "Test Their Loyalty",
-        description: "Propose a small task to prove their intentions before committing.",
+        description:
+          "Propose a small task to prove their intentions before committing.",
         hasTest: true,
         difficulty: 14,
       },
@@ -179,7 +224,8 @@ const storySegments = [
     options: [
       {
         title: "Aggressive Assault",
-        description: "Strike first and strike hard, overwhelming your foe with ferocity.",
+        description:
+          "Strike first and strike hard, overwhelming your foe with ferocity.",
       },
       {
         title: "Defensive Stance",
@@ -187,91 +233,98 @@ const storySegments = [
       },
       {
         title: "Attempt to Flee",
-        description: "Try to escape into the fog before the creature can attack.",
+        description:
+          "Try to escape into the fog before the creature can attack.",
         hasTest: true,
         difficulty: 16,
       },
     ],
   },
-]
+];
 
 export async function POST(request: Request) {
   try {
-    const body = await request.json()
-    const currentStep: HeroJourneyStep = body.currentHeroStep || "ordinary-world"
-    const stepData = heroJourneySteps.find((s) => s.id === currentStep)
+    const body = await request.json();
+    const currentStep = body.currentHeroStep || "ordinary-world";
 
-    const result = generateDemoContent(currentStep, stepData, body.nodeCount || 0)
-    return NextResponse.json(result)
+    const result = generateDemoContent(
+      currentStep,
+      undefined,
+      body.nodeCount || 0
+    );
+    return NextResponse.json(result);
   } catch (error) {
-    console.error("[v0] Story generation error:", error)
-    return NextResponse.json(generateDemoContent("ordinary-world", heroJourneySteps[0], 0))
+    console.error("[v0] Story generation error:", error);
+    return NextResponse.json(
+      generateDemoContent("ordinary-world", undefined, 0)
+    );
   }
 }
 
-function generateDemoContent(step: string, stepData: (typeof heroJourneySteps)[0] | undefined, nodeCount: number) {
+function generateDemoContent(
+  step: string,
+  stepData: { name: string; examples: string[] } | undefined,
+  nodeCount: number
+) {
   // Use nodeCount to select different story segments for variety
-  const segmentIndex = Math.floor(nodeCount / 4) % storySegments.length
-  const segment = storySegments[segmentIndex]
+  const segmentIndex = Math.floor(nodeCount / 4) % storySegments.length;
+  const segment = storySegments[segmentIndex];
 
   // Create truly unique IDs using timestamp + random suffix
-  const uniqueId = `${Date.now()}-${Math.random().toString(36).substring(2, 9)}`
+  const uniqueId = `${Date.now()}-${Math.random()
+    .toString(36)
+    .substring(2, 9)}`;
 
   // Mix in hero journey step context for the first beat
-  const stepExample = stepData?.examples[Math.floor(Math.random() * stepData.examples.length)]
+  const stepExample =
+    stepData?.examples[Math.floor(Math.random() * stepData.examples.length)];
 
-  const events: GameEvent[] = segment.beats.map((beat, index) => {
-    const baseEvent = {
+  const events: StoryCard[] = segment.beats.map((beat, index) => {
+    return {
       id: `evt-${uniqueId}-${index}`,
-      type: (beat as { isConflict?: boolean }).isConflict ? "conflict" : "narrative",
+      type: "story",
       title: index === 0 && stepData ? stepData.name : beat.title,
-      content: index === 0 && stepExample ? `${beat.content}\n\n${stepExample}` : beat.content,
-      heroJourneyStep: step as HeroJourneyStep,
-    } as GameEvent
+      content:
+        index === 0 && stepExample
+          ? `${beat.content}\n\n${stepExample}`
+          : beat.content,
+      timestamp: Date.now(),
+    };
+  });
 
-    // Add conflict data if this is a conflict beat
-    const beatWithConflict = beat as {
-      isConflict?: boolean
-      conflictData?: {
-        conflictEventId: string
-        enemyName: string
-        enemyAttributes: Record<string, number>
+  const lastEventId = events[events.length - 1].id;
+
+  const choiceCard: ChoiceCard = {
+    id: `choice-${uniqueId}`,
+    type: "choice",
+    prompt: "What do you do?",
+    options: segment.options.map((opt, index) => {
+      const option: {
+        id: string;
+        text: string;
+        description?: string;
+        skillCheck?: {
+          statId: string;
+          difficulty: number;
+        };
+      } = {
+        id: `opt-${uniqueId}-${index}`,
+        text: opt.title,
+        description: opt.description,
+      };
+
+      // Add skillCheck if the option has hasTest flag
+      if (opt.hasTest && opt.difficulty) {
+        option.skillCheck = {
+          statId: "strength", // Using a placeholder stat
+          difficulty: opt.difficulty,
+        };
       }
-    }
-    if (beatWithConflict.isConflict && beatWithConflict.conflictData) {
-      baseEvent.conflictData = {
-        conflictEventId: beatWithConflict.conflictData.conflictEventId,
-        enemyName: beatWithConflict.conflictData.enemyName,
-        enemyPortrait: `/placeholder.svg?height=200&width=200&query=${encodeURIComponent(beatWithConflict.conflictData.enemyName)} monster dark fantasy`,
-        enemyAttributes: beatWithConflict.conflictData.enemyAttributes,
-      }
-    }
 
-    return baseEvent
-  })
+      return option;
+    }),
+    timestamp: Date.now(),
+  };
 
-  const lastEventId = events[events.length - 1].id
-
-  const options: GameOption[] = segment.options.map((opt, index) => {
-    const option: GameOption = {
-      id: `opt-${uniqueId}-${index}`,
-      eventId: lastEventId,
-      title: opt.title,
-      description: opt.description,
-    }
-
-    // Add attributeTest if the option has hasTest flag
-    if (opt.hasTest && opt.difficulty) {
-      option.attributeTest = {
-        attributeId: "strength", // Using a placeholder attribute
-        difficulty: opt.difficulty,
-        successEventId: `evt-${uniqueId}-success`,
-        failureEventId: `evt-${uniqueId}-failure`,
-      }
-    }
-
-    return option
-  })
-
-  return { events, options }
+  return { events: [...events, choiceCard] };
 }

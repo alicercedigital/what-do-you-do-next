@@ -3,15 +3,16 @@
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { UniverseCard } from "@/components/universe/universe-card";
-import type { GameUniverse } from "@/lib/schemas/game-entity-schema";
-import { universePersistence } from "@/lib/utils/universe-persistence";
+import type { Universe } from "@/core/types";
+import { getUniverses, deleteUniverse } from "@/core/storage";
+import { STARTER_UNIVERSES } from "@/data/starter-universes";
 import { motion } from "framer-motion";
-import { ArrowLeft, Globe, Plus, Search } from "lucide-react";
+import { ArrowLeft, Globe, Plus, Search, Sparkles } from "lucide-react";
 import Link from "next/link";
 import { useEffect, useState } from "react";
 
 export default function UniversesPage() {
-  const [universes, setUniverses] = useState<GameUniverse[]>([]);
+  const [universes, setUniverses] = useState<Universe[]>([]);
   const [searchQuery, setSearchQuery] = useState("");
 
   useEffect(() => {
@@ -19,11 +20,21 @@ export default function UniversesPage() {
   }, []);
 
   const loadUniverses = () => {
-    setUniverses(universePersistence.getAllUniverses());
+    const stored = getUniverses();
+    const all = [...STARTER_UNIVERSES];
+
+    // Add stored universes that aren't duplicates of starters
+    for (const u of stored) {
+      if (!all.find((s) => s.id === u.id)) {
+        all.push(u);
+      }
+    }
+
+    setUniverses(all);
   };
 
   const handleDeleteUniverse = (universeId: string) => {
-    universePersistence.deleteUniverse(universeId);
+    deleteUniverse(universeId);
     loadUniverses();
   };
 

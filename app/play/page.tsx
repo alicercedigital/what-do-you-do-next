@@ -13,8 +13,20 @@ import { ArrowLeft, Sparkles, Globe } from "lucide-react"
 import Link from "next/link"
 
 export default function PlayPage() {
-  const { phase, universe, selectUniverse, startGame, reset } = useGameStore()
+  const { phase, universe, selectUniverse, startGame, reset, setPhase } = useGameStore()
   const [universes, setUniverses] = useState<Universe[]>([])
+  const [initialized, setInitialized] = useState(false)
+
+  useEffect(() => {
+    // On first mount, if we're not already in a game (play phase with universe),
+    // reset to the select phase to show universe selection
+    if (!initialized) {
+      if (phase !== "play" || !universe) {
+        setPhase("select")
+      }
+      setInitialized(true)
+    }
+  }, [initialized, phase, universe, setPhase])
 
   useEffect(() => {
     // Load universes from storage + starters

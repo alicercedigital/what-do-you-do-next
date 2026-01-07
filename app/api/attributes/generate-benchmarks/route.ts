@@ -1,6 +1,16 @@
 import { generateText, Output } from "ai";
-import { GameAttributeSchema } from "@/lib/schemas/game-schema";
-import { DistributableConfigSchema } from "@/lib/schemas/game-entity-schema";
+import { z } from "zod";
+
+// New benchmark schema
+const BenchmarkSchema = z.object({
+  value: z.number(),
+  label: z.string(),
+  description: z.string(),
+});
+
+const BenchmarksSchema = z.object({
+  benchmarks: z.array(BenchmarkSchema),
+});
 
 export async function POST(request: Request) {
   try {
@@ -34,7 +44,7 @@ Requirements:
 - Show clear progression from beginner to legendary levels
 - Make it appropriate for the genre setting`,
       output: Output.object({
-        schema: DistributableConfigSchema.pick({ benchmarks: true }),
+        schema: BenchmarksSchema,
       }),
     });
 

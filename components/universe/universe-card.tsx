@@ -19,14 +19,14 @@ import {
     CardHeader,
     CardTitle
 } from "@/components/ui/card";
-import type { GameUniverse } from "@/lib/schemas/game-entity-schema";
-import { universePersistence } from "@/lib/utils/universe-persistence";
+import type { Universe } from "@/core/types";
+import { STARTER_UNIVERSES } from "@/data/starter-universes";
 import { motion } from "framer-motion";
-import { MapPin, Pencil, Trash2, Users } from "lucide-react";
+import { MapPin, Pencil, Trash2, Swords, Sparkles } from "lucide-react";
 import Link from "next/link";
 
 interface UniverseCardProps {
-  universe: GameUniverse;
+  universe: Universe;
   index: number;
   onDelete?: () => void;
   onSelect?: () => void;
@@ -40,8 +40,8 @@ export function UniverseCard({
   onSelect,
   mode = "manage",
 }: UniverseCardProps) {
-  const isCustom = universePersistence.isCustomUniverse(universe.id);
-  const canStart = (universe.attributes?.length || 0) > 0;
+  const isStarter = STARTER_UNIVERSES.some((u) => u.id === universe.id);
+  const canStart = universe.stats.length > 0;
 
   return (
     <motion.div
@@ -56,20 +56,6 @@ export function UniverseCard({
             : "bg-card/50 hover:bg-card/80 transition-colors"
         }`}
       >
-        {universe.thumbnailUrl && (
-          <div className="relative h-32 overflow-hidden rounded-t-lg">
-            <img
-              src={universe.thumbnailUrl || "/placeholder.svg"}
-              alt={universe.name}
-              className={`w-full h-full object-cover ${
-                mode === "select"
-                  ? "group-hover:scale-105 transition-transform duration-300"
-                  : ""
-              }`}
-            />
-            <div className="absolute inset-0 bg-gradient-to-t from-background/80 to-transparent" />
-          </div>
-        )}
         <CardHeader className="pb-3">
           <div className="flex items-start justify-between">
             <div className="flex-1">
@@ -79,13 +65,14 @@ export function UniverseCard({
                 >
                   {universe.name}
                 </CardTitle>
-                {!isCustom && (
-                  <span className="text-xs px-2 py-0.5 rounded-full bg-secondary text-muted-foreground">
-                    Default
+                {isStarter && (
+                  <span className="text-xs px-2 py-0.5 rounded-full bg-primary/10 text-primary flex items-center gap-1">
+                    <Sparkles className="h-3 w-3" />
+                    Starter
                   </span>
                 )}
-                {isCustom && mode === "select" && (
-                  <span className="text-xs px-2 py-0.5 rounded-full bg-primary/20 text-primary">
+                {!isStarter && mode === "select" && (
+                  <span className="text-xs px-2 py-0.5 rounded-full bg-secondary text-muted-foreground">
                     Custom
                   </span>
                 )}
@@ -99,8 +86,8 @@ export function UniverseCard({
         <CardContent className="flex-1 flex flex-col">
           <div className="flex items-center gap-4 text-sm text-muted-foreground mb-4">
             <div className="flex items-center gap-1.5">
-              <Users className="h-4 w-4" />
-              <span>{universe.characters.length}</span>
+              <Swords className="h-4 w-4" />
+              <span>{universe.challenges.length}</span>
             </div>
             <div className="flex items-center gap-1.5">
               <MapPin className="h-4 w-4" />
@@ -108,7 +95,7 @@ export function UniverseCard({
             </div>
             <div className="flex items-center gap-1.5">
               <span className="text-xs">
-                {universe.attributes?.length || 0} attributes
+                {universe.stats.length} stats
               </span>
             </div>
           </div>
@@ -117,26 +104,26 @@ export function UniverseCard({
             <div className="space-y-3 flex-1">
               <div>
                 <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider mb-2">
-                  Attributes
+                  Stats
                 </p>
                 <div className="flex flex-wrap gap-1.5">
-                  {(universe.attributes?.length || 0) > 0 ? (
-                    universe.attributes!.slice(0, 4).map((attr) => (
+                  {universe.stats.length > 0 ? (
+                    universe.stats.filter(s => s.type === "core").slice(0, 4).map((stat) => (
                       <span
-                        key={attr.id}
+                        key={stat.id}
                         className="px-2 py-0.5 text-xs rounded-md bg-secondary text-secondary-foreground"
                       >
-                        {attr.name}
+                        {stat.name}
                       </span>
                     ))
                   ) : (
                     <span className="text-xs text-muted-foreground italic">
-                      No attributes defined
+                      No stats defined
                     </span>
                   )}
-                  {(universe.attributes?.length || 0) > 4 && (
+                  {universe.stats.filter(s => s.type === "core").length > 4 && (
                     <span className="px-2 py-0.5 text-xs rounded-md bg-secondary/50 text-muted-foreground">
-                      +{universe.attributes!.length - 4} more
+                      +{universe.stats.filter(s => s.type === "core").length - 4} more
                     </span>
                   )}
                 </div>
@@ -144,7 +131,7 @@ export function UniverseCard({
             </div>
           )}
 
-          <div className="flex gap-2 mt-auto mb-4">
+          <div className="flex gap-2 mt-auto pt-4">
             {mode === "manage" ? (
               <>
                 <Link href={`/universes/${universe.id}`} className="flex-1">
@@ -153,7 +140,7 @@ export function UniverseCard({
                     Edit
                   </Button>
                 </Link>
-                {isCustom && (
+                {!isStarter && (
                   <AlertDialog>
                     <AlertDialogTrigger asChild>
                       <Button
@@ -169,8 +156,7 @@ export function UniverseCard({
                         <AlertDialogTitle>Delete Universe?</AlertDialogTitle>
                         <AlertDialogDescription>
                           This will permanently delete "{universe.name}" and all
-                          its characters and locations. This action cannot be
-                          undone.
+                          its data. This action cannot be undone.
                         </AlertDialogDescription>
                       </AlertDialogHeader>
                       <AlertDialogFooter>
@@ -189,10 +175,10 @@ export function UniverseCard({
             ) : (
               <Button
                 onClick={onSelect}
-                className="w-full my-4"
+                className="w-full"
                 disabled={!canStart}
               >
-                {canStart ? "Select Universe" : "Add Attributes First"}
+                {canStart ? "Select Universe" : "Add Stats First"}
               </Button>
             )}
           </div>
