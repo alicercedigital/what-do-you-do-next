@@ -1,21 +1,25 @@
-"use client"
+"use client";
 
-import { useState } from "react"
-import type { Token, Stat } from "@/core/types"
-import { toReadable } from "@/core/calc"
-import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
-import { cn } from "@/lib/utils"
-import { Plus, X, Calculator } from "lucide-react"
+import { useState } from "react";
+import { Plus, X, Calculator } from "lucide-react";
+import { Button } from "@/shared/components/ui/button";
+import { Input } from "@/shared/components/ui/input";
+import {
+  Popover,
+  PopoverTrigger,
+  PopoverContent,
+} from "@/shared/components/ui/popover";
+import { toReadable } from "@/shared/lib/calc";
+import { cn } from "@/shared/lib/utils";
+import { Token, Stat } from "@wdydn/shared";
 
 interface Props {
-  tokens: Token[]
-  onChange: (tokens: Token[]) => void
-  availableStats: Stat[]
-  allowRoles?: boolean
-  roles?: string[]
-  className?: string
+  tokens: Token[];
+  onChange: (tokens: Token[]) => void;
+  availableStats: Stat[];
+  allowRoles?: boolean;
+  roles?: string[];
+  className?: string;
 }
 
 export function CalculationBuilder({
@@ -26,37 +30,46 @@ export function CalculationBuilder({
   roles = [],
   className,
 }: Props) {
-  const [numberInput, setNumberInput] = useState("")
+  const [numberInput, setNumberInput] = useState("");
 
-  const statNames = Object.fromEntries(availableStats.map((s) => [s.id, s.name]))
+  const statNames = Object.fromEntries(
+    availableStats.map((s) => [s.id, s.name])
+  );
 
   const addToken = (token: Token) => {
-    onChange([...tokens, token])
-  }
+    onChange([...tokens, token]);
+  };
 
   const removeToken = (index: number) => {
-    onChange(tokens.filter((_, i) => i !== index))
-  }
+    onChange(tokens.filter((_, i) => i !== index));
+  };
 
   const addNumber = () => {
-    const num = Number.parseFloat(numberInput)
+    const num = Number.parseFloat(numberInput);
     if (!isNaN(num)) {
-      addToken({ type: "number", value: num })
-      setNumberInput("")
+      addToken({ type: "number", value: num });
+      setNumberInput("");
     }
-  }
+  };
 
-  const readable = toReadable(tokens, statNames)
+  const readable = toReadable(tokens, statNames);
 
   return (
     <div className={cn("space-y-3", className)}>
       {/* Display current formula */}
       <div className="p-3 bg-muted rounded-lg min-h-[60px] flex flex-wrap items-center gap-1">
         {tokens.length === 0 ? (
-          <span className="text-muted-foreground text-sm">Click below to build a calculation...</span>
+          <span className="text-muted-foreground text-sm">
+            Click below to build a calculation...
+          </span>
         ) : (
           tokens.map((token, index) => (
-            <TokenChip key={index} token={token} statNames={statNames} onRemove={() => removeToken(index)} />
+            <TokenChip
+              key={index}
+              token={token}
+              statNames={statNames}
+              onRemove={() => removeToken(index)}
+            />
           ))
         )}
       </div>
@@ -109,14 +122,18 @@ export function CalculationBuilder({
               <div className="space-y-1">
                 {roles.map((role) => (
                   <div key={role} className="space-y-1">
-                    <p className="text-xs font-medium text-muted-foreground px-2">{role}</p>
+                    <p className="text-xs font-medium text-muted-foreground px-2">
+                      {role}
+                    </p>
                     {availableStats.map((stat) => (
                       <Button
                         key={`${role}.${stat.id}`}
                         variant="ghost"
                         size="sm"
                         className="w-full justify-start"
-                        onClick={() => addToken({ type: "role", role, stat: stat.id })}
+                        onClick={() =>
+                          addToken({ type: "role", role, stat: stat.id })
+                        }
                       >
                         {role}.{stat.name}
                       </Button>
@@ -134,17 +151,27 @@ export function CalculationBuilder({
             key={op}
             variant="outline"
             size="sm"
-            onClick={() => addToken({ type: "op", value: op as "+" | "-" | "*" | "/" })}
+            onClick={() =>
+              addToken({ type: "op", value: op as "+" | "-" | "*" | "/" })
+            }
           >
             {op}
           </Button>
         ))}
 
         {/* Parentheses */}
-        <Button variant="outline" size="sm" onClick={() => addToken({ type: "paren", value: "(" })}>
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={() => addToken({ type: "paren", value: "(" })}
+        >
           (
         </Button>
-        <Button variant="outline" size="sm" onClick={() => addToken({ type: "paren", value: ")" })}>
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={() => addToken({ type: "paren", value: ")" })}
+        >
           )
         </Button>
 
@@ -182,7 +209,12 @@ export function CalculationBuilder({
             className="w-16 h-8 text-sm"
             onKeyDown={(e) => e.key === "Enter" && addNumber()}
           />
-          <Button variant="outline" size="sm" onClick={addNumber} disabled={!numberInput}>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={addNumber}
+            disabled={!numberInput}
+          >
             <Plus className="h-3 w-3" />
           </Button>
         </div>
@@ -195,42 +227,46 @@ export function CalculationBuilder({
         </Button>
       )}
     </div>
-  )
+  );
 }
 
 function TokenChip({
   token,
   statNames,
   onRemove,
-}: { token: Token; statNames: Record<string, string>; onRemove: () => void }) {
-  let label = ""
-  let variant: "stat" | "number" | "op" | "fn" | "role" = "op"
+}: {
+  token: Token;
+  statNames: Record<string, string>;
+  onRemove: () => void;
+}) {
+  let label = "";
+  let variant: "stat" | "number" | "op" | "fn" | "role" = "op";
 
   switch (token.type) {
     case "stat":
-      label = statNames[token.id] ?? token.id
-      variant = "stat"
-      break
+      label = statNames[token.id] ?? token.id;
+      variant = "stat";
+      break;
     case "number":
-      label = token.value.toString()
-      variant = "number"
-      break
+      label = token.value.toString();
+      variant = "number";
+      break;
     case "op":
-      label = token.value
-      variant = "op"
-      break
+      label = token.value;
+      variant = "op";
+      break;
     case "paren":
-      label = token.value
-      variant = "op"
-      break
+      label = token.value;
+      variant = "op";
+      break;
     case "fn":
-      label = token.name + "("
-      variant = "fn"
-      break
+      label = token.name + "(";
+      variant = "fn";
+      break;
     case "role":
-      label = `${token.role}.${statNames[token.stat] ?? token.stat}`
-      variant = "role"
-      break
+      label = `${token.role}.${statNames[token.stat] ?? token.stat}`;
+      variant = "role";
+      break;
   }
 
   return (
@@ -241,13 +277,16 @@ function TokenChip({
         variant === "number" && "bg-green-500/20 text-green-400",
         variant === "op" && "bg-muted text-foreground",
         variant === "fn" && "bg-purple-500/20 text-purple-400",
-        variant === "role" && "bg-orange-500/20 text-orange-400",
+        variant === "role" && "bg-orange-500/20 text-orange-400"
       )}
     >
       {label}
-      <button onClick={onRemove} className="hover:text-red-400 transition-colors">
+      <button
+        onClick={onRemove}
+        className="hover:text-red-400 transition-colors"
+      >
         <X className="h-3 w-3" />
       </button>
     </span>
-  )
+  );
 }

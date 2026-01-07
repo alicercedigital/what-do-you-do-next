@@ -5,7 +5,12 @@ import type {
   RoundAction,
   Outcome,
 } from "@wdydn/shared";
-import { Card, CardHeader, CardTitle, CardContent } from "@/shared/components/ui/card";
+import {
+  Card,
+  CardHeader,
+  CardTitle,
+  CardContent,
+} from "@/shared/components/ui/card";
 import { Button } from "@/shared/components/ui/button";
 import { Input } from "@/shared/components/ui/input";
 import { Label } from "@/shared/components/ui/label";
@@ -18,7 +23,6 @@ import {
   SelectValue,
 } from "@/shared/components/ui/select";
 import { Switch } from "@/shared/components/ui/switch";
-import { CalculationBuilder } from "./calculation-builder";
 import {
   Plus,
   Trash2,
@@ -35,7 +39,13 @@ import {
   CollapsibleContent,
   CollapsibleTrigger,
 } from "@/shared/components/ui/collapsible";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/shared/components/ui/tabs";
+import {
+  Tabs,
+  TabsContent,
+  TabsList,
+  TabsTrigger,
+} from "@/shared/components/ui/tabs";
+import { CalculationBuilder } from "@/universe/components/calculation-builder";
 
 interface Props {
   challenges: ChallengeTemplate[];

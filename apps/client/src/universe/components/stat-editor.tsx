@@ -1,6 +1,11 @@
 import { useState } from "react";
 import type { Stat } from "@wdydn/shared";
-import { Card, CardHeader, CardTitle, CardContent } from "@/shared/components/ui/card";
+import {
+  Card,
+  CardHeader,
+  CardTitle,
+  CardContent,
+} from "@/shared/components/ui/card";
 import { Button } from "@/shared/components/ui/button";
 import { Input } from "@/shared/components/ui/input";
 import { Label } from "@/shared/components/ui/label";
@@ -13,7 +18,6 @@ import {
   SelectValue,
 } from "@/shared/components/ui/select";
 import { Switch } from "@/shared/components/ui/switch";
-import { CalculationBuilder } from "./calculation-builder";
 import { cn } from "@/shared/lib/utils";
 import {
   Plus,
@@ -29,6 +33,7 @@ import {
   CollapsibleContent,
   CollapsibleTrigger,
 } from "@/shared/components/ui/collapsible";
+import { CalculationBuilder } from "@/universe/components/calculation-builder";
 
 interface Props {
   stats: Stat[];
