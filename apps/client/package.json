@@ -4,13 +4,13 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "dev": "vite",
-    "build": "tsc -b && vite build",
-    "preview": "vite preview",
-    "typecheck": "tsc --noEmit"
+    "build": "vite build",
+    "dev": "vite --host 0.0.0.0 --port 3001 --clearScreen false",
+    "check-types": "tsc --noEmit",
+    "lint": "eslint src/ --max-warnings 0"
   },
   "dependencies": {
-    "@wdydn/shared": "workspace:*",
+    "@wdydn/shared": "*",
     "@emotion/is-prop-valid": "latest",
     "@hookform/resolvers": "^5.2.2",
     "@radix-ui/react-accordion": "1.2.12",
