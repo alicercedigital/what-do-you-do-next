@@ -1,4 +1,4 @@
 /** @type {import("eslint").Linter.Config} */
-import config from "@wdydn/eslint-config/vite";
+import config from "@wdydn/config/eslint/vite";
 
 export default config;

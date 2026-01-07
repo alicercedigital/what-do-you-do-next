@@ -29,13 +29,11 @@
     "test": "jest"
   },
   "jest": {
-    "preset": "@wdydn/jest-presets/node"
+    "preset": "@wdydn/config/jest/node"
   },
   "devDependencies": {
     "@jest/globals": "^29.7.0",
-    "@wdydn/eslint-config": "*",
-    "@wdydn/jest-presets": "*",
-    "@wdydn/typescript-config": "*",
+    "@wdydn/config": "*",
     "@types/node": "^22.15.3",
     "bunchee": "^6.4.0",
     "eslint": "^9.39.0",

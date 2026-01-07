@@ -1,5 +1,5 @@
 {
-  "extends": "@wdydn/typescript-config/base.json",
+  "extends": "@wdydn/config/typescript/base.json",
   "compilerOptions": {
     "lib": ["ES2015"],
     "outDir": "./dist",
