@@ -45,7 +45,7 @@ import {
   TabsList,
   TabsTrigger,
 } from "@/shared/components/ui/tabs";
-import { CalculationBuilder } from "@/universe/components/calculation-builder";
+import { CalculationBuilder } from "@/universe/calculation-builder";
 
 interface Props {
   challenges: ChallengeTemplate[];

@@ -33,7 +33,7 @@ import {
   CollapsibleContent,
   CollapsibleTrigger,
 } from "@/shared/components/ui/collapsible";
-import { CalculationBuilder } from "@/universe/components/calculation-builder";
+import { CalculationBuilder } from "@/universe/calculation-builder";
 
 interface Props {
   stats: Stat[];

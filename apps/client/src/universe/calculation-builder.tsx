@@ -11,7 +11,7 @@ import {
 } from "@/shared/components/ui/popover";
 import { toReadable } from "@/shared/lib/calc";
 import { cn } from "@/shared/lib/utils";
-import { Token, Stat } from "@wdydn/shared";
+import { type Token, type Stat } from "@wdydn/shared";
 
 interface Props {
   tokens: Token[];

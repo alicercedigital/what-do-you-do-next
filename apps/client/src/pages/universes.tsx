@@ -1,46 +1,46 @@
-import { Button } from "@/shared/components/ui/button"
-import { Input } from "@/shared/components/ui/input"
-import { UniverseCard } from "@/universe/components/universe-card"
-import type { Universe } from "@wdydn/shared"
-import { getUniverses, deleteUniverse } from "@/shared/lib/storage"
-import { STARTER_UNIVERSES } from "@/shared/data/starter-universes"
-import { motion } from "framer-motion"
-import { ArrowLeft, Globe, Plus, Search } from "lucide-react"
-import { Link } from "react-router-dom"
-import { useEffect, useState } from "react"
+import { Button } from "@/shared/components/ui/button";
+import { Input } from "@/shared/components/ui/input";
+import type { Universe } from "@wdydn/shared";
+import { getUniverses, deleteUniverse } from "@/shared/lib/storage";
+import { STARTER_UNIVERSES } from "@/shared/data/starter-universes";
+import { motion } from "framer-motion";
+import { ArrowLeft, Globe, Plus, Search } from "lucide-react";
+import { Link } from "react-router-dom";
+import { useEffect, useState } from "react";
+import { UniverseCard } from "@/universe/universe-card";
 
 export default function UniversesPage() {
-  const [universes, setUniverses] = useState<Universe[]>([])
-  const [searchQuery, setSearchQuery] = useState("")
+  const [universes, setUniverses] = useState<Universe[]>([]);
+  const [searchQuery, setSearchQuery] = useState("");
 
   useEffect(() => {
-    loadUniverses()
-  }, [])
+    loadUniverses();
+  }, []);
 
   const loadUniverses = () => {
-    const stored = getUniverses()
-    const all = [...STARTER_UNIVERSES]
+    const stored = getUniverses();
+    const all = [...STARTER_UNIVERSES];
 
     // Add stored universes that aren't duplicates of starters
     for (const u of stored) {
       if (!all.find((s) => s.id === u.id)) {
-        all.push(u)
+        all.push(u);
       }
     }
 
-    setUniverses(all)
-  }
+    setUniverses(all);
+  };
 
   const handleDeleteUniverse = (universeId: string) => {
-    deleteUniverse(universeId)
-    loadUniverses()
-  }
+    deleteUniverse(universeId);
+    loadUniverses();
+  };
 
   const filteredUniverses = universes.filter(
     (universe) =>
       universe.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
       universe.description.toLowerCase().includes(searchQuery.toLowerCase())
-  )
+  );
 
   return (
     <div className="min-h-screen bg-background">
@@ -118,5 +118,5 @@ export default function UniversesPage() {
         )}
       </div>
     </div>
-  )
+  );
 }
