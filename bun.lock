@@ -120,9 +120,13 @@
       },
       "devDependencies": {
         "@types/node": "^22.0.0",
+        "@types/supertest": "^6.0.2",
         "@wdydn/eslint-config": "*",
         "@wdydn/typescript-config": "*",
-        "tsx": "^4.19.0",
+        "eslint": "^9.39.0",
+        "jest": "^29.7.0",
+        "supertest": "^7.1.0",
+        "tsup": "^8.5.0",
         "typescript": "^5.9",
       },
     },
@@ -178,27 +182,6 @@
       "version": "0.0.0",
       "devDependencies": {
         "typescript": "^5.9",
-      },
-    },
-    "packages/ui": {
-      "name": "@wdydn/ui",
-      "version": "0.0.0",
-      "devDependencies": {
-        "@jest/globals": "^29.7.0",
-        "@types/node": "^22.15.3",
-        "@wdydn/eslint-config": "*",
-        "@wdydn/jest-presets": "*",
-        "@wdydn/typescript-config": "*",
-        "bunchee": "^6.4.0",
-        "eslint": "^9.39.0",
-        "jest": "^29.7.0",
-        "typescript": "5.9.3",
-      },
-      "peerDependencies": {
-        "@types/react": ">=18",
-        "@types/react-dom": ">=18",
-        "react": ">=18",
-        "react-dom": ">=18",
       },
     },
   },
@@ -866,8 +849,6 @@
     "@wdydn/shared": ["@wdydn/shared@workspace:packages/shared"],
 
     "@wdydn/typescript-config": ["@wdydn/typescript-config@workspace:packages/config-typescript"],
-
-    "@wdydn/ui": ["@wdydn/ui@workspace:packages/ui"],
 
     "abab": ["abab@2.0.6", "", {}, "sha512-j2afSsaIENvHZN2B8GOpF566vZ5WVk5opAiMTvWgaQT8DkbOqsTfvNAvHoRGU2zzP8cPoqys+xHTRDWW8L+/BA=="],
 
