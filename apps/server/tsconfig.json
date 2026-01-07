@@ -1,17 +1,5 @@
 {
-  "compilerOptions": {
-    "target": "ES2022",
-    "module": "ESNext",
-    "moduleResolution": "bundler",
-    "lib": ["ES2022"],
-    "strict": true,
-    "skipLibCheck": true,
-    "esModuleInterop": true,
-    "isolatedModules": true,
-    "outDir": "dist",
-    "declaration": true,
-    "noEmit": false
-  },
+  "extends": "@wdydn/typescript-config/base.json",
   "include": ["src/**/*"],
   "exclude": ["node_modules", "dist"]
 }

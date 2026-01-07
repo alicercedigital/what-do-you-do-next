@@ -6,7 +6,8 @@
     "**/.DS_Store": true,
     "**/Thumbs.db": true,
     "**/node_modules": true,
-    "**/.turbo": true
+    "**/.turbo": true,
+    "**/.vscode": true
   },
   "explorerExclude.backup": {}
 }

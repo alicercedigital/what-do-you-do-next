@@ -10,13 +10,15 @@
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
-    "@wdydn/shared": "workspace:*",
+    "@wdydn/shared": "*",
     "@hono/node-server": "^1.13.0",
     "hono": "^4.6.0",
     "ai": "^6.0.0",
     "zod": "^3.23.0"
   },
   "devDependencies": {
+    "@wdydn/eslint-config": "*",
+    "@wdydn/typescript-config": "*",
     "@types/node": "^22.0.0",
     "tsx": "^4.19.0",
     "typescript": "^5.9"
