@@ -1,27 +1,27 @@
-import { Hono } from "hono"
-import { generateText, Output } from "ai"
-import { z } from "zod"
-import type { GenerateBenchmarksRequest } from "@wdydn/shared"
+import { Router } from "express";
+import { generateText, Output } from "ai";
+import { z } from "zod";
+import type { GenerateBenchmarksRequest } from "@wdydn/shared";
 
-export const attributesBenchmarks = new Hono()
+export const attributesBenchmarksRouter = Router();
 
 const BenchmarkSchema = z.object({
   value: z.number(),
   label: z.string(),
   description: z.string(),
-})
+});
 
 const BenchmarksSchema = z.object({
   benchmarks: z.array(BenchmarkSchema),
-})
+});
 
-attributesBenchmarks.post("/generate-benchmarks", async (c) => {
+attributesBenchmarksRouter.post("/generate-benchmarks", async (req, res) => {
   try {
-    const body = await c.req.json<GenerateBenchmarksRequest>()
-    const { attributeName, attributeSummary, genreSetting } = body
+    const body = req.body as GenerateBenchmarksRequest;
+    const { attributeName, attributeSummary, genreSetting } = body;
 
     if (!attributeName || !attributeSummary || !genreSetting) {
-      return c.json({ error: "Missing required fields" }, 400)
+      return res.status(400).json({ error: "Missing required fields" });
     }
 
     const { output } = await generateText({
@@ -46,15 +46,15 @@ Requirements:
       output: Output.object({
         schema: BenchmarksSchema,
       }),
-    })
+    });
 
     if (!output?.benchmarks) {
-      return c.json({ error: "Failed to generate benchmarks" }, 500)
+      return res.status(500).json({ error: "Failed to generate benchmarks" });
     }
 
-    return c.json({ benchmarks: output.benchmarks })
+    return res.json({ benchmarks: output.benchmarks });
   } catch (error) {
-    console.error("Error generating benchmarks:", error)
-    return c.json({ error: "Failed to generate benchmarks" }, 500)
+    console.error("Error generating benchmarks:", error);
+    return res.status(500).json({ error: "Failed to generate benchmarks" });
   }
-})
+});

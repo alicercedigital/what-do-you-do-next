@@ -1,9 +1,9 @@
-import { Hono } from "hono"
-import { generateText, Output } from "ai"
-import { z } from "zod"
-import type { GenerateAttributeRequest } from "@wdydn/shared"
+import { Router } from "express";
+import { generateText, Output } from "ai";
+import { z } from "zod";
+import type { GenerateAttributeRequest } from "@wdydn/shared";
 
-export const attributesGenerate = new Hono()
+export const attributesGenerateRouter = Router();
 
 const StatSchema = z.object({
   id: z.string().optional(),
@@ -33,15 +33,15 @@ const StatSchema = z.object({
       max: z.number().optional(),
     })
     .optional(),
-})
+});
 
-attributesGenerate.post("/generate", async (c) => {
+attributesGenerateRouter.post("/generate", async (req, res) => {
   try {
-    const body = await c.req.json<GenerateAttributeRequest>()
-    const { attributeName, genreSetting } = body
+    const body = req.body as GenerateAttributeRequest;
+    const { attributeName, genreSetting } = body;
 
     if (!attributeName || !genreSetting) {
-      return c.json({ error: "Missing required fields" }, 400)
+      return res.status(400).json({ error: "Missing required fields" });
     }
 
     const { output } = await generateText({
@@ -61,20 +61,20 @@ Requirements:
           id: StatSchema.shape.id.optional(),
         }),
       }),
-    })
+    });
 
     if (!output) {
-      return c.json({ error: "Failed to generate attribute" }, 500)
+      return res.status(500).json({ error: "Failed to generate attribute" });
     }
 
     const attribute = {
       ...output,
       id: crypto.randomUUID(),
-    }
+    };
 
-    return c.json({ attribute })
+    return res.json({ attribute });
   } catch (error) {
-    console.error("Error generating attribute:", error)
-    return c.json({ error: "Failed to generate attribute" }, 500)
+    console.error("Error generating attribute:", error);
+    return res.status(500).json({ error: "Failed to generate attribute" });
   }
-})
+});

@@ -1,7 +1,7 @@
-import { Hono } from "hono"
-import type { StoryCard, ChoiceCard, StoryGenerateRequest } from "@wdydn/shared"
+import { Router } from "express";
+import type { StoryCard, ChoiceCard, StoryGenerateRequest } from "@wdydn/shared";
 
-export const storyGenerate = new Hono()
+export const storyGenerateRouter = Router();
 
 const storySegments = [
   {
@@ -163,7 +163,7 @@ const storySegments = [
           '"We share a common enemy," they say, their voice barely above a whisper. "Apart, we will surely fail. Together... perhaps we have a chance."',
       },
       {
-        title: "Trust\'s Currency",
+        title: "Trust's Currency",
         content:
           "They extend their hand, waiting. Every instinct screams caution, yet something in their eyes speaks of desperation that mirrors your own.",
       },
@@ -225,22 +225,22 @@ const storySegments = [
       },
     ],
   },
-]
+];
 
 function generateDemoContent(
   step: string,
   stepData: { name: string; examples: string[] } | undefined,
   nodeCount: number
 ) {
-  const segmentIndex = Math.floor(nodeCount / 4) % storySegments.length
-  const segment = storySegments[segmentIndex]
+  const segmentIndex = Math.floor(nodeCount / 4) % storySegments.length;
+  const segment = storySegments[segmentIndex];
 
   const uniqueId = `${Date.now()}-${Math.random()
     .toString(36)
-    .substring(2, 9)}`
+    .substring(2, 9)}`;
 
   const stepExample =
-    stepData?.examples[Math.floor(Math.random() * stepData.examples.length)]
+    stepData?.examples[Math.floor(Math.random() * stepData.examples.length)];
 
   const events: StoryCard[] = segment.beats.map((beat, index) => {
     return {
@@ -252,8 +252,8 @@ function generateDemoContent(
           ? `${beat.content}\n\n${stepExample}`
           : beat.content,
       timestamp: Date.now(),
-    }
-  })
+    };
+  });
 
   const choiceCard: ChoiceCard = {
     id: `choice-${uniqueId}`,
@@ -261,43 +261,43 @@ function generateDemoContent(
     prompt: "What do you do?",
     options: segment.options.map((opt, index) => {
       const option: {
-        id: string
-        text: string
-        description?: string
+        id: string;
+        text: string;
+        description?: string;
         skillCheck?: {
-          statId: string
-          difficulty: number
-        }
+          statId: string;
+          difficulty: number;
+        };
       } = {
         id: `opt-${uniqueId}-${index}`,
         text: opt.title,
         description: opt.description,
-      }
+      };
 
       if (opt.hasTest && opt.difficulty) {
         option.skillCheck = {
           statId: "strength",
           difficulty: opt.difficulty,
-        }
+        };
       }
 
-      return option
+      return option;
     }),
     timestamp: Date.now(),
-  }
+  };
 
-  return { events: [...events, choiceCard] }
+  return { events: [...events, choiceCard] };
 }
 
-storyGenerate.post("/generate", async (c) => {
+storyGenerateRouter.post("/generate", async (req, res) => {
   try {
-    const body = await c.req.json<StoryGenerateRequest>()
-    const currentStep = body.currentHeroStep || "ordinary-world"
+    const body = req.body as StoryGenerateRequest;
+    const currentStep = body.currentHeroStep || "ordinary-world";
 
-    const result = generateDemoContent(currentStep, undefined, body.nodeCount || 0)
-    return c.json(result)
+    const result = generateDemoContent(currentStep, undefined, body.nodeCount || 0);
+    return res.json(result);
   } catch (error) {
-    console.error("[Server] Story generation error:", error)
-    return c.json(generateDemoContent("ordinary-world", undefined, 0))
+    console.error("[Server] Story generation error:", error);
+    return res.json(generateDemoContent("ordinary-world", undefined, 0));
   }
-})
+});

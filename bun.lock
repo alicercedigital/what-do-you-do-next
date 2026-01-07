@@ -13,10 +13,13 @@
       "version": "0.0.0",
       "dependencies": {
         "@wdydn/logger": "*",
+        "@wdydn/shared": "*",
+        "ai": "^6.0.0",
         "body-parser": "^1.20.3",
         "cors": "^2.8.5",
         "express": "4.21.2",
         "morgan": "^1.10.0",
+        "zod": "^3.23.0",
       },
       "devDependencies": {
         "@jest/globals": "^29.7.0",
