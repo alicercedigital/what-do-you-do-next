@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react"
 import type { Universe } from "@/core/types"
 import { getUniverse, saveUniverse } from "@/core/storage"
+import { STARTER_UNIVERSES } from "@/data/starter-universes"
 import { StatEditor } from "./stat-editor"
 import { ItemEditor } from "./item-editor"
 import { ChallengeEditor } from "./challenge-editor"
@@ -26,9 +27,36 @@ export function UniverseEditor({ universeId }: Props) {
   const [hasChanges, setHasChanges] = useState(false)
 
   useEffect(() => {
-    const loaded = getUniverse(universeId)
+    // Try loading from storage first
+    let loaded = getUniverse(universeId)
+
+    // If not in storage, check if it's a starter universe
+    if (!loaded) {
+      loaded = STARTER_UNIVERSES.find(u => u.id === universeId) || null
+    }
+
     if (loaded) {
       setUniverse(loaded)
+    } else {
+      // Create a new universe with defaults
+      const newUniverse: Universe = {
+        id: universeId,
+        name: "New Universe",
+        description: "",
+        theme: "",
+        stats: [],
+        items: [],
+        challenges: [],
+        npcs: [],
+        locations: [],
+        config: {
+          startingPoints: 10,
+          pointsPerLevel: 3,
+          equipmentSlots: ["head", "body", "weapon", "accessory"],
+        },
+      }
+      setUniverse(newUniverse)
+      setHasChanges(true) // Mark as having changes so user can save
     }
   }, [universeId])
 

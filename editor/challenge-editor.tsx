@@ -20,7 +20,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
-import { CalculationBuilder } from "./components/calculation-builder";
+import { CalculationBuilder } from "./calculation-builder";
 import {
   Plus,
   Trash2,

@@ -1,22 +1,40 @@
-"use client"
+"use client";
 
-import { useState } from "react"
-import type { Stat } from "@/core/types"
-import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card"
-import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
-import { Label } from "@/components/ui/label"
-import { Textarea } from "@/components/ui/textarea"
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { Switch } from "@/components/ui/switch"
-import { CalculationBuilder } from "./components/calculation-builder"
-import { cn } from "@/lib/utils"
-import { Plus, Trash2, GripVertical, ChevronDown, ChevronRight, Sparkles, Settings2 } from "lucide-react"
-import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible"
+import { useState } from "react";
+import type { Stat } from "@/core/types";
+import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { Switch } from "@/components/ui/switch";
+import { CalculationBuilder } from "./calculation-builder";
+import { cn } from "@/lib/utils";
+import {
+  Plus,
+  Trash2,
+  GripVertical,
+  ChevronDown,
+  ChevronRight,
+  Sparkles,
+  Settings2,
+} from "lucide-react";
+import {
+  Collapsible,
+  CollapsibleContent,
+  CollapsibleTrigger,
+} from "@/components/ui/collapsible";
 
 interface Props {
-  stats: Stat[]
-  onChange: (stats: Stat[]) => void
+  stats: Stat[];
+  onChange: (stats: Stat[]) => void;
 }
 
 const DEFAULT_STAT: Omit<Stat, "id"> = {
@@ -32,7 +50,7 @@ const DEFAULT_STAT: Omit<Stat, "id"> = {
     order: 0,
   },
   range: { min: 1, max: 20 },
-}
+};
 
 const ICON_OPTIONS = [
   "sword",
@@ -57,7 +75,7 @@ const ICON_OPTIONS = [
   "cpu",
   "smile",
   "frown",
-]
+];
 
 const COLOR_OPTIONS = [
   { value: "text-red-500", label: "Red" },
@@ -69,13 +87,13 @@ const COLOR_OPTIONS = [
   { value: "text-purple-500", label: "Purple" },
   { value: "text-pink-500", label: "Pink" },
   { value: "text-gray-500", label: "Gray" },
-]
+];
 
 export function StatEditor({ stats, onChange }: Props) {
-  const [expandedId, setExpandedId] = useState<string | null>(null)
+  const [expandedId, setExpandedId] = useState<string | null>(null);
 
-  const coreStats = stats.filter((s) => s.type === "core")
-  const computedStats = stats.filter((s) => s.type === "computed")
+  const coreStats = stats.filter((s) => s.type === "core");
+  const computedStats = stats.filter((s) => s.type === "computed");
 
   const addStat = (type: "core" | "computed") => {
     const newStat: Stat = {
@@ -88,19 +106,19 @@ export function StatEditor({ stats, onChange }: Props) {
         order: stats.length,
       },
       calculation: type === "computed" ? [] : undefined,
-    }
-    onChange([...stats, newStat])
-    setExpandedId(newStat.id)
-  }
+    };
+    onChange([...stats, newStat]);
+    setExpandedId(newStat.id);
+  };
 
   const updateStat = (id: string, updates: Partial<Stat>) => {
-    onChange(stats.map((s) => (s.id === id ? { ...s, ...updates } : s)))
-  }
+    onChange(stats.map((s) => (s.id === id ? { ...s, ...updates } : s)));
+  };
 
   const deleteStat = (id: string) => {
-    onChange(stats.filter((s) => s.id !== id))
-    if (expandedId === id) setExpandedId(null)
-  }
+    onChange(stats.filter((s) => s.id !== id));
+    if (expandedId === id) setExpandedId(null);
+  };
 
   return (
     <div className="space-y-6">
@@ -110,7 +128,9 @@ export function StatEditor({ stats, onChange }: Props) {
           <h3 className="text-sm font-medium text-muted-foreground flex items-center gap-2">
             <Settings2 className="h-4 w-4" />
             Core Stats
-            <span className="text-xs bg-muted px-2 py-0.5 rounded">{coreStats.length}</span>
+            <span className="text-xs bg-muted px-2 py-0.5 rounded">
+              {coreStats.length}
+            </span>
           </h3>
           <Button variant="outline" size="sm" onClick={() => addStat("core")}>
             <Plus className="h-3 w-3 mr-1" />
@@ -125,13 +145,17 @@ export function StatEditor({ stats, onChange }: Props) {
               stat={stat}
               allStats={stats}
               expanded={expandedId === stat.id}
-              onToggle={() => setExpandedId(expandedId === stat.id ? null : stat.id)}
+              onToggle={() =>
+                setExpandedId(expandedId === stat.id ? null : stat.id)
+              }
               onChange={(updates) => updateStat(stat.id, updates)}
               onDelete={() => deleteStat(stat.id)}
             />
           ))}
           {coreStats.length === 0 && (
-            <p className="text-sm text-muted-foreground text-center py-4">No core stats defined yet</p>
+            <p className="text-sm text-muted-foreground text-center py-4">
+              No core stats defined yet
+            </p>
           )}
         </div>
       </div>
@@ -142,9 +166,15 @@ export function StatEditor({ stats, onChange }: Props) {
           <h3 className="text-sm font-medium text-muted-foreground flex items-center gap-2">
             <Sparkles className="h-4 w-4" />
             Computed Stats
-            <span className="text-xs bg-muted px-2 py-0.5 rounded">{computedStats.length}</span>
+            <span className="text-xs bg-muted px-2 py-0.5 rounded">
+              {computedStats.length}
+            </span>
           </h3>
-          <Button variant="outline" size="sm" onClick={() => addStat("computed")}>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => addStat("computed")}
+          >
             <Plus className="h-3 w-3 mr-1" />
             Add Computed
           </Button>
@@ -157,18 +187,22 @@ export function StatEditor({ stats, onChange }: Props) {
               stat={stat}
               allStats={stats}
               expanded={expandedId === stat.id}
-              onToggle={() => setExpandedId(expandedId === stat.id ? null : stat.id)}
+              onToggle={() =>
+                setExpandedId(expandedId === stat.id ? null : stat.id)
+              }
               onChange={(updates) => updateStat(stat.id, updates)}
               onDelete={() => deleteStat(stat.id)}
             />
           ))}
           {computedStats.length === 0 && (
-            <p className="text-sm text-muted-foreground text-center py-4">No computed stats defined yet</p>
+            <p className="text-sm text-muted-foreground text-center py-4">
+              No computed stats defined yet
+            </p>
           )}
         </div>
       </div>
     </div>
-  )
+  );
 }
 
 function StatCard({
@@ -179,14 +213,14 @@ function StatCard({
   onChange,
   onDelete,
 }: {
-  stat: Stat
-  allStats: Stat[]
-  expanded: boolean
-  onToggle: () => void
-  onChange: (updates: Partial<Stat>) => void
-  onDelete: () => void
+  stat: Stat;
+  allStats: Stat[];
+  expanded: boolean;
+  onToggle: () => void;
+  onChange: (updates: Partial<Stat>) => void;
+  onDelete: () => void;
 }) {
-  const coreStats = allStats.filter((s) => s.type === "core")
+  const coreStats = allStats.filter((s) => s.type === "core");
 
   return (
     <Collapsible open={expanded} onOpenChange={onToggle}>
@@ -195,16 +229,29 @@ function StatCard({
           <CardHeader className="p-3 cursor-pointer hover:bg-muted/50 transition-colors">
             <div className="flex items-center gap-3">
               <GripVertical className="h-4 w-4 text-muted-foreground" />
-              <div className={cn("w-8 h-8 rounded flex items-center justify-center bg-muted", stat.display.color)}>
+              <div
+                className={cn(
+                  "w-8 h-8 rounded flex items-center justify-center bg-muted",
+                  stat.display.color
+                )}
+              >
                 {stat.short?.[0] || stat.name[0] || "?"}
               </div>
               <div className="flex-1">
-                <CardTitle className="text-sm">{stat.name || "Unnamed"}</CardTitle>
+                <CardTitle className="text-sm">
+                  {stat.name || "Unnamed"}
+                </CardTitle>
                 <p className="text-xs text-muted-foreground">
-                  {stat.type === "core" ? `Range: ${stat.range?.min}-${stat.range?.max}` : "Calculated"}
+                  {stat.type === "core"
+                    ? `Range: ${stat.range?.min}-${stat.range?.max}`
+                    : "Calculated"}
                 </p>
               </div>
-              {expanded ? <ChevronDown className="h-4 w-4" /> : <ChevronRight className="h-4 w-4" />}
+              {expanded ? (
+                <ChevronDown className="h-4 w-4" />
+              ) : (
+                <ChevronRight className="h-4 w-4" />
+              )}
             </div>
           </CardHeader>
         </CollapsibleTrigger>
@@ -215,13 +262,19 @@ function StatCard({
             <div className="grid grid-cols-2 gap-3">
               <div className="space-y-1">
                 <Label className="text-xs">Name</Label>
-                <Input value={stat.name} onChange={(e) => onChange({ name: e.target.value })} placeholder="Stat name" />
+                <Input
+                  value={stat.name}
+                  onChange={(e) => onChange({ name: e.target.value })}
+                  placeholder="Stat name"
+                />
               </div>
               <div className="space-y-1">
                 <Label className="text-xs">Short Name</Label>
                 <Input
                   value={stat.short ?? ""}
-                  onChange={(e) => onChange({ short: e.target.value || undefined })}
+                  onChange={(e) =>
+                    onChange({ short: e.target.value || undefined })
+                  }
                   placeholder="STR"
                   maxLength={4}
                 />
@@ -248,7 +301,11 @@ function StatCard({
                     value={stat.range?.min ?? 1}
                     onChange={(e) =>
                       onChange({
-                        range: { ...stat.range, min: Number.parseInt(e.target.value) || 0, max: stat.range?.max ?? 20 },
+                        range: {
+                          ...stat.range,
+                          min: Number.parseInt(e.target.value) || 0,
+                          max: stat.range?.max ?? 20,
+                        },
                       })
                     }
                   />
@@ -259,7 +316,12 @@ function StatCard({
                     type="number"
                     value={stat.range?.max ?? 20}
                     onChange={(e) =>
-                      onChange({ range: { min: stat.range?.min ?? 1, max: Number.parseInt(e.target.value) || 100 } })
+                      onChange({
+                        range: {
+                          min: stat.range?.min ?? 1,
+                          max: Number.parseInt(e.target.value) || 100,
+                        },
+                      })
                     }
                   />
                 </div>
@@ -280,14 +342,18 @@ function StatCard({
 
             {/* Display Options */}
             <div className="space-y-3 border-t pt-3">
-              <p className="text-xs font-medium text-muted-foreground">Display Options</p>
+              <p className="text-xs font-medium text-muted-foreground">
+                Display Options
+              </p>
 
               <div className="grid grid-cols-2 gap-3">
                 <div className="space-y-1">
                   <Label className="text-xs">Icon</Label>
                   <Select
                     value={stat.display.icon}
-                    onValueChange={(icon) => onChange({ display: { ...stat.display, icon } })}
+                    onValueChange={(icon) =>
+                      onChange({ display: { ...stat.display, icon } })
+                    }
                   >
                     <SelectTrigger>
                       <SelectValue />
@@ -306,7 +372,9 @@ function StatCard({
                   <Label className="text-xs">Color</Label>
                   <Select
                     value={stat.display.color}
-                    onValueChange={(color) => onChange({ display: { ...stat.display, color } })}
+                    onValueChange={(color) =>
+                      onChange({ display: { ...stat.display, color } })
+                    }
                   >
                     <SelectTrigger>
                       <SelectValue />
@@ -326,7 +394,9 @@ function StatCard({
                 <Label className="text-xs">Show in Character Creator</Label>
                 <Switch
                   checked={stat.display.showInCreator !== false}
-                  onCheckedChange={(showInCreator) => onChange({ display: { ...stat.display, showInCreator } })}
+                  onCheckedChange={(showInCreator) =>
+                    onChange({ display: { ...stat.display, showInCreator } })
+                  }
                 />
               </div>
 
@@ -334,7 +404,9 @@ function StatCard({
                 <Label className="text-xs">Show in Character Sheet</Label>
                 <Switch
                   checked={stat.display.showInSheet !== false}
-                  onCheckedChange={(showInSheet) => onChange({ display: { ...stat.display, showInSheet } })}
+                  onCheckedChange={(showInSheet) =>
+                    onChange({ display: { ...stat.display, showInSheet } })
+                  }
                 />
               </div>
 
@@ -342,7 +414,9 @@ function StatCard({
                 <Label className="text-xs">Display Style</Label>
                 <Select
                   value={stat.display.style}
-                  onValueChange={(style: "number" | "bar") => onChange({ display: { ...stat.display, style } })}
+                  onValueChange={(style: "number" | "bar") =>
+                    onChange({ display: { ...stat.display, style } })
+                  }
                 >
                   <SelectTrigger className="w-24">
                     <SelectValue />
@@ -356,7 +430,12 @@ function StatCard({
             </div>
 
             {/* Delete */}
-            <Button variant="destructive" size="sm" onClick={onDelete} className="w-full">
+            <Button
+              variant="destructive"
+              size="sm"
+              onClick={onDelete}
+              className="w-full"
+            >
               <Trash2 className="h-3 w-3 mr-1" />
               Delete Stat
             </Button>
@@ -364,5 +443,5 @@ function StatCard({
         </CollapsibleContent>
       </Card>
     </Collapsible>
-  )
+  );
 }
