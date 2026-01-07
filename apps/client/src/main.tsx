@@ -1,16 +1,16 @@
-import { StrictMode } from "react"
-import { createRoot } from "react-dom/client"
-import { createBrowserRouter, RouterProvider } from "react-router-dom"
-import { ThemeProvider } from "@/shared/components/theme-provider"
+import { StrictMode } from "react";
+import { createRoot } from "react-dom/client";
+import { createBrowserRouter, RouterProvider } from "react-router-dom";
 
 // Pages
-import Home from "./pages/home"
-import Play from "./pages/play"
-import Universes from "./pages/universes"
-import UniverseNew from "./pages/universe-new"
-import UniverseEdit from "./pages/universe-edit"
+import Home from "./pages/home";
+import Play from "./pages/play";
+import Universes from "./pages/universes";
+import UniverseNew from "./pages/universe-new";
+import UniverseEdit from "./pages/universe-edit";
 
-import "./globals.css"
+import "./globals.css";
+import { ThemeProvider } from "./shared/components/theme-provider";
 
 const router = createBrowserRouter([
   { path: "/", element: <Home /> },
@@ -18,7 +18,7 @@ const router = createBrowserRouter([
   { path: "/universes", element: <Universes /> },
   { path: "/universes/new", element: <UniverseNew /> },
   { path: "/universes/:id", element: <UniverseEdit /> },
-])
+]);
 
 createRoot(document.getElementById("root")!).render(
   <StrictMode>
@@ -26,4 +26,4 @@ createRoot(document.getElementById("root")!).render(
       <RouterProvider router={router} />
     </ThemeProvider>
   </StrictMode>
-)
+);

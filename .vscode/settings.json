@@ -9,5 +9,6 @@
     "**/.turbo": true,
     "**/.vscode": true
   },
-  "explorerExclude.backup": {}
+  "explorerExclude.backup": {},
+  "typescript.tsdk": "node_modules\\typescript\\lib"
 }
