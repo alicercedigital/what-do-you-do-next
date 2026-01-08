@@ -146,7 +146,50 @@ Templates assign roles to standard slots, making the system flexible while keepi
 
 **Question:** When authoring stories, what's the primary unit of structure - individual cards, scenes, or something more abstract?
 
-**Decision:** Hybrid approach - mix explicit cards for key moments and higher-level structures that generate cards. Authors can work at multiple levels:
-- Individual cards for critical moments that must play exactly as written
-- Higher-level structures (scenes, beats) that expand into card sequences at runtime
-- This allows precision where needed while reducing authoring burden for connective tissue
+**Decision:** Cards are the only structural unit. No "scene" abstraction - just cards with paths between them. A card that ends with multiple paths naturally presents as choices. This keeps the model simple: the story is a graph of cards connected by paths (choices). When a card has no next path defined, AI can generate continuation.
+
+## Path Structure
+
+**Question:** What information does a path (choice) carry?
+
+**Decision:** Paths carry more than just pointers - they can have immediate effects and visibility logic:
+
+```typescript
+interface Path {
+  id: string;
+  text: string;                // Display text for the choice
+  description?: string;        // Optional tooltip/detail
+  nextCardId?: string;         // Destination card (or undefined for AI generation)
+  visible?: string;            // Condition - if false, path is hidden
+  enabled?: string;            // Condition - if false, path shown but disabled
+  disabledReason?: string;     // Text shown when hovering disabled path
+  effects?: Effect[];          // Applied immediately when path is clicked
+}
+```
+
+Path effects apply on click (before destination card resolves). This allows costs like "Costs 10 gold" to be deducted immediately. Destination card effects apply when that card resolves - two distinct moments. This differs from the earlier Choice decision which put all effects on cards; paths now handle immediate costs/changes while cards handle consequences.
+
+## Unified Card Type
+
+**Question:** Should there be separate card types (StoryCard, ChoiceCard, DiceCard, ChallengeCard) or one unified Card type?
+
+**Decision:** Merge into one unified Card type. A card has:
+- Narrative content (title, text, image)
+- Effects that resolve when the card becomes active
+- Paths that lead to other cards or AI generation
+- Tags for categorization/filtering
+
+Dice rolls and challenges are NOT separate card types - they're triggered by effects. This simplifies the model: cards are narrative moments with effects and paths.
+
+## Effect Execution Model
+
+**Question:** How do effects that require user interaction (dice rolls, challenges) integrate with the effect system?
+
+**Decision:** Effect queue with pauses. Effects execute sequentially. When an effect requires interaction (rolling dice, running a challenge), it:
+1. Pauses the effect queue
+2. Shows the appropriate UI (dice roller, challenge view)
+3. Waits for resolution
+4. Stores the result in a variable (accessible via `$roll`, `$challengeOutcome`, etc.)
+5. Continues executing remaining effects
+
+This means a card's effects can include: `roll('1d20', 'stealth')` followed by conditional effects that use `$roll` to branch. The UI handles the pause naturally - player sees dice, clicks to roll, result appears, then effects continue.
