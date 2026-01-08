@@ -19,6 +19,8 @@ const ADDITIONAL_IGNORE_PATTERNS = [
   "*.eot",
   "ui/",
   "packages/scripts",
+  "packages/config",
+  ".vscode",
 ];
 
 interface FileEntry {
@@ -194,7 +196,6 @@ function generateCodebaseMarkdown(
   files: FileEntry[]
 ): string {
   let output = "# Codebase\n\n";
-  output += `Generated on: ${new Date().toISOString()}\n\n`;
 
   // Directory structure
   output += "## Structure\n\n";

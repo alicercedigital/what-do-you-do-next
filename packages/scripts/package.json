@@ -9,7 +9,7 @@
   "scripts": {
     "build": "bunchee",
     "dev": "bunchee --watch",
-    "gather-codebase": "bun run src/gather-codebase.ts"
+    "gather": "bun run src/gather-codebase.ts"
   },
   "devDependencies": {
     "@wdydn/config": "*",

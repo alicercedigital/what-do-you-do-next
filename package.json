@@ -9,7 +9,7 @@
     "lint": "turbo run lint",
     "test": "turbo run test",
     "check-types": "turbo run check-types",
-    "gather-codebase": "bun run --filter @wdydn/scripts gather"
+    "gather": "bun run --filter @wdydn/scripts gather"
   },
   "devDependencies": {
     "prettier": "^3.6.0",
