@@ -60,5 +60,5 @@ After each resolved question, append to `.claude/decisions.md`:
 
 ## Starting
 
-Read 
+Read `.claude/codebase.md` to understand better.
 If $ARGUMENTS specifies a topic, focus there. Otherwise, ask the user the aspect of the design you think is most important to be solved.
