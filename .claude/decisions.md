@@ -12,6 +12,225 @@
 
 # v1 Decisions (Historical)
 
+## AI Context for StoryCards
+
+**Question:** What context does the AI actually need? Does every StoryCard need full world state?
+
+**Decision:** StoryCards don't need full world state - we don't want duplication of data. Context for AI should only be built when needed (in the AI function). All context remains at its source - location data on the location, character data on the character. The StoryCard holds IDs of things it references plus extra properties unique to that card for visualization and context building.
+
+## Context Resolution Timing
+
+**Question:** Should context be "baked in" at creation time, or resolved lazily when needed?
+
+**Decision:** Resolved lazily. Context for AI prompts is built only when needed in the AI function. The StoryCard stores IDs and card-specific properties, not duplicated entity data.
+
+## StoryCard Complexity Management
+
+**Question:** How do we prevent StoryCards from becoming massive objects that are hard to debug?
+
+**Decision:** Be smart and purposeful. Every field must have a clear purpose. No complexity without justification.
+
+## Story Graph Structure
+
+**Question:** Do we need a DAG of story nodes, or is a flat stack sufficient?
+
+**Decision:** DAG is the way. Story nodes form a directed acyclic graph, not a flat stack.
+
+## Faction Definition
+
+**Question:** What IS a faction mechanically? Is it a "character without a body"?
+
+**Decision:** Factions are entities like characters but with specific fields. They cannot have stats that change, take actions, or be "damaged". Factions are primarily narrative constructs - a player can work for a faction, or events can trigger because a faction is strong enough and wants specific things to happen.
+
+## Faction Influence Mechanics
+
+**Question:** How does faction influence manifest?
+
+**Decision:** Three mechanisms:
+1. **Passive modifiers** - Factions define modifiers that affect locations where they have influence. The location stores `factionIds` of active influences; the modifier definitions live on the faction.
+2. **Active story injection** - Factions can inject story events into the narrative.
+3. **Resource pools** - Factions have resource pools that affect their capabilities.
+
+## Pre-Generated Story Content
+
+**Question:** What does "choice carries its story stack" mean exactly?
+
+**Decision:** The game supports both fully pre-generated and fully AI-generated stories, or any mix:
+- Universe can define "possible starts" with pre-made cards
+- If next card is undefined, AI generates continuation
+- Story stacks can have trigger conditions (stat values, location, character state) or AI hints for when to use them
+- Choices can carry `nextCardId` for authored outcomes, or omit it for AI generation
+- When multiple pre-created stacks become eligible, they appear as choices
+- Stacks can be marked as "urgent" (must choose now) or deferrable
+
+## Branching Depth
+
+**Question:** How deep do embedded stacks go?
+
+**Decision:** No specific size limit. Stories can be entirely pre-created or entirely AI-generated.
+
+## Choice Visibility and Prerequisites
+
+**Question:** Can choices be hidden or disabled based on conditions?
+
+**Decision:** Yes to both:
+- Choices can be hidden until conditions are met
+- Choices can be visible but disabled
+- Choices can require stats, items, or flags (not direct faction standing - use flags for that)
+
+## Skill Check Branching
+
+**Question:** Should failed skill checks have their own story branches?
+
+**Decision:** Yes. Skill checks have outcome tables mapping results to next story events. Outcomes can include:
+- Critical success
+- Success
+- Failure
+- Critical failure
+- Variable outcomes (e.g., "for each 1 in result, gain 100 gold")
+
+Effects can use dice results as variables. The system needs flexible conditions and effects (consider expr-eval).
+
+## Effect Trigger Timing
+
+**Question:** When do effects trigger?
+
+**Decision:** Effects trigger on card resolution (when the card is added to the game). Effects can be conditional ("If player has item X, also grant Y").
+
+## Effect Targets
+
+**Question:** What can effects target?
+
+**Decision:** Effects can target any entity or state in the game:
+- Character stats
+- Inventory changes
+- Faction relationships
+- World state (location unlocked, NPC attitude)
+- Story state (flags, phase)
+- StoryCard properties (sound, animations, sprites)
+
+## Effect Timing Model
+
+**Question:** Immediate vs delayed vs over-time effects?
+
+**Decision:** Always immediate. For delayed effects, set a flag that triggers a future storycard.
+
+## Flag Structure
+
+**Question:** How should flags be structured?
+
+**Decision:**
+```typescript
+flags: {
+  [key: string]: {
+    value: boolean;
+    setBy: string;
+    setAt: Date;
+  }
+}
+```
+
+## Effect Reversibility and Tracking
+
+**Question:** Do we need to track effect sources for undo/debug?
+
+**Decision:** Yes, track sources for debugging. Effects are NOT temporary (no buffs/debuffs with duration).
+
+## Unified Character System
+
+**Question:** What distinguishes playable from non-playable characters?
+
+**Decision:** Just a boolean `isPlayable`. No different capabilities. This flag only matters during character selection at game start - it cannot change mid-game.
+
+## Relationship System
+
+**Question:** Is relationship one-way or bidirectional? Single character or multi-character?
+
+**Decision:** Bidirectional and multi-character. Every character has their own relationships stored separately. Character A can trust Character B without B trusting A back. Relationship axes: trust, affection, respect, fear (each -100 to 100).
+
+## Memory System
+
+**Question:** How does character memory work?
+
+**Decision:**
+- Free-form strings (not structured events)
+- Memory is added/edited/removed via effects when creating characters or resolving cards
+- Memory has a limit; can use AI to summarize/minify older memories
+- No importance weighting
+
+## Personality System
+
+**Question:** Are personality traits mechanical or narrative-only?
+
+**Decision:** Both. Traits are strings but can be used in challenge calculations. Personality (traits, values, fears, desires) is used in AI prompts for generating dialogue and story content. Can also be referenced in effects and conditions.
+
+## Character Portraits
+
+**Question:** How should character visual assets be handled?
+
+**Decision:**
+- Use "portraits" not "expressions"
+- Characters without portraits display a placeholder image
+- No dynamic expression generation - use a simple object mapping 10 basic emotions: neutral, happy, joy, anger, sad, fear, thinking, confused, embarrassed, confident
+
+## Challenge Core Abstraction
+
+**Question:** What's the minimal definition of a "challenge"?
+
+**Decision:** A phased interaction with different outcomes according to conditions. NOT limited to combat framing.
+
+## Challenge Participants
+
+**Question:** How should challenge participants be modeled without combat framing?
+
+**Decision:** Any game entity with roles. Authors predefine which entity types can fill which roles using type or conditions. Roles can be required or optional.
+
+## Challenge Visualization
+
+**Question:** How should challenges be visualized?
+
+**Decision:**
+- No fixed layouts - roles determine positioning and appearance
+- No real-time rendering needed
+- Define animation/sprite slots with positions and sizes
+- Slots can contain sprites or React components (like HP bars)
+
+## Challenge Pacing
+
+**Question:** Turn-based or real-time? Player input during challenge?
+
+**Decision:** Turn-based/round-based. Player is watch-only (no input during challenge execution). Cycles run until conditions are met. Can include pause and speed controls.
+
+## Debugging and Traceability
+
+**Question:** What does "easy to track/debug" look like?
+
+**Decision:**
+- State must be predictable
+- Consider seed-based randomness for replay
+- Event log with immutable history
+- Every mutation must be attributable to a source
+- Snapshot capability for debugging
+
+## Persistence and Serialization
+
+**Question:** How should data be serialized?
+
+**Decision:**
+- All types must be JSON-serializable
+- References by ID (almost never embedded objects) to avoid duplication
+- No localStorage version migration strategy needed
+
+## AI Generation Contracts
+
+**Question:** How should AI-generated content be handled?
+
+**Decision:**
+- Use AI SDK for structured output
+- Implement retry handling for failed generations
+- Support feedback feature for users to help fix/improve generated content over time
+- Clear boundary between typed data and free-form AI output via structured schemas
+
 ## Condition Expression System
 
 **Question:** How should conditions be expressed - custom DSL using Token[] or external evaluator?
