@@ -7314,3 +7314,186 @@ export interface LogEntry {
 }
 ```
 
+---
+
+* StoryCard should be the single source of truth for what's happening. Instead of maintaining separate context objects that duplicate information, we extend the StoryCard to carry everything needed for both AI Generation and Visualization
+* We want to add Factions to the system, we can use factions as entity non-characters that can also influence the world, the story and game mechanics.
+* Maybe we don't need choice card, choice can be something that an story card can have. The choice have a storycard stack to it, so every choice already carry what happens if chosen on itself.
+* The StoryCard need a way to effects to happen. 
+* We want to be easy to track/debug what is happening.
+* We dont want to have NPCs and Characters, we want just Characters, we can use an property to define if is an playable character or not. We also need to extend the character context by adding fields like:
+
+```markdown
+{
+  currentMood: EmotionalState;
+  
+  relationship: {
+    trust: number;      // -100 to 100
+    affection: number;
+    respect: number;
+    fear: number;
+  };
+  
+  memory: string[];
+  
+  personality: {
+    traits: PersonalityTrait[];
+    values: string[];
+    fears: string[];
+    desires: string[];
+  };
+  
+  // Expression mapping
+  expressions: Record<string, string>;  // 'happy' -> 'npc_elena_happy.png'
+}
+```
+
+Just a example, we can improve a lot from that example.
+* Challenges need visualization. But the visualization and the challenge in general we don't want to limit to "combat", "attacker" or things that is related to an specific challenge. We really need is to think all configs we need to be able to comprehend all those specific cases in a elegant, domain drive, smart way.
+
+Before we design, lets analyze if there is any questions to be answered, things that is not clear, things that can be better defined before we start creating. Create a list with those questions so we can explore the best solution for what we want.
+
+What context does the AI actually need?
+* Does every StoryCard need full world state, or just delta/relevant context? StoryCard don't need full world state. We don't want duplication of data.
+* Should context be "baked in" at creation time, or resolved lazily when needed? When you say "context" if you mean the context to send to the AI, we should only build when we will need it on the AI function. But all context will be available on the source of it - a location on the location, a character on the character. The StoryCard will hold the id of things it need and have extra properties that will only exist on that storycard and will be used to create the visualization of the card and also the information that will be used to build the context when it is needed.
+* How do we prevent StoryCards from becoming massive objects that are hard to debug? We need to be smart, we can't just add complexity, everything has a purpose.
+
+Visualization vs Generation concerns:
+* Are these actually the same data, or do they have different shapes? I don't know if I get the question but we need don't want duplicate information.
+* Does visualization need real-time computed values (current HP) while generation needs narrative context? We don't need "real-time" computed values because the game runs in "turns", the challenge is actually a turn card that happens automatically.
+Those questions make us think that you don't get that part of the project.
+
+Lineage and causality:
+* Should a StoryCard know what caused it? (parent card, choice taken, challenge outcome?), we don't need to store that duplicated information because we already have that information on the last card itself.
+* Do we need a DAG of story nodes, or is a flat stack sufficient? DAG is the way
+
+What IS a faction mechanically?
+* Is it a "character without a body"? Or something fundamentally different? Factions are entities like characters but with specific fields. 
+* Can factions have stats? Take actions? Be "damaged"? No. Factions are things that will be used more on the narrative aspect. A  player can work for an faction for example. Or something can happen because a faction is strong enough and wants some specific things to happen.
+
+Faction influence—how does it manifest?
+* Passive modifiers? This is a good way to make the game mechanics part we want from factions. But now specific about "danger" but things  that can influence a location  with a modifier. The location has faction influences but the modifiers are written on the faction. The location have the factionsIds of active influences.
+* Active story injection? Yes, this is other good idea to start with.
+* Resource pools? Yes, also other good idea.
+
+
+What does "choice carries its story stack" mean exactly?
+* Pre-generated content? Yes we want to be able to create this. So the game can be generated but it also we could play a entirely predefined game. We can add to the universe the possible starts that will come with the cards. If the next card is not defined then it will be generated the next card, so the user can create pieces of the story or the whole story. Maybe we can define the stack of cards when it will happens with conditions like by an stat (maybe when an stat get to a value) or if the AI decides it is the time to use that stack of cards (we can add a field to tell when the AI should use that story piece). We can tell the AI "when to use this" by just a text description or conditions - a location, or a character stat and so on - the conditions are not only strings they are calculable/checkable conditions that do not need AI to understand. Choices can carry the next card id, that way the choice will make things happens (the next card will have narrative things and/or effects things for that choice), but if there is no next card id, then the AI will generate what happens next. So if the user wants to create the outcome of an choice, it have to create the next card and link with that choice. 
+When multiples pre-created stacks become "eligible" the user can chose witch one he will use like choices. We can have some properties to indicate if that stack can only be chosen the time their appear on the choices to chose, that way we can have things that are urgent or things that the player will choose to do later.
+
+Branching depth:
+* How deep do embedded stacks go? Choice → Story → Choice → Story...? It does not have an specific size.
+* At what point do we generate vs pre-bake? As we have answer, we can have entire stories pre created or we can have nothing pre created.
+
+Choice prerequisites and visibility:
+* Can choices be hidden until conditions met? Yes
+* Can choices be visible but disabled? Yes
+* Do choices need stat requirements, item requirements, faction standing? We want to be able to do that (not the faction standing because that we could use something like an flag requirement)
+Skill checks on choices:
+* Is the current `skillCheck` model sufficient? Maybe not.
+* Should failed checks have their own story branches rather than just "disabled"? Yes.
+The skillcheck is from an card that can be after an choice or not. The skill check needs an table that will tell witch one story event will be the next. The skill check can have more then just sucess or failure, it can have critical hit, or critical failure. Or maybe each value  on the test will affect the outcome. For example a skill check about a job, then to each 1 in the result the player will receive 100 gold. So we can achieve that flexibility we can use effects that can use the result of the dice as variable.
+We need a powerful conditions and effects system that will be the heart of the game. We could use an external package to make it easier to do this.
+
+When do effects trigger?
+* On card creation? On card "resolution"? On explicit player action? The effects trigger on the card resolution - when the card is added to the game
+* Can effects be conditional? ("If player has item X, also grant Y") Yes.
+
+What can effects target?
+* Character stats only?
+* Inventory changes?
+* Faction relationships?
+* World state? (Location unlocked, NPC attitude changed)
+* Story state? (Flag set, phase advanced)
+The effects can target any entity or state in the game (yes to all the above) and including a storycard. That way the effect can also be used to play sound, change animations/sprites and so on.
+
+Effect timing:
+* Immediate vs delayed vs over-time? Always immediate. For things that happens after the effect can add a flag that is used by an storycard as trigger.
+* Can effects be "pending" and resolve later? No
+
+Flags can be like this:
+flags: {
+
+    value: boolean, 
+    setBy: string, 
+    setAt: Date 
+  }
+}
+
+Reversibility:
+* Do we need to track effect sources for undo/debug? Yes
+* Can effects be temporary? (Buff for 3 cards, debuff until next rest) No
+
+Unified Character System
+What distinguishes playable from non-playable?
+* Just a boolean `isPlayable`? Yes
+* Or different capabilities? No
+* Can this change mid-game? No, the playable or non-playable will only be used when the user is creating/selecting their character to start the game
+
+Relationships—whose perspective?
+* Is `relationship` how the character feels about the player?
+* Or bidirectional? (Player can also have trust/fear toward NPCs)
+* Multi-character relationships? (NPC A's feelings about NPC B)
+The relationship is bidirectional and multi-character, and it is not just a player thing, every character has their relationships. We will store the relationship in each character. Separately, this is not an duplication because on each of those we will have the values for that character from that other character. One character can trust in other character that does not trust back. trust/affection/respect/fear is the right set?
+
+Memory system:
+* Free-form strings? Structured events? Free-form strings
+* Who decides what gets remembered? This is defined when the user (or an AI) is creating a character or an effect from an card add/edit or remove memories
+* Memory limits? Forgetting? Importance weighting? We can have a limit and even have a code that will minify the memory using ai. No importance weighting.
+
+Personality:
+* Are traits mechanical (affect behavior/rolls) or narrative-only? These can also be mechanical because challenges can use traits on the calculations but the trait itself is just the string.
+* How does AI use personality for dialogue generation? This will be used on the prompt. Personality are used for generate cards, that can be dialogue, continuation of the story or others things. Can also be used by the effects or conditions. 
+* Are `values`, `fears`, `desires` the right primitives? Thats a great question, maybe yes.
+
+Expressions/portraits:
+* Is this the right place for visual assets? 
+* What about characters without portraits?
+* Dynamic expressions based on mood? Or explicit mapping?
+We can name portraits instead of expressions.  Characters without it just will display a dummy picture. Dynamic expressions seems to be a very hard thing to do. Lets keep with just a simple object with the basic emotions we need. Being 10: neutral, happy,joy,anger,sad,fear,thinking,confused,embarrassed,confident.
+
+Challenge System (Generic)
+Core abstraction:
+* What's the minimal definition of a "challenge"?
+* Is it: "A timed/phased interaction with win/lose conditions"?
+* Or: "Anything that interrupts normal story flow"?
+A phased interaction with different outcomes according to conditions
+
+Participants without combat framing:
+* Instead of "attacker/defender," what are we modeling?.
+* Suggested: `actors` with `roles`? Sides/teams? Individual agents? Any game entity with roles. We want to be able to predefined what game entity can be used by type or other conditions. We can have required or not roles.
+
+Actions without damage framing:
+* Current: `damage`, `check`, `roll`, `log`
+* Generic needs: "Modify a value", "Test a condition", "Record an event"?
+* Should actions be extensible/pluggable?
+Maybe
+
+Visualization requirements:
+* What visual layouts exist? (1v1, race positions, exam progress, social tension)
+* Do we need a `layout` type? Or derive from participant structure?
+* Real-time animation needs?
+I don't think we need layouts. We can use the roles to tell how or where they or what appears. No need for real-time. We need to create the animations/sprites slots and types that can be used (location, character, etc). 
+These slots are positions where we will show the sprite, we can have the size also. Not only sprites can also be predefined react components like an bar that can be used to HP bar.
+
+
+Pacing:
+* Turn-based? Real-time with pauses? It is an turn-based / round. We define the cycles and things run until conditions met. We can add a pause on it, and even speed controls.
+* Player input during challenge, or watch-only? Watch-only
+
+Cross-Cutting Concerns
+Debugging and traceability:
+* What does "easy to track/debug" look like concretely? If we do an effect and do not track then we can't go to what happened before and test. We want the state to be very predictable. Maybe we could even use seed number to random things so we can replay an whole game exactly as before.
+* Event log? Immutable history? Snapshot capability?  
+* Should every mutation be attributable to a source? Yes
+
+Persistence and serialization:
+* All types must be JSON-serializable? Yes
+* References by ID vs embedded objects—when to use which? Almost always by ID, we dont want duplicate things.
+* Version migration strategy for localStorage? No
+
+AI generation contracts:
+* What's the boundary between typed data and free-form AI output?
+* Should AI output be parsed into typed structures, or stay loose?
+* Validation strategy for AI-generated content?
+We will use ai sdk to handle structures. We could have an feature to handle retrys in a great way. We can have a feedback feature that we will use to fix that generated part/storycard. That way others users could help make an story better with time.
