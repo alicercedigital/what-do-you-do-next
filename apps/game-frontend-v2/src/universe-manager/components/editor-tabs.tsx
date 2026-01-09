@@ -1,5 +1,6 @@
 import { cn } from "@/shared/lib/utils";
 import {
+  Wand2,
   Settings,
   BarChart3,
   Users,
@@ -24,6 +25,7 @@ export function EditorTabs() {
   if (!universe) return null;
 
   const tabs: TabItem[] = [
+    { id: "helper", label: "Helper", icon: Wand2 },
     { id: "overview", label: "Overview", icon: Settings },
     { id: "stats", label: "Stats", icon: BarChart3, count: universe.stats.length },
     { id: "characters", label: "Characters", icon: Users, count: universe.characters.length },

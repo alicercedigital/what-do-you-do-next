@@ -12,6 +12,7 @@ type Challenge = v2.Challenge;
 type Moment = v2.Moment;
 
 export type EditorTab =
+  | "helper"
   | "overview"
   | "stats"
   | "characters"

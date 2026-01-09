@@ -5,6 +5,7 @@ import { Loader2 } from "lucide-react";
 import { useUniverseEditorStore } from "../store/universe-editor-store";
 import { EditorHeader } from "../components/editor-header";
 import { EditorTabs } from "../components/editor-tabs";
+import { CreationHelper } from "../components/creation-helper";
 import { OverviewEditor } from "../components/overview-editor";
 import { StatsEditor } from "../components/stats-editor";
 import { CharactersEditor } from "../components/characters-editor";
@@ -73,6 +74,8 @@ export function UniverseEditorPage() {
 
   const renderEditor = () => {
     switch (activeTab) {
+      case "helper":
+        return <CreationHelper />;
       case "overview":
         return <OverviewEditor />;
       case "stats":
