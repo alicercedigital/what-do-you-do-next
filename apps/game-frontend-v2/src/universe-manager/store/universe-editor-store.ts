@@ -42,6 +42,7 @@ interface UniverseEditorState {
   // Core state
   universe: Universe | null;
   originalUniverse: Universe | null;
+  metadata: UniverseMetadata | null;
 
   // UI state
   activeTab: EditorTab;
@@ -52,10 +53,26 @@ interface UniverseEditorState {
   lastSaved: number | null;
   isSaving: boolean;
   isLoading: boolean;
+  isPublishing: boolean;
   error: string | null;
 
   // Validation
   validationErrors: ValidationError[];
+}
+
+/**
+ * Universe metadata from API
+ */
+export interface UniverseMetadata {
+  id: string;
+  name: string;
+  description: string;
+  theme: string;
+  visibility: "private" | "unlisted" | "public";
+  is_published: boolean;
+  published_at: string | null;
+  version: number;
+  owner_id: string;
 }
 
 /**
@@ -64,10 +81,16 @@ interface UniverseEditorState {
 interface UniverseEditorActions {
   // Load/save
   loadUniverse: (id: string) => Promise<void>;
+  loadUniverseMetadata: (id: string) => Promise<UniverseMetadata | null>;
   createUniverse: (data: Partial<Universe>) => Promise<string>;
   saveUniverse: () => Promise<void>;
   deleteUniverse: (id: string) => Promise<void>;
   duplicateUniverse: (id: string) => Promise<string>;
+
+  // Publishing
+  publishUniverse: () => Promise<boolean>;
+  unpublishUniverse: () => Promise<boolean>;
+  updateVisibility: (visibility: "private" | "unlisted" | "public") => Promise<boolean>;
 
   // Navigation
   setActiveTab: (tab: EditorTab) => void;
@@ -136,12 +159,14 @@ export function generateEntityId(type: string, name?: string): string {
 const initialState: UniverseEditorState = {
   universe: null,
   originalUniverse: null,
+  metadata: null,
   activeTab: "overview",
   selectedEntityId: null,
   isDirty: false,
   lastSaved: null,
   isSaving: false,
   isLoading: false,
+  isPublishing: false,
   error: null,
   validationErrors: [],
 };
@@ -197,12 +222,31 @@ export const useUniverseEditorStore = create<UniverseEditorStore>()(
             state.isLoading = false;
             state.selectedEntityId = null;
           });
+
+          // Also load metadata
+          get().loadUniverseMetadata(id);
         } catch (error) {
           set((state) => {
             state.error =
               error instanceof Error ? error.message : "Failed to load universe";
             state.isLoading = false;
           });
+        }
+      },
+
+      loadUniverseMetadata: async (id: string) => {
+        try {
+          const response = await fetch(`${API_BASE}/universe/${id}/metadata`);
+          if (!response.ok) {
+            return null;
+          }
+          const metadata = await response.json();
+          set((state) => {
+            state.metadata = metadata;
+          });
+          return metadata;
+        } catch {
+          return null;
         }
       },
 
@@ -332,6 +376,120 @@ export const useUniverseEditorStore = create<UniverseEditorStore>()(
             state.isLoading = false;
           });
           throw error;
+        }
+      },
+
+      // Publishing
+      publishUniverse: async () => {
+        const { universe } = get();
+        if (!universe) return false;
+
+        set((state) => {
+          state.isPublishing = true;
+          state.error = null;
+        });
+
+        try {
+          const response = await fetch(`${API_BASE}/universe/${universe.id}/publish`, {
+            method: "POST",
+          });
+
+          if (!response.ok) {
+            const data = await response.json();
+            throw new Error(data.error || "Failed to publish universe");
+          }
+
+          // Reload metadata to get updated status
+          await get().loadUniverseMetadata(universe.id);
+
+          set((state) => {
+            state.isPublishing = false;
+          });
+
+          return true;
+        } catch (error) {
+          set((state) => {
+            state.error =
+              error instanceof Error ? error.message : "Failed to publish universe";
+            state.isPublishing = false;
+          });
+          return false;
+        }
+      },
+
+      unpublishUniverse: async () => {
+        const { universe } = get();
+        if (!universe) return false;
+
+        set((state) => {
+          state.isPublishing = true;
+          state.error = null;
+        });
+
+        try {
+          const response = await fetch(`${API_BASE}/universe/${universe.id}/unpublish`, {
+            method: "POST",
+          });
+
+          if (!response.ok) {
+            const data = await response.json();
+            throw new Error(data.error || "Failed to unpublish universe");
+          }
+
+          // Reload metadata to get updated status
+          await get().loadUniverseMetadata(universe.id);
+
+          set((state) => {
+            state.isPublishing = false;
+          });
+
+          return true;
+        } catch (error) {
+          set((state) => {
+            state.error =
+              error instanceof Error ? error.message : "Failed to unpublish universe";
+            state.isPublishing = false;
+          });
+          return false;
+        }
+      },
+
+      updateVisibility: async (visibility: "private" | "unlisted" | "public") => {
+        const { universe } = get();
+        if (!universe) return false;
+
+        set((state) => {
+          state.isPublishing = true;
+          state.error = null;
+        });
+
+        try {
+          const response = await fetch(`${API_BASE}/universe/${universe.id}/visibility`, {
+            method: "PUT",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ visibility }),
+          });
+
+          if (!response.ok) {
+            const data = await response.json();
+            throw new Error(data.error || "Failed to update visibility");
+          }
+
+          // Reload metadata to get updated status
+          await get().loadUniverseMetadata(universe.id);
+
+          set((state) => {
+            state.isPublishing = false;
+          });
+
+          return true;
+        } catch (error) {
+          set((state) => {
+            state.error =
+              error instanceof Error ? error.message : "Failed to update visibility";
+            state.isPublishing = false;
+          });
+          return false;
         }
       },
 
@@ -741,3 +899,9 @@ export const useEditorError = () =>
 
 export const useValidationErrors = () =>
   useUniverseEditorStore((state) => state.validationErrors);
+
+export const useUniverseMetadata = () =>
+  useUniverseEditorStore((state) => state.metadata);
+
+export const useIsPublishing = () =>
+  useUniverseEditorStore((state) => state.isPublishing);

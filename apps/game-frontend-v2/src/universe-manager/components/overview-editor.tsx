@@ -5,9 +5,16 @@ import { Textarea } from "@/shared/components/ui/textarea";
 import { ScrollArea } from "@/shared/components/ui/scroll-area";
 import { Badge } from "@/shared/components/ui/badge";
 import { TagInput } from "@/shared/components/ui/tag-input";
-import { Users, MapPin, Package, Swords, BookOpen, BarChart3 } from "lucide-react";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/shared/components/ui/select";
+import { Users, MapPin, Package, Swords, BookOpen, BarChart3, Globe, Eye, Lock, Loader2 } from "lucide-react";
 
-import { useUniverseEditorStore } from "../store/universe-editor-store";
+import { useUniverseEditorStore, useUniverseMetadata, useIsPublishing } from "../store/universe-editor-store";
 
 const EQUIPMENT_SLOT_SUGGESTIONS = [
   "weapon",
@@ -25,7 +32,9 @@ const EQUIPMENT_SLOT_SUGGESTIONS = [
 ];
 
 export function OverviewEditor() {
-  const { universe, updateUniverse, updateConfig } = useUniverseEditorStore();
+  const { universe, updateUniverse, updateConfig, updateVisibility } = useUniverseEditorStore();
+  const metadata = useUniverseMetadata();
+  const isPublishing = useIsPublishing();
 
   if (!universe) return null;
 
@@ -93,6 +102,85 @@ export function OverviewEditor() {
                 <Label>Version</Label>
                 <p className="text-sm text-muted-foreground">{universe.version}</p>
               </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Visibility Settings */}
+        <Card>
+          <CardHeader>
+            <CardTitle>Visibility & Publishing</CardTitle>
+            <CardDescription>
+              Control who can see and play your universe
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="grid gap-2">
+              <Label htmlFor="visibility">Visibility</Label>
+              <div className="flex items-center gap-2">
+                <Select
+                  value={metadata?.visibility ?? "private"}
+                  onValueChange={(value: "private" | "unlisted" | "public") => {
+                    updateVisibility(value);
+                  }}
+                  disabled={isPublishing}
+                >
+                  <SelectTrigger className="w-[200px]">
+                    <SelectValue placeholder="Select visibility" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="private">
+                      <div className="flex items-center gap-2">
+                        <Lock className="h-4 w-4" />
+                        Private
+                      </div>
+                    </SelectItem>
+                    <SelectItem value="unlisted">
+                      <div className="flex items-center gap-2">
+                        <Eye className="h-4 w-4" />
+                        Unlisted
+                      </div>
+                    </SelectItem>
+                    <SelectItem value="public">
+                      <div className="flex items-center gap-2">
+                        <Globe className="h-4 w-4" />
+                        Public
+                      </div>
+                    </SelectItem>
+                  </SelectContent>
+                </Select>
+                {isPublishing && <Loader2 className="h-4 w-4 animate-spin" />}
+              </div>
+              <p className="text-xs text-muted-foreground">
+                {metadata?.visibility === "private" && "Only you can see this universe"}
+                {metadata?.visibility === "unlisted" && "Anyone with the link can see this universe"}
+                {metadata?.visibility === "public" && "This universe is visible to everyone"}
+                {!metadata && "Loading visibility settings..."}
+              </p>
+            </div>
+
+            <div className="flex items-center gap-4 pt-2">
+              <div>
+                <Label>Status</Label>
+                <div className="mt-1">
+                  {metadata?.is_published ? (
+                    <Badge variant="default" className="gap-1">
+                      <Globe className="h-3 w-3" />
+                      Published
+                    </Badge>
+                  ) : (
+                    <Badge variant="outline">Draft</Badge>
+                  )}
+                </div>
+              </div>
+              {metadata?.published_at && (
+                <div>
+                  <Label>Published</Label>
+                  <p className="mt-1 text-sm text-muted-foreground">
+                    {new Date(metadata.published_at).toLocaleDateString()}
+                  </p>
+                </div>
+              )}
             </div>
           </CardContent>
         </Card>

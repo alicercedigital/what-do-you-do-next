@@ -11,7 +11,15 @@ import {
   deleteUniverse,
   getUniverseSummaries,
   getAllGames,
+  getUniverseWithMetadata,
+  publishUniverse,
+  unpublishUniverse,
+  updateUniverseVisibility,
+  getUniverseVersions,
+  createUniverseVersion,
+  getUniverseVersion,
 } from "../storage";
+import { requireAuth } from "../middleware/auth";
 import {
   optionalAuth,
   type AuthenticatedRequest,
@@ -245,6 +253,258 @@ router.get("/games", async (req: AuthenticatedRequest, res) => {
   }));
 
   return res.json(list);
+});
+
+// =============================================================================
+// UNIVERSE METADATA & PUBLISHING
+// =============================================================================
+
+/**
+ * Get universe with metadata
+ * GET /api/universe/:id/metadata
+ */
+router.get("/universe/:id/metadata", async (req: AuthenticatedRequest, res) => {
+  const metadata = await getUniverseWithMetadata(req.params.id);
+
+  if (!metadata) {
+    return res.status(404).json({ error: "Universe not found" });
+  }
+
+  // Check if user can view this universe
+  const isOwner = req.user?.id === metadata.owner_id;
+  const isPublic = metadata.visibility === "public" && metadata.is_published;
+
+  if (!isOwner && !isPublic) {
+    return res.status(403).json({ error: "Not authorized to view this universe" });
+  }
+
+  return res.json({
+    ...metadata,
+    isOwner,
+  });
+});
+
+/**
+ * Publish a universe
+ * POST /api/universe/:id/publish
+ */
+router.post("/universe/:id/publish", requireAuth, async (req: AuthenticatedRequest, res) => {
+  if (!req.user?.id) {
+    return res.status(401).json({ error: "Authentication required" });
+  }
+
+  const result = await publishUniverse(req.params.id, req.user.id);
+
+  if (!result.success) {
+    return res.status(400).json({ error: result.error });
+  }
+
+  return res.json({ success: true });
+});
+
+/**
+ * Unpublish a universe
+ * POST /api/universe/:id/unpublish
+ */
+router.post("/universe/:id/unpublish", requireAuth, async (req: AuthenticatedRequest, res) => {
+  if (!req.user?.id) {
+    return res.status(401).json({ error: "Authentication required" });
+  }
+
+  const result = await unpublishUniverse(req.params.id, req.user.id);
+
+  if (!result.success) {
+    return res.status(400).json({ error: result.error });
+  }
+
+  return res.json({ success: true });
+});
+
+/**
+ * Update universe visibility
+ * PUT /api/universe/:id/visibility
+ */
+router.put("/universe/:id/visibility", requireAuth, async (req: AuthenticatedRequest, res) => {
+  if (!req.user?.id) {
+    return res.status(401).json({ error: "Authentication required" });
+  }
+
+  const { visibility } = req.body;
+
+  if (!visibility || !["private", "unlisted", "public"].includes(visibility)) {
+    return res.status(400).json({ error: "Invalid visibility value" });
+  }
+
+  const result = await updateUniverseVisibility(req.params.id, req.user.id, visibility);
+
+  if (!result.success) {
+    return res.status(400).json({ error: result.error });
+  }
+
+  return res.json({ success: true });
+});
+
+// =============================================================================
+// UNIVERSE VERSIONING
+// =============================================================================
+
+/**
+ * Get version history
+ * GET /api/universe/:id/versions
+ */
+router.get("/universe/:id/versions", async (req: AuthenticatedRequest, res) => {
+  const metadata = await getUniverseWithMetadata(req.params.id);
+
+  if (!metadata) {
+    return res.status(404).json({ error: "Universe not found" });
+  }
+
+  // Check if user can view versions
+  const isOwner = req.user?.id === metadata.owner_id;
+  const isPublic = metadata.visibility === "public" && metadata.is_published;
+
+  if (!isOwner && !isPublic) {
+    return res.status(403).json({ error: "Not authorized" });
+  }
+
+  const versions = await getUniverseVersions(req.params.id);
+  return res.json(versions);
+});
+
+/**
+ * Create a new version
+ * POST /api/universe/:id/version
+ */
+router.post("/universe/:id/version", requireAuth, async (req: AuthenticatedRequest, res) => {
+  if (!req.user?.id) {
+    return res.status(401).json({ error: "Authentication required" });
+  }
+
+  const { changelog } = req.body;
+  const result = await createUniverseVersion(req.params.id, req.user.id, changelog);
+
+  if (!result.success) {
+    return res.status(400).json({ error: result.error });
+  }
+
+  return res.json({ success: true, version: result.version });
+});
+
+/**
+ * Get a specific version
+ * GET /api/universe/:id/version/:version
+ */
+router.get("/universe/:id/version/:version", async (req: AuthenticatedRequest, res) => {
+  const metadata = await getUniverseWithMetadata(req.params.id);
+
+  if (!metadata) {
+    return res.status(404).json({ error: "Universe not found" });
+  }
+
+  // Check if user can view this version
+  const isOwner = req.user?.id === metadata.owner_id;
+  const isPublic = metadata.visibility === "public" && metadata.is_published;
+
+  if (!isOwner && !isPublic) {
+    return res.status(403).json({ error: "Not authorized" });
+  }
+
+  const versionNum = parseInt(req.params.version, 10);
+  if (isNaN(versionNum)) {
+    return res.status(400).json({ error: "Invalid version number" });
+  }
+
+  const universe = await getUniverseVersion(req.params.id, versionNum);
+
+  if (!universe) {
+    return res.status(404).json({ error: "Version not found" });
+  }
+
+  return res.json(universe);
+});
+
+// =============================================================================
+// EXPORT / IMPORT
+// =============================================================================
+
+/**
+ * Export a universe as JSON
+ * GET /api/universe/:id/export
+ */
+router.get("/universe/:id/export", async (req: AuthenticatedRequest, res) => {
+  const metadata = await getUniverseWithMetadata(req.params.id);
+
+  if (!metadata) {
+    return res.status(404).json({ error: "Universe not found" });
+  }
+
+  // Check if user can export this universe
+  const isOwner = req.user?.id === metadata.owner_id;
+  const isPublic = metadata.visibility === "public" && metadata.is_published;
+
+  if (!isOwner && !isPublic) {
+    return res.status(403).json({ error: "Not authorized to export this universe" });
+  }
+
+  const universe = await getUniverse(req.params.id);
+
+  if (!universe) {
+    return res.status(404).json({ error: "Universe not found" });
+  }
+
+  // Return as downloadable JSON
+  res.setHeader("Content-Type", "application/json");
+  res.setHeader(
+    "Content-Disposition",
+    `attachment; filename="${universe.name.replace(/[^a-z0-9]/gi, "_")}.json"`
+  );
+
+  return res.json({
+    exportVersion: 1,
+    exportedAt: new Date().toISOString(),
+    universe,
+  });
+});
+
+/**
+ * Import a universe from JSON
+ * POST /api/universe/import
+ */
+router.post("/universe/import", requireAuth, async (req: AuthenticatedRequest, res) => {
+  if (!req.user?.id) {
+    return res.status(401).json({ error: "Authentication required" });
+  }
+
+  try {
+    const { universe: importedUniverse } = req.body;
+
+    if (!importedUniverse) {
+      return res.status(400).json({ error: "No universe data provided" });
+    }
+
+    if (!importedUniverse.id || !importedUniverse.name) {
+      return res.status(400).json({ error: "Invalid universe data" });
+    }
+
+    // Generate new ID to avoid conflicts
+    const newUniverse: Universe = {
+      ...importedUniverse,
+      id: `${importedUniverse.id}-import-${Date.now()}`,
+      name: `${importedUniverse.name} (Imported)`,
+      version: 1,
+    };
+
+    await saveUniverse(newUniverse, req.user.id);
+
+    return res.json({
+      success: true,
+      universeId: newUniverse.id,
+      message: `Imported universe "${newUniverse.name}"`,
+    });
+  } catch (error) {
+    console.error("Failed to import universe:", error);
+    return res.status(500).json({ error: "Failed to import universe" });
+  }
 });
 
 export { router as gameRouter };

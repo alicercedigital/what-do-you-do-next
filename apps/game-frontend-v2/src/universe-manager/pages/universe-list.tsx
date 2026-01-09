@@ -1,12 +1,13 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
-import { Plus, Upload, Trash2, Copy, Play, Edit, Loader2 } from "lucide-react";
+import { Plus, Upload, Trash2, Copy, Play, Edit, Loader2, Download, Globe, Lock, Eye } from "lucide-react";
 
 import { Button } from "@/shared/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/shared/components/ui/card";
 import { Input } from "@/shared/components/ui/input";
 import { Label } from "@/shared/components/ui/label";
+import { Badge } from "@/shared/components/ui/badge";
 import {
   Dialog,
   DialogContent,
@@ -26,19 +27,56 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/shared/components/ui/alert-dialog";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/shared/components/ui/dropdown-menu";
 
 import { useUniverseEditorStore } from "../store/universe-editor-store";
+import { useAuthStore } from "@/store/auth-store";
 
 interface UniverseSummary {
   id: string;
   name: string;
   description: string;
   theme: string;
+  visibility?: "private" | "unlisted" | "public";
+  is_published?: boolean;
+  owner_id?: string;
+}
+
+function VisibilityBadge({ visibility, isPublished }: { visibility?: string; isPublished?: boolean }) {
+  if (isPublished && visibility === "public") {
+    return (
+      <Badge variant="default" className="gap-1">
+        <Globe className="h-3 w-3" />
+        Published
+      </Badge>
+    );
+  }
+  if (visibility === "unlisted") {
+    return (
+      <Badge variant="secondary" className="gap-1">
+        <Eye className="h-3 w-3" />
+        Unlisted
+      </Badge>
+    );
+  }
+  return (
+    <Badge variant="outline" className="gap-1">
+      <Lock className="h-3 w-3" />
+      Private
+    </Badge>
+  );
 }
 
 export function UniverseListPage() {
   const navigate = useNavigate();
   const { createUniverse, deleteUniverse, duplicateUniverse } = useUniverseEditorStore();
+  const user = useAuthStore((state) => state.user);
 
   const [universes, setUniverses] = useState<UniverseSummary[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -130,24 +168,58 @@ export function UniverseListPage() {
     setIsImporting(true);
     try {
       const text = await file.text();
-      const universe = JSON.parse(text);
+      const importData = JSON.parse(text);
 
-      // Register the imported universe
-      const response = await fetch("/api/universe", {
+      // Check if it's an exported universe (has exportVersion) or raw universe
+      const universeData = importData.universe || importData;
+
+      // Use the new import endpoint
+      const response = await fetch("/api/universe/import", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(universe),
+        body: JSON.stringify({ universe: universeData }),
       });
 
-      if (!response.ok) throw new Error("Failed to import universe");
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.error || "Failed to import universe");
+      }
 
+      const result = await response.json();
       await loadUniverses();
+
+      // Navigate to the imported universe
+      if (result.universeId) {
+        navigate(`/universes/${result.universeId}`);
+      }
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to import universe");
     } finally {
       setIsImporting(false);
       // Reset file input
       event.target.value = "";
+    }
+  };
+
+  const handleExport = async (universe: UniverseSummary) => {
+    try {
+      const response = await fetch(`/api/universe/${universe.id}/export`);
+      if (!response.ok) throw new Error("Failed to export universe");
+
+      const data = await response.json();
+
+      // Create download
+      const blob = new Blob([JSON.stringify(data, null, 2)], { type: "application/json" });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `${universe.name.replace(/[^a-z0-9]/gi, "_")}.json`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Failed to export universe");
     }
   };
 
@@ -303,9 +375,15 @@ export function UniverseListPage() {
                           {universe.description || "No description"}
                         </CardDescription>
                       </div>
-                      <span className="ml-2 shrink-0 rounded-full bg-primary/10 px-2 py-0.5 text-xs text-primary">
-                        {universe.theme}
-                      </span>
+                      <div className="ml-2 flex shrink-0 flex-col items-end gap-1">
+                        <span className="rounded-full bg-primary/10 px-2 py-0.5 text-xs text-primary">
+                          {universe.theme}
+                        </span>
+                        <VisibilityBadge
+                          visibility={universe.visibility}
+                          isPublished={universe.is_published}
+                        />
+                      </div>
                     </div>
                   </CardHeader>
                   <CardContent>
@@ -325,21 +403,31 @@ export function UniverseListPage() {
                         <Play className="mr-1 h-3 w-3" />
                         Test
                       </Button>
-                      <Button
-                        size="sm"
-                        variant="ghost"
-                        onClick={() => handleDuplicate(universe)}
-                      >
-                        <Copy className="h-3 w-3" />
-                      </Button>
-                      <Button
-                        size="sm"
-                        variant="ghost"
-                        className="text-destructive hover:text-destructive"
-                        onClick={() => setDeleteTarget(universe)}
-                      >
-                        <Trash2 className="h-3 w-3" />
-                      </Button>
+                      <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                          <Button size="sm" variant="ghost">
+                            •••
+                          </Button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="end">
+                          <DropdownMenuItem onClick={() => handleDuplicate(universe)}>
+                            <Copy className="mr-2 h-4 w-4" />
+                            Duplicate
+                          </DropdownMenuItem>
+                          <DropdownMenuItem onClick={() => handleExport(universe)}>
+                            <Download className="mr-2 h-4 w-4" />
+                            Export
+                          </DropdownMenuItem>
+                          <DropdownMenuSeparator />
+                          <DropdownMenuItem
+                            className="text-destructive focus:text-destructive"
+                            onClick={() => setDeleteTarget(universe)}
+                          >
+                            <Trash2 className="mr-2 h-4 w-4" />
+                            Delete
+                          </DropdownMenuItem>
+                        </DropdownMenuContent>
+                      </DropdownMenu>
                     </div>
                   </CardContent>
                 </Card>

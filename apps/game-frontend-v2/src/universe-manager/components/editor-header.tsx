@@ -1,11 +1,23 @@
+import { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { ArrowLeft, Save, Download, Play, Loader2, Check, AlertCircle } from "lucide-react";
+import { ArrowLeft, Save, Download, Play, Loader2, Check, AlertCircle, Globe, GlobeLock } from "lucide-react";
 
 import { Button } from "@/shared/components/ui/button";
-import { useUniverseEditorStore } from "../store/universe-editor-store";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/shared/components/ui/alert-dialog";
+import { useUniverseEditorStore, useUniverseMetadata, useIsPublishing } from "../store/universe-editor-store";
 
 export function EditorHeader() {
   const navigate = useNavigate();
+  const [showPublishDialog, setShowPublishDialog] = useState(false);
 
   const {
     universe,
@@ -15,9 +27,16 @@ export function EditorHeader() {
     error,
     saveUniverse,
     validate,
+    publishUniverse,
+    unpublishUniverse,
   } = useUniverseEditorStore();
 
+  const metadata = useUniverseMetadata();
+  const isPublishing = useIsPublishing();
+
   if (!universe) return null;
+
+  const isPublished = metadata?.is_published ?? false;
 
   const handleSave = async () => {
     const errors = validate();
@@ -43,6 +62,15 @@ export function EditorHeader() {
   const handleTest = () => {
     // Navigate to home page with universe pre-selected for testing
     navigate(`/?test=${universe.id}`);
+  };
+
+  const handlePublishAction = async () => {
+    setShowPublishDialog(false);
+    if (isPublished) {
+      await unpublishUniverse();
+    } else {
+      await publishUniverse();
+    }
   };
 
   const formatLastSaved = () => {
@@ -109,7 +137,45 @@ export function EditorHeader() {
           )}
           Save
         </Button>
+
+        <Button
+          size="sm"
+          variant={isPublished ? "secondary" : "default"}
+          onClick={() => setShowPublishDialog(true)}
+          disabled={isPublishing || isDirty}
+        >
+          {isPublishing ? (
+            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+          ) : isPublished ? (
+            <GlobeLock className="mr-2 h-4 w-4" />
+          ) : (
+            <Globe className="mr-2 h-4 w-4" />
+          )}
+          {isPublished ? "Unpublish" : "Publish"}
+        </Button>
       </div>
+
+      {/* Publish/Unpublish confirmation dialog */}
+      <AlertDialog open={showPublishDialog} onOpenChange={setShowPublishDialog}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>
+              {isPublished ? "Unpublish Universe" : "Publish Universe"}
+            </AlertDialogTitle>
+            <AlertDialogDescription>
+              {isPublished
+                ? "This will remove your universe from the public marketplace. Players who have already started playing will still have access to their saved games."
+                : "This will make your universe publicly available in the marketplace. Make sure your universe is complete and ready for players."}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction onClick={handlePublishAction}>
+              {isPublished ? "Unpublish" : "Publish"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </header>
   );
 }

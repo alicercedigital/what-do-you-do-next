@@ -365,6 +365,287 @@ export async function getUniverseSummaries(
 }
 
 // =============================================================================
+// UNIVERSE METADATA & PUBLISHING
+// =============================================================================
+
+type UniverseMetadata = Pick<
+  UniverseRow,
+  "id" | "name" | "description" | "theme" | "owner_id" | "visibility" | "is_published" | "version" | "created_at" | "updated_at"
+>;
+
+/**
+ * Get universe with metadata (visibility, owner, etc.)
+ */
+export async function getUniverseWithMetadata(
+  universeId: string
+): Promise<UniverseMetadata | undefined> {
+  if (!isSupabaseConfigured()) {
+    const universe = memoryUniverses.get(universeId);
+    if (!universe) return undefined;
+    return {
+      id: universe.id,
+      name: universe.name,
+      description: universe.description,
+      theme: universe.theme,
+      owner_id: "dev-user-id",
+      visibility: "private",
+      is_published: false,
+      version: universe.version,
+      created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString(),
+    };
+  }
+
+  const { data, error } = await db
+    .from("universes")
+    .select("id, name, description, theme, owner_id, visibility, is_published, version, created_at, updated_at")
+    .eq("id", universeId)
+    .single();
+
+  if (error || !data) return undefined;
+  return data as UniverseMetadata;
+}
+
+/**
+ * Publish a universe (make it publicly visible)
+ */
+export async function publishUniverse(
+  universeId: string,
+  userId: string
+): Promise<{ success: boolean; error?: string }> {
+  if (!isSupabaseConfigured()) {
+    return { success: true };
+  }
+
+  // Check ownership
+  const { data: universe } = await db
+    .from("universes")
+    .select("owner_id")
+    .eq("id", universeId)
+    .single();
+
+  if (!universe) {
+    return { success: false, error: "Universe not found" };
+  }
+
+  if (universe.owner_id !== userId) {
+    return { success: false, error: "Not authorized" };
+  }
+
+  const { error } = await db
+    .from("universes")
+    .update({
+      visibility: "public",
+      is_published: true,
+      published_at: new Date().toISOString(),
+      updated_at: new Date().toISOString(),
+    })
+    .eq("id", universeId);
+
+  if (error) {
+    console.error("Failed to publish universe:", error);
+    return { success: false, error: "Failed to publish" };
+  }
+
+  return { success: true };
+}
+
+/**
+ * Unpublish a universe (make it private)
+ */
+export async function unpublishUniverse(
+  universeId: string,
+  userId: string
+): Promise<{ success: boolean; error?: string }> {
+  if (!isSupabaseConfigured()) {
+    return { success: true };
+  }
+
+  // Check ownership
+  const { data: universe } = await db
+    .from("universes")
+    .select("owner_id")
+    .eq("id", universeId)
+    .single();
+
+  if (!universe) {
+    return { success: false, error: "Universe not found" };
+  }
+
+  if (universe.owner_id !== userId) {
+    return { success: false, error: "Not authorized" };
+  }
+
+  const { error } = await db
+    .from("universes")
+    .update({
+      is_published: false,
+      updated_at: new Date().toISOString(),
+    })
+    .eq("id", universeId);
+
+  if (error) {
+    console.error("Failed to unpublish universe:", error);
+    return { success: false, error: "Failed to unpublish" };
+  }
+
+  return { success: true };
+}
+
+/**
+ * Update universe visibility
+ */
+export async function updateUniverseVisibility(
+  universeId: string,
+  userId: string,
+  visibility: "private" | "unlisted" | "public"
+): Promise<{ success: boolean; error?: string }> {
+  if (!isSupabaseConfigured()) {
+    return { success: true };
+  }
+
+  // Check ownership
+  const { data: universe } = await db
+    .from("universes")
+    .select("owner_id")
+    .eq("id", universeId)
+    .single();
+
+  if (!universe) {
+    return { success: false, error: "Universe not found" };
+  }
+
+  if (universe.owner_id !== userId) {
+    return { success: false, error: "Not authorized" };
+  }
+
+  const { error } = await db
+    .from("universes")
+    .update({
+      visibility,
+      updated_at: new Date().toISOString(),
+    })
+    .eq("id", universeId);
+
+  if (error) {
+    console.error("Failed to update visibility:", error);
+    return { success: false, error: "Failed to update visibility" };
+  }
+
+  return { success: true };
+}
+
+// =============================================================================
+// UNIVERSE VERSIONING
+// =============================================================================
+
+type UniverseVersionRow = Tables["universe_versions"]["Row"];
+
+interface UniverseVersion {
+  id: string;
+  version: number;
+  changelog: string | null;
+  created_at: string;
+}
+
+/**
+ * Get version history for a universe
+ */
+export async function getUniverseVersions(
+  universeId: string
+): Promise<UniverseVersion[]> {
+  if (!isSupabaseConfigured()) {
+    return [];
+  }
+
+  const { data, error } = await db
+    .from("universe_versions")
+    .select("id, version, changelog, created_at")
+    .eq("universe_id", universeId)
+    .order("version", { ascending: false });
+
+  if (error || !data) return [];
+  return data as UniverseVersion[];
+}
+
+/**
+ * Create a new version snapshot
+ */
+export async function createUniverseVersion(
+  universeId: string,
+  userId: string,
+  changelog?: string
+): Promise<{ success: boolean; version?: number; error?: string }> {
+  if (!isSupabaseConfigured()) {
+    return { success: true, version: 1 };
+  }
+
+  // Get current universe
+  const { data: universe } = await db
+    .from("universes")
+    .select("owner_id, data, version")
+    .eq("id", universeId)
+    .single();
+
+  if (!universe) {
+    return { success: false, error: "Universe not found" };
+  }
+
+  if (universe.owner_id !== userId) {
+    return { success: false, error: "Not authorized" };
+  }
+
+  const newVersion = (universe.version || 0) + 1;
+
+  // Create version snapshot
+  const { error: versionError } = await db.from("universe_versions").insert({
+    universe_id: universeId,
+    version: newVersion,
+    data: universe.data,
+    changelog: changelog || null,
+  });
+
+  if (versionError) {
+    console.error("Failed to create version:", versionError);
+    return { success: false, error: "Failed to create version" };
+  }
+
+  // Update universe version number
+  const { error: updateError } = await db
+    .from("universes")
+    .update({ version: newVersion, updated_at: new Date().toISOString() })
+    .eq("id", universeId);
+
+  if (updateError) {
+    console.error("Failed to update universe version:", updateError);
+  }
+
+  return { success: true, version: newVersion };
+}
+
+/**
+ * Get a specific version of a universe
+ */
+export async function getUniverseVersion(
+  universeId: string,
+  version: number
+): Promise<Universe | undefined> {
+  if (!isSupabaseConfigured()) {
+    return memoryUniverses.get(universeId);
+  }
+
+  const { data, error } = await db
+    .from("universe_versions")
+    .select("data")
+    .eq("universe_id", universeId)
+    .eq("version", version)
+    .single();
+
+  if (error || !data) return undefined;
+  return (data as { data: Json }).data as unknown as Universe;
+}
+
+// =============================================================================
 // CHALLENGE STATE STORAGE (always in-memory for now)
 // =============================================================================
 
