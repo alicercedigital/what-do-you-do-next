@@ -94,6 +94,20 @@
 │       ├── turbo.json
 │       └── vite.config.ts
 ├── packages
+│   ├── config
+│   │   ├── eslint
+│   │   │   ├── index.js
+│   │   │   ├── react.js
+│   │   │   └── vite.js
+│   │   ├── jest
+│   │   │   ├── browser
+│   │   │   │   └── jest-preset.mjs
+│   │   │   └── node
+│   │   │       └── jest-preset.mjs
+│   │   ├── typescript
+│   │   │   ├── base.json
+│   │   │   └── vite.json
+│   │   └── package.json
 │   ├── logger
 │   │   ├── src
 │   │   │   ├── __tests__
@@ -8382,6 +8396,233 @@ export default defineConfig({
     "apps/*",
     "packages/*"
   ]
+}
+```
+
+### packages/config/eslint/index.js
+
+```javascript
+import js from "@eslint/js";
+import { defineConfig, globalIgnores } from "eslint/config";
+import eslintConfigPrettier from "eslint-config-prettier";
+import turboPlugin from "eslint-plugin-turbo";
+import tseslint from "typescript-eslint";
+import onlyWarn from "eslint-plugin-only-warn";
+
+/**
+ * A shared ESLint configuration for the repository.
+ */
+export const config = defineConfig(
+  globalIgnores(["dist/**"]),
+  js.configs.recommended,
+  eslintConfigPrettier,
+  tseslint.configs.recommended,
+  {
+    plugins: {
+      turbo: turboPlugin,
+    },
+    rules: {
+      "turbo/no-undeclared-env-vars": "warn",
+    },
+  },
+  {
+    plugins: {
+      onlyWarn,
+    },
+  }
+);
+```
+
+### packages/config/eslint/react.js
+
+```javascript
+import pluginReactHooks from "eslint-plugin-react-hooks";
+import pluginReact from "eslint-plugin-react";
+import globals from "globals";
+import { config as baseConfig } from "./index.js";
+
+/**
+ * A custom ESLint configuration for libraries that use React.
+ */
+export const config = [
+  ...baseConfig,
+  pluginReact.configs.flat.recommended,
+  pluginReact.configs.flat["jsx-runtime"],
+  {
+    languageOptions: {
+      ...pluginReact.configs.flat.recommended.languageOptions,
+      globals: {
+        ...globals.serviceworker,
+        ...globals.browser,
+      },
+    },
+  },
+  pluginReactHooks.configs.flat.recommended,
+];
+```
+
+### packages/config/eslint/vite.js
+
+```javascript
+import js from "@eslint/js";
+import globals from "globals";
+import reactHooks from "eslint-plugin-react-hooks";
+import reactRefresh from "eslint-plugin-react-refresh";
+import tseslint from "typescript-eslint";
+import { defineConfig } from "eslint/config";
+
+export default defineConfig({
+  extends: [js.configs.recommended, ...tseslint.configs.recommended],
+  files: ["**/*.{ts,tsx}"],
+  ignores: ["dist"],
+  languageOptions: {
+    ecmaVersion: 2020,
+    globals: globals.browser,
+  },
+  plugins: {
+    "react-hooks": reactHooks,
+    "react-refresh": reactRefresh,
+  },
+  rules: {
+    ...reactHooks.configs.recommended.rules,
+    "react-refresh/only-export-components": [
+      "warn",
+      { allowConstantExport: true },
+    ],
+  },
+});
+```
+
+### packages/config/jest/browser/jest-preset.mjs
+
+```javascript
+/** @type {import('jest').Config} */
+const config = {
+  roots: ["<rootDir>"],
+  testEnvironment: "jsdom",
+  transform: {
+    "^.+\\.tsx?$": "ts-jest",
+  },
+  moduleFileExtensions: ["ts", "tsx", "js", "jsx", "json", "node"],
+  modulePathIgnorePatterns: [
+    "<rootDir>/test/__fixtures__",
+    "<rootDir>/node_modules",
+    "<rootDir>/dist",
+  ],
+  preset: "ts-jest",
+};
+
+export default config;
+```
+
+### packages/config/jest/node/jest-preset.mjs
+
+```javascript
+/** @type {import('jest').Config} */
+const config = {
+  roots: ["<rootDir>"],
+  transform: {
+    "^.+\\.tsx?$": "ts-jest",
+  },
+  moduleFileExtensions: ["ts", "tsx", "js", "jsx", "json", "node"],
+  modulePathIgnorePatterns: [
+    "<rootDir>/test/__fixtures__",
+    "<rootDir>/node_modules",
+    "<rootDir>/dist",
+  ],
+  preset: "ts-jest",
+};
+
+export default config;
+```
+
+### packages/config/package.json
+
+```json
+{
+  "name": "@wdydn/config",
+  "version": "0.0.0",
+  "type": "module",
+  "private": true,
+  "exports": {
+    "./eslint": "./eslint/index.js",
+    "./eslint/react": "./eslint/react.js",
+    "./eslint/vite": "./eslint/vite.js",
+    "./typescript/base.json": "./typescript/base.json",
+    "./typescript/vite.json": "./typescript/vite.json",
+    "./jest/node": "./jest/node/jest-preset.mjs",
+    "./jest/browser": "./jest/browser/jest-preset.mjs"
+  },
+  "devDependencies": {
+    "@eslint/js": "^9.39.0",
+    "eslint": "^9.39.0",
+    "eslint-config-prettier": "^10.1.1",
+    "eslint-plugin-only-warn": "^1.1.0",
+    "eslint-plugin-react": "^7.37.5",
+    "eslint-plugin-react-hooks": "^7.0.1",
+    "eslint-plugin-react-refresh": "^0.4.20",
+    "eslint-plugin-turbo": "^2.6.0",
+    "globals": "^16.5.0",
+    "jest": "^29.7.0",
+    "jest-environment-jsdom": "^29.7.0",
+    "ts-jest": "^29.4.0",
+    "typescript": "^5.9.3",
+    "typescript-eslint": "^8.46.2"
+  }
+}
+```
+
+### packages/config/typescript/base.json
+
+```json
+{
+  "$schema": "https://json.schemastore.org/tsconfig",
+  "compilerOptions": {
+    "composite": false,
+    "declaration": true,
+    "declarationMap": true,
+    "esModuleInterop": true,
+    "forceConsistentCasingInFileNames": true,
+    "allowImportingTsExtensions": true,
+    "inlineSources": false,
+    "isolatedModules": true,
+    "module": "ESNext",
+    "moduleResolution": "Bundler",
+    "noUnusedLocals": false,
+    "noUnusedParameters": false,
+    "preserveWatchOutput": true,
+    "skipLibCheck": true,
+    "strict": true,
+    "noEmit": true,
+    "strictNullChecks": true
+  },
+  "exclude": ["node_modules"]
+}
+```
+
+### packages/config/typescript/vite.json
+
+```json
+{
+  "compilerOptions": {
+    "target": "ES2020",
+    "useDefineForClassFields": true,
+    "lib": ["ES2020", "DOM", "DOM.Iterable"],
+    "module": "ESNext",
+    "skipLibCheck": true,
+    "moduleResolution": "bundler",
+    "allowImportingTsExtensions": true,
+    "resolveJsonModule": true,
+    "isolatedModules": true,
+    "noEmit": true,
+    "jsx": "react-jsx",
+    "strict": true,
+    "noUnusedLocals": true,
+    "noUnusedParameters": true,
+    "noFallthroughCasesInSwitch": true
+  },
+  "include": ["src"],
+  "references": [{ "path": "./tsconfig.node.json" }]
 }
 ```
 
