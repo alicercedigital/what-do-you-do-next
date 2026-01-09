@@ -14,6 +14,7 @@ import { MarketplacePage } from "./pages/marketplace";
 import { SearchPage } from "./pages/marketplace/search";
 import { UniverseDetailPage } from "./pages/marketplace/universe-detail";
 import { CreatorProfilePage } from "./pages/marketplace/creator-profile";
+import { NotificationsPage } from "./pages/notifications";
 import { AuthGuard, GuestGuard } from "./shared/components/auth";
 import { useAuthStore } from "./store/auth-store";
 
@@ -107,6 +108,10 @@ const router = createBrowserRouter([
           {
             path: "/studio",
             element: <div className="min-h-screen flex items-center justify-center"><p className="text-muted-foreground">Creator Studio - Coming soon</p></div>,
+          },
+          {
+            path: "/notifications",
+            element: <NotificationsPage />,
           },
         ],
       },

@@ -1,4 +1,4 @@
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { useParams, useNavigate, Link } from "react-router-dom";
 import {
   Heart,
@@ -17,6 +17,7 @@ import { Badge } from "@/shared/components/ui/badge";
 import { Avatar, AvatarFallback, AvatarImage } from "@/shared/components/ui/avatar";
 import { Separator } from "@/shared/components/ui/separator";
 import { Card, CardContent, CardHeader, CardTitle } from "@/shared/components/ui/card";
+import { LikeButton, BookmarkButton, CommentSection } from "@/shared/components/social";
 import { useMarketplaceStore, useCurrentUniverse } from "@/store/marketplace-store";
 import { useAuthStore } from "@/store/auth-store";
 
@@ -192,24 +193,21 @@ export function UniverseDetailPage() {
                 </Button>
 
                 <div className="flex gap-2">
-                  <Button
-                    variant={universe.userInteraction.liked ? "default" : "outline"}
+                  <LikeButton
+                    targetType="universe"
+                    targetId={universe.id}
+                    initialLiked={universe.userInteraction.liked}
+                    initialCount={universe.like_count}
+                    variant="outline"
                     className="flex-1"
-                  >
-                    <Heart
-                      className={`mr-2 h-4 w-4 ${universe.userInteraction.liked ? "fill-current" : ""}`}
-                    />
-                    {universe.userInteraction.liked ? "Liked" : "Like"}
-                  </Button>
-                  <Button
-                    variant={universe.userInteraction.bookmarked ? "default" : "outline"}
+                  />
+                  <BookmarkButton
+                    universeId={universe.id}
+                    initialBookmarked={universe.userInteraction.bookmarked}
+                    initialCount={universe.bookmark_count}
+                    variant="outline"
                     className="flex-1"
-                  >
-                    <Bookmark
-                      className={`mr-2 h-4 w-4 ${universe.userInteraction.bookmarked ? "fill-current" : ""}`}
-                    />
-                    {universe.userInteraction.bookmarked ? "Saved" : "Save"}
-                  </Button>
+                  />
                 </div>
 
                 <Button variant="outline" className="w-full" onClick={handleShare}>
@@ -264,6 +262,10 @@ export function UniverseDetailPage() {
             )}
           </div>
         </div>
+
+        {/* Comments Section */}
+        <Separator className="my-8" />
+        <CommentSection targetType="universe" targetId={universe.id} />
       </div>
     </div>
   );

@@ -4,6 +4,7 @@ import { ArrowLeft, Globe, User, Calendar, Users, Loader2, CheckCircle } from "l
 import { Button } from "@/shared/components/ui/button";
 import { Badge } from "@/shared/components/ui/badge";
 import { Avatar, AvatarFallback, AvatarImage } from "@/shared/components/ui/avatar";
+import { FollowButton } from "@/shared/components/social";
 import { UniverseGrid } from "./components/universe-grid";
 import { useMarketplaceStore, useCurrentCreator } from "@/store/marketplace-store";
 import { useAuthStore } from "@/store/auth-store";
@@ -117,9 +118,10 @@ export function CreatorProfilePage() {
               {/* Action buttons */}
               {!isOwnProfile && (
                 <div className="mt-4">
-                  <Button variant={isFollowing ? "outline" : "default"}>
-                    {isFollowing ? "Following" : "Follow"}
-                  </Button>
+                  <FollowButton
+                    userId={profile.id}
+                    initialFollowing={isFollowing}
+                  />
                 </div>
               )}
             </div>
