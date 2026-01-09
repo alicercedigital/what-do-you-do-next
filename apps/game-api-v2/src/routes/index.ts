@@ -9,6 +9,7 @@ import { imagesRouter } from "./images";
 import { marketplaceRouter } from "./marketplace";
 import { socialRouter } from "./social";
 import { savesRouter } from "./saves";
+import { economyRouter } from "./economy";
 
 const router = Router();
 
@@ -24,5 +25,6 @@ router.use("/api", imagesRouter); // Also mount for /api/ai/generate-image/* rou
 router.use("/api/marketplace", marketplaceRouter);
 router.use("/api/social", socialRouter);
 router.use("/api/saves", savesRouter);
+router.use("/api/economy", economyRouter);
 
 export { router as apiRouter };
