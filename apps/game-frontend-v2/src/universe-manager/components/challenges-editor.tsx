@@ -1,3 +1,4 @@
+import * as React from "react";
 import type { v2 } from "@wdydn/shared";
 import { Button } from "@/shared/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/shared/components/ui/card";
@@ -6,9 +7,12 @@ import { Label } from "@/shared/components/ui/label";
 import { Textarea } from "@/shared/components/ui/textarea";
 import { ScrollArea } from "@/shared/components/ui/scroll-area";
 import { EntityList } from "@/shared/components/ui/entity-list";
+import { EntityIdBadge } from "@/shared/components/ui/entity-id-badge";
 import { Swords, Plus, Trash2 } from "lucide-react";
 
-import { useUniverseEditorStore } from "../store/universe-editor-store";
+import { useUniverseEditorStore, generateEntityId } from "../store/universe-editor-store";
+import { AIFieldWrapper } from "./ai-field-wrapper";
+import { ChallengeGenerator } from "./entity-generator";
 
 type Challenge = v2.Challenge;
 type ChallengeRole = v2.ChallengeRole;
@@ -16,7 +20,7 @@ type ChallengeOutcome = v2.ChallengeOutcome;
 
 function createDefaultChallenge(): Challenge {
   return {
-    id: `challenge_${Date.now()}`,
+    id: generateEntityId("challenge", "new_challenge"),
     name: "New Challenge",
     roles: [
       { id: "player", name: "Player", required: true },
@@ -39,6 +43,8 @@ function createDefaultChallenge(): Challenge {
 }
 
 export function ChallengesEditor() {
+  const [showGenerator, setShowGenerator] = React.useState(false);
+
   const {
     universe,
     selectedEntityId,
@@ -126,6 +132,7 @@ export function ChallengesEditor() {
           onSelect={selectEntity}
           onCreate={handleCreate}
           onDelete={deleteChallenge}
+          onGenerateWithAI={() => setShowGenerator(true)}
           searchPlaceholder="Search challenges..."
           createLabel="Add Challenge"
           deleteConfirmTitle="Delete Challenge"
@@ -155,43 +162,41 @@ export function ChallengesEditor() {
           <ScrollArea className="h-full">
             <div className="max-w-3xl space-y-6 p-6">
               <Card>
-                <CardHeader>
+                <CardHeader className="flex flex-row items-center justify-between space-y-0">
                   <CardTitle>Basic Information</CardTitle>
+                  <EntityIdBadge id={selectedChallenge.id} />
                 </CardHeader>
                 <CardContent className="space-y-4">
-                  <div className="grid gap-4 sm:grid-cols-2">
-                    <div className="grid gap-2">
-                      <Label htmlFor="id">ID</Label>
-                      <Input
-                        id="id"
-                        value={selectedChallenge.id}
-                        onChange={(e) => handleUpdate({ id: e.target.value })}
-                        placeholder="challenge_id"
-                      />
-                    </div>
-
-                    <div className="grid gap-2">
-                      <Label htmlFor="name">Name</Label>
-                      <Input
-                        id="name"
-                        value={selectedChallenge.name}
-                        onChange={(e) => handleUpdate({ name: e.target.value })}
-                        placeholder="Challenge Name"
-                      />
-                    </div>
+                  <div className="grid gap-2">
+                    <Label htmlFor="name">Name</Label>
+                    <Input
+                      id="name"
+                      value={selectedChallenge.name}
+                      onChange={(e) => handleUpdate({ name: e.target.value })}
+                      placeholder="Challenge Name"
+                    />
                   </div>
 
                   <div className="grid gap-2">
                     <Label htmlFor="description">Description</Label>
-                    <Textarea
-                      id="description"
-                      value={selectedChallenge.description || ""}
-                      onChange={(e) =>
-                        handleUpdate({ description: e.target.value || undefined })
-                      }
-                      placeholder="What kind of challenge is this?"
-                      rows={2}
-                    />
+                    <AIFieldWrapper
+                      entityType="challenge"
+                      field="description"
+                      universe={universe}
+                      currentEntity={selectedChallenge as unknown as Record<string, unknown>}
+                      currentValue={selectedChallenge.description || ""}
+                      onValueChange={(value) => handleUpdate({ description: value || undefined })}
+                    >
+                      <Textarea
+                        id="description"
+                        value={selectedChallenge.description || ""}
+                        onChange={(e) =>
+                          handleUpdate({ description: e.target.value || undefined })
+                        }
+                        placeholder="What kind of challenge is this?"
+                        rows={2}
+                      />
+                    </AIFieldWrapper>
                   </div>
 
                   <div className="grid gap-2">
@@ -378,6 +383,17 @@ Example: character.player.stats.hp -= $roll(1d6) + character.opponent.stats.stre
           </div>
         )}
       </div>
+
+      {/* AI Challenge Generator */}
+      <ChallengeGenerator
+        open={showGenerator}
+        onOpenChange={setShowGenerator}
+        universe={universe}
+        onAccept={(challenge) => {
+          addChallenge(challenge);
+          selectEntity(challenge.id);
+        }}
+      />
     </div>
   );
 }

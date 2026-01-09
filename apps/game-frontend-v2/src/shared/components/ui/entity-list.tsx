@@ -1,5 +1,5 @@
 import { useState, useMemo } from "react";
-import { Plus, Search, Trash2 } from "lucide-react";
+import { Plus, Search, Trash2, Sparkles } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 
 import { Button } from "./button";
@@ -30,6 +30,7 @@ interface EntityListProps<T extends { id: string }> {
   createLabel?: string;
   deleteConfirmTitle?: string;
   deleteConfirmDescription?: (item: T) => string;
+  onGenerateWithAI?: () => void;
 }
 
 export function EntityList<T extends { id: string; name?: string }>({
@@ -46,6 +47,7 @@ export function EntityList<T extends { id: string; name?: string }>({
   deleteConfirmTitle = "Delete Item",
   deleteConfirmDescription = (item) =>
     `Are you sure you want to delete "${item.name || item.id}"? This action cannot be undone.`,
+  onGenerateWithAI,
 }: EntityListProps<T>) {
   const [search, setSearch] = useState("");
   const [deleteTarget, setDeleteTarget] = useState<T | null>(null);
@@ -78,6 +80,16 @@ export function EntityList<T extends { id: string; name?: string }>({
             className="pl-8"
           />
         </div>
+        {onGenerateWithAI && (
+          <Button
+            size="icon"
+            variant="outline"
+            onClick={onGenerateWithAI}
+            title="Generate with AI"
+          >
+            <Sparkles className="h-4 w-4 text-purple-500" />
+          </Button>
+        )}
         <Button size="icon" onClick={onCreate}>
           <Plus className="h-4 w-4" />
         </Button>

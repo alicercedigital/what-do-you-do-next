@@ -1,3 +1,4 @@
+import * as React from "react";
 import type { v2 } from "@wdydn/shared";
 import { Card, CardContent, CardHeader, CardTitle } from "@/shared/components/ui/card";
 import { Input } from "@/shared/components/ui/input";
@@ -13,15 +14,18 @@ import {
   SelectValue,
 } from "@/shared/components/ui/select";
 import { EntityList } from "@/shared/components/ui/entity-list";
-import { Package, Sword, Sparkles, Box } from "lucide-react";
+import { EntityIdBadge } from "@/shared/components/ui/entity-id-badge";
+import { Package, Sword, Sparkles as SparklesIcon, Box } from "lucide-react";
 
-import { useUniverseEditorStore } from "../store/universe-editor-store";
+import { useUniverseEditorStore, generateEntityId } from "../store/universe-editor-store";
+import { AIFieldWrapper } from "./ai-field-wrapper";
+import { ItemGenerator } from "./entity-generator";
 
 type Item = v2.Item;
 
 function createDefaultItem(): Item {
   return {
-    id: `item_${Date.now()}`,
+    id: generateEntityId("item", "new_item"),
     name: "New Item",
     description: "",
     kind: "object",
@@ -30,7 +34,7 @@ function createDefaultItem(): Item {
 
 const kindIcons = {
   equipment: Sword,
-  consumable: Sparkles,
+  consumable: SparklesIcon,
   object: Box,
 };
 
@@ -43,6 +47,8 @@ const rarityColors: Record<string, string> = {
 };
 
 export function ItemsEditor() {
+  const [showGenerator, setShowGenerator] = React.useState(false);
+
   const {
     universe,
     selectedEntityId,
@@ -77,6 +83,7 @@ export function ItemsEditor() {
           onSelect={selectEntity}
           onCreate={handleCreate}
           onDelete={deleteItem}
+          onGenerateWithAI={() => setShowGenerator(true)}
           searchPlaceholder="Search items..."
           createLabel="Add Item"
           deleteConfirmTitle="Delete Item"
@@ -119,41 +126,39 @@ export function ItemsEditor() {
           <ScrollArea className="h-full">
             <div className="max-w-2xl space-y-6 p-6">
               <Card>
-                <CardHeader>
+                <CardHeader className="flex flex-row items-center justify-between space-y-0">
                   <CardTitle>Basic Information</CardTitle>
+                  <EntityIdBadge id={selectedItem.id} />
                 </CardHeader>
                 <CardContent className="space-y-4">
-                  <div className="grid gap-4 sm:grid-cols-2">
-                    <div className="grid gap-2">
-                      <Label htmlFor="id">ID</Label>
-                      <Input
-                        id="id"
-                        value={selectedItem.id}
-                        onChange={(e) => handleUpdate({ id: e.target.value })}
-                        placeholder="item_id"
-                      />
-                    </div>
-
-                    <div className="grid gap-2">
-                      <Label htmlFor="name">Name</Label>
-                      <Input
-                        id="name"
-                        value={selectedItem.name}
-                        onChange={(e) => handleUpdate({ name: e.target.value })}
-                        placeholder="Item Name"
-                      />
-                    </div>
+                  <div className="grid gap-2">
+                    <Label htmlFor="name">Name</Label>
+                    <Input
+                      id="name"
+                      value={selectedItem.name}
+                      onChange={(e) => handleUpdate({ name: e.target.value })}
+                      placeholder="Item Name"
+                    />
                   </div>
 
                   <div className="grid gap-2">
                     <Label htmlFor="description">Description</Label>
-                    <Textarea
-                      id="description"
-                      value={selectedItem.description}
-                      onChange={(e) => handleUpdate({ description: e.target.value })}
-                      placeholder="Describe this item..."
-                      rows={3}
-                    />
+                    <AIFieldWrapper
+                      entityType="item"
+                      field="description"
+                      universe={universe}
+                      currentEntity={selectedItem as unknown as Record<string, unknown>}
+                      currentValue={selectedItem.description || ""}
+                      onValueChange={(value) => handleUpdate({ description: value || undefined })}
+                    >
+                      <Textarea
+                        id="description"
+                        value={selectedItem.description}
+                        onChange={(e) => handleUpdate({ description: e.target.value })}
+                        placeholder="Describe this item..."
+                        rows={3}
+                      />
+                    </AIFieldWrapper>
                   </div>
 
                   <div className="grid gap-4 sm:grid-cols-2">
@@ -360,6 +365,17 @@ Example: character.$player.stats.health += 50"
           </div>
         )}
       </div>
+
+      {/* AI Item Generator */}
+      <ItemGenerator
+        open={showGenerator}
+        onOpenChange={setShowGenerator}
+        universe={universe}
+        onAccept={(item) => {
+          addItem(item);
+          selectEntity(item.id);
+        }}
+      />
     </div>
   );
 }

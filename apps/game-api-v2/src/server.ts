@@ -2,6 +2,7 @@ import { json, urlencoded } from "body-parser";
 import express, { type Express } from "express";
 import morgan from "morgan";
 import cors from "cors";
+import * as path from "path";
 import { apiRouter } from "./routes";
 
 export const createServer = (): Express => {
@@ -18,6 +19,10 @@ export const createServer = (): Express => {
         allowedHeaders: ["Content-Type", "Authorization"],
       })
     );
+
+  // Serve uploaded images
+  const uploadsDir = path.join(process.cwd(), "uploads");
+  app.use("/uploads", express.static(uploadsDir));
 
   // Health check
   app.get("/api/health", (_, res) => {

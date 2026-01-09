@@ -1,3 +1,4 @@
+import * as React from "react";
 import type { v2 } from "@wdydn/shared";
 import { Card, CardContent, CardHeader, CardTitle } from "@/shared/components/ui/card";
 import { Input } from "@/shared/components/ui/input";
@@ -14,8 +15,11 @@ import {
   SelectValue,
 } from "@/shared/components/ui/select";
 import { EntityList } from "@/shared/components/ui/entity-list";
+import { EntityIdBadge } from "@/shared/components/ui/entity-id-badge";
 
-import { useUniverseEditorStore } from "../store/universe-editor-store";
+import { useUniverseEditorStore, generateEntityId } from "../store/universe-editor-store";
+import { AIFieldWrapper } from "./ai-field-wrapper";
+import { MomentGenerator } from "./entity-generator";
 
 type Moment = v2.Moment;
 type MomentStatus = v2.MomentStatus;
@@ -54,7 +58,7 @@ const statusColors: Record<MomentStatus, string> = {
 
 function createDefaultMoment(): Moment {
   return {
-    id: `moment_${Date.now()}`,
+    id: generateEntityId("moment", "new_moment"),
     title: "New Moment",
     text: "",
     preview: "",
@@ -63,6 +67,8 @@ function createDefaultMoment(): Moment {
 }
 
 export function MomentsEditor() {
+  const [showGenerator, setShowGenerator] = React.useState(false);
+
   const {
     universe,
     selectedEntityId,
@@ -124,6 +130,7 @@ export function MomentsEditor() {
           onSelect={selectEntity}
           onCreate={handleCreate}
           onDelete={deleteMoment}
+          onGenerateWithAI={() => setShowGenerator(true)}
           searchPlaceholder="Search moments..."
           createLabel="Add Moment"
           deleteConfirmTitle="Delete Moment"
@@ -166,32 +173,21 @@ export function MomentsEditor() {
 
                 <TabsContent value="content" className="mt-6 space-y-6">
                   <Card>
-                    <CardHeader>
+                    <CardHeader className="flex flex-row items-center justify-between space-y-0">
                       <CardTitle>Narrative Content</CardTitle>
+                      <EntityIdBadge id={selectedMoment.id} />
                     </CardHeader>
                     <CardContent className="space-y-4">
-                      <div className="grid gap-4 sm:grid-cols-2">
-                        <div className="grid gap-2">
-                          <Label htmlFor="id">ID</Label>
-                          <Input
-                            id="id"
-                            value={selectedMoment.id}
-                            onChange={(e) => handleUpdate({ id: e.target.value })}
-                            placeholder="moment_id"
-                          />
-                        </div>
-
-                        <div className="grid gap-2">
-                          <Label htmlFor="title">Title</Label>
-                          <Input
-                            id="title"
-                            value={selectedMoment.title || ""}
-                            onChange={(e) =>
-                              handleUpdate({ title: e.target.value || undefined })
-                            }
-                            placeholder="Moment Title"
-                          />
-                        </div>
+                      <div className="grid gap-2">
+                        <Label htmlFor="title">Title</Label>
+                        <Input
+                          id="title"
+                          value={selectedMoment.title || ""}
+                          onChange={(e) =>
+                            handleUpdate({ title: e.target.value || undefined })
+                          }
+                          placeholder="Moment Title"
+                        />
                       </div>
 
                       <div className="grid gap-2">
@@ -211,15 +207,24 @@ export function MomentsEditor() {
 
                       <div className="grid gap-2">
                         <Label htmlFor="text">Narrative Text</Label>
-                        <Textarea
-                          id="text"
-                          value={selectedMoment.text || ""}
-                          onChange={(e) =>
-                            handleUpdate({ text: e.target.value || undefined })
-                          }
-                          placeholder="The main narrative content..."
-                          rows={8}
-                        />
+                        <AIFieldWrapper
+                          entityType="moment"
+                          field="text"
+                          universe={universe}
+                          currentEntity={selectedMoment as unknown as Record<string, unknown>}
+                          currentValue={selectedMoment.text || ""}
+                          onValueChange={(value) => handleUpdate({ text: value || undefined })}
+                        >
+                          <Textarea
+                            id="text"
+                            value={selectedMoment.text || ""}
+                            onChange={(e) =>
+                              handleUpdate({ text: e.target.value || undefined })
+                            }
+                            placeholder="The main narrative content..."
+                            rows={8}
+                          />
+                        </AIFieldWrapper>
                       </div>
                     </CardContent>
                   </Card>
@@ -239,9 +244,9 @@ export function MomentsEditor() {
                               <Label className="capitalize">{position}</Label>
                               <div className="rounded-lg border p-3 space-y-2">
                                 <Select
-                                  value={slot?.characterId || ""}
+                                  value={slot?.characterId || "__none__"}
                                   onValueChange={(value) => {
-                                    if (value) {
+                                    if (value && value !== "__none__") {
                                       handleStageUpdate(position, {
                                         characterId: value,
                                         emotion: slot?.emotion || "neutral",
@@ -256,7 +261,7 @@ export function MomentsEditor() {
                                     <SelectValue placeholder="No character" />
                                   </SelectTrigger>
                                   <SelectContent>
-                                    <SelectItem value="">None</SelectItem>
+                                    <SelectItem value="__none__">None</SelectItem>
                                     {universe.characters.map((char) => (
                                       <SelectItem key={char.id} value={char.id}>
                                         {char.name}
@@ -314,16 +319,16 @@ export function MomentsEditor() {
                       <div className="mt-4 grid gap-2">
                         <Label htmlFor="locationId">Location</Label>
                         <Select
-                          value={selectedMoment.locationId || ""}
+                          value={selectedMoment.locationId || "__none__"}
                           onValueChange={(value) =>
-                            handleUpdate({ locationId: value || undefined })
+                            handleUpdate({ locationId: value === "__none__" ? undefined : value })
                           }
                         >
                           <SelectTrigger>
                             <SelectValue placeholder="No location" />
                           </SelectTrigger>
                           <SelectContent>
-                            <SelectItem value="">None</SelectItem>
+                            <SelectItem value="__none__">None</SelectItem>
                             {universe.locations.map((loc) => (
                               <SelectItem key={loc.id} value={loc.id}>
                                 {loc.name}
@@ -451,9 +456,9 @@ Example: $self.status = available when character.$player.stats.gold >= 10`}
                     </CardHeader>
                     <CardContent>
                       <Select
-                        value={selectedMoment.challenge?.id || ""}
+                        value={selectedMoment.challenge?.id || "__none__"}
                         onValueChange={(value) => {
-                          if (value) {
+                          if (value && value !== "__none__") {
                             const challenge = universe.challenges.find(
                               (c) => c.id === value
                             );
@@ -471,7 +476,7 @@ Example: $self.status = available when character.$player.stats.gold >= 10`}
                           <SelectValue placeholder="No challenge" />
                         </SelectTrigger>
                         <SelectContent>
-                          <SelectItem value="">None</SelectItem>
+                          <SelectItem value="__none__">None</SelectItem>
                           {universe.challenges.map((challenge) => (
                             <SelectItem key={challenge.id} value={challenge.id}>
                               {challenge.name}
@@ -495,6 +500,17 @@ Example: $self.status = available when character.$player.stats.gold >= 10`}
           </div>
         )}
       </div>
+
+      {/* AI Moment Generator */}
+      <MomentGenerator
+        open={showGenerator}
+        onOpenChange={setShowGenerator}
+        universe={universe}
+        onAccept={(moment) => {
+          addMoment(moment);
+          selectEntity(moment.id);
+        }}
+      />
     </div>
   );
 }

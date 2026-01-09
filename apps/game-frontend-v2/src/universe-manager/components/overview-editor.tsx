@@ -4,9 +4,25 @@ import { Label } from "@/shared/components/ui/label";
 import { Textarea } from "@/shared/components/ui/textarea";
 import { ScrollArea } from "@/shared/components/ui/scroll-area";
 import { Badge } from "@/shared/components/ui/badge";
+import { TagInput } from "@/shared/components/ui/tag-input";
 import { Users, MapPin, Package, Swords, BookOpen, BarChart3 } from "lucide-react";
 
 import { useUniverseEditorStore } from "../store/universe-editor-store";
+
+const EQUIPMENT_SLOT_SUGGESTIONS = [
+  "weapon",
+  "armor",
+  "helmet",
+  "boots",
+  "gloves",
+  "shield",
+  "accessory",
+  "ring",
+  "amulet",
+  "belt",
+  "cloak",
+  "offhand",
+];
 
 export function OverviewEditor() {
   const { universe, updateUniverse, updateConfig } = useUniverseEditorStore();
@@ -144,22 +160,12 @@ export function OverviewEditor() {
 
             <div className="grid gap-2">
               <Label htmlFor="equipmentSlots">Equipment Slots</Label>
-              <Input
-                id="equipmentSlots"
-                value={universe.config.equipmentSlots.join(", ")}
-                onChange={(e) =>
-                  updateConfig({
-                    equipmentSlots: e.target.value
-                      .split(",")
-                      .map((s) => s.trim())
-                      .filter(Boolean),
-                  })
-                }
-                placeholder="weapon, armor, accessory..."
+              <TagInput
+                value={universe.config.equipmentSlots}
+                onChange={(slots) => updateConfig({ equipmentSlots: slots })}
+                suggestions={EQUIPMENT_SLOT_SUGGESTIONS}
+                placeholder="Add equipment slot..."
               />
-              <p className="text-xs text-muted-foreground">
-                Comma-separated list of equipment slots characters can use
-              </p>
             </div>
           </CardContent>
         </Card>

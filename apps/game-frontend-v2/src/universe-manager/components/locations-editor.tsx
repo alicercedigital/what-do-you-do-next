@@ -1,3 +1,4 @@
+import * as React from "react";
 import type { v2 } from "@wdydn/shared";
 import { Card, CardContent, CardHeader, CardTitle } from "@/shared/components/ui/card";
 import { Input } from "@/shared/components/ui/input";
@@ -5,21 +6,26 @@ import { Label } from "@/shared/components/ui/label";
 import { Textarea } from "@/shared/components/ui/textarea";
 import { ScrollArea } from "@/shared/components/ui/scroll-area";
 import { EntityList } from "@/shared/components/ui/entity-list";
+import { EntityIdBadge } from "@/shared/components/ui/entity-id-badge";
 import { MapPin, Image } from "lucide-react";
 
-import { useUniverseEditorStore } from "../store/universe-editor-store";
+import { useUniverseEditorStore, generateEntityId } from "../store/universe-editor-store";
+import { AIFieldWrapper } from "./ai-field-wrapper";
+import { LocationGenerator } from "./entity-generator";
 
 type Location = v2.Location;
 
 function createDefaultLocation(): Location {
   return {
-    id: `loc_${Date.now()}`,
+    id: generateEntityId("loc", "new_location"),
     name: "New Location",
     description: "",
   };
 }
 
 export function LocationsEditor() {
+  const [showGenerator, setShowGenerator] = React.useState(false);
+
   const {
     universe,
     selectedEntityId,
@@ -54,6 +60,7 @@ export function LocationsEditor() {
           onSelect={selectEntity}
           onCreate={handleCreate}
           onDelete={deleteLocation}
+          onGenerateWithAI={() => setShowGenerator(true)}
           searchPlaceholder="Search locations..."
           createLabel="Add Location"
           deleteConfirmTitle="Delete Location"
@@ -86,41 +93,39 @@ export function LocationsEditor() {
           <ScrollArea className="h-full">
             <div className="max-w-2xl space-y-6 p-6">
               <Card>
-                <CardHeader>
+                <CardHeader className="flex flex-row items-center justify-between space-y-0">
                   <CardTitle>Basic Information</CardTitle>
+                  <EntityIdBadge id={selectedLocation.id} />
                 </CardHeader>
                 <CardContent className="space-y-4">
-                  <div className="grid gap-4 sm:grid-cols-2">
-                    <div className="grid gap-2">
-                      <Label htmlFor="id">ID</Label>
-                      <Input
-                        id="id"
-                        value={selectedLocation.id}
-                        onChange={(e) => handleUpdate({ id: e.target.value })}
-                        placeholder="location_id"
-                      />
-                    </div>
-
-                    <div className="grid gap-2">
-                      <Label htmlFor="name">Name</Label>
-                      <Input
-                        id="name"
-                        value={selectedLocation.name}
-                        onChange={(e) => handleUpdate({ name: e.target.value })}
-                        placeholder="Location Name"
-                      />
-                    </div>
+                  <div className="grid gap-2">
+                    <Label htmlFor="name">Name</Label>
+                    <Input
+                      id="name"
+                      value={selectedLocation.name}
+                      onChange={(e) => handleUpdate({ name: e.target.value })}
+                      placeholder="Location Name"
+                    />
                   </div>
 
                   <div className="grid gap-2">
                     <Label htmlFor="description">Description</Label>
-                    <Textarea
-                      id="description"
-                      value={selectedLocation.description}
-                      onChange={(e) => handleUpdate({ description: e.target.value })}
-                      placeholder="Describe this location..."
-                      rows={4}
-                    />
+                    <AIFieldWrapper
+                      entityType="location"
+                      field="description"
+                      universe={universe}
+                      currentEntity={selectedLocation as unknown as Record<string, unknown>}
+                      currentValue={selectedLocation.description}
+                      onValueChange={(value) => handleUpdate({ description: value })}
+                    >
+                      <Textarea
+                        id="description"
+                        value={selectedLocation.description}
+                        onChange={(e) => handleUpdate({ description: e.target.value })}
+                        placeholder="Describe this location..."
+                        rows={4}
+                      />
+                    </AIFieldWrapper>
                   </div>
                 </CardContent>
               </Card>
@@ -212,6 +217,17 @@ Example: character.$player.stats.level >= 5"
           </div>
         )}
       </div>
+
+      {/* AI Location Generator */}
+      <LocationGenerator
+        open={showGenerator}
+        onOpenChange={setShowGenerator}
+        universe={universe}
+        onAccept={(location) => {
+          addLocation(location);
+          selectEntity(location.id);
+        }}
+      />
     </div>
   );
 }

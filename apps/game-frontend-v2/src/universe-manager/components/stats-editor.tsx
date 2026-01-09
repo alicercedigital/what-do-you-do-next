@@ -1,3 +1,4 @@
+import * as React from "react";
 import type { v2 } from "@wdydn/shared";
 import { Badge } from "@/shared/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/shared/components/ui/card";
@@ -14,14 +15,19 @@ import {
   SelectValue,
 } from "@/shared/components/ui/select";
 import { EntityList } from "@/shared/components/ui/entity-list";
+import { EntityIdBadge } from "@/shared/components/ui/entity-id-badge";
+import { ColorPicker } from "@/shared/components/ui/color-picker";
 
-import { useUniverseEditorStore } from "../store/universe-editor-store";
+import { useUniverseEditorStore, generateEntityId } from "../store/universe-editor-store";
+import { ExpressionBuilder } from "./expression-builder";
+import { AIFieldWrapper } from "./ai-field-wrapper";
+import { StatGenerator } from "./entity-generator";
 
 type Stat = v2.Stat;
 
 function createDefaultStat(): Stat {
   return {
-    id: `stat_${Date.now()}`,
+    id: generateEntityId("stat", "new_stat"),
     name: "New Stat",
     type: "number",
     base: 0,
@@ -29,6 +35,8 @@ function createDefaultStat(): Stat {
 }
 
 export function StatsEditor() {
+  const [showGenerator, setShowGenerator] = React.useState(false);
+
   const {
     universe,
     selectedEntityId,
@@ -63,6 +71,7 @@ export function StatsEditor() {
           onSelect={selectEntity}
           onCreate={handleCreate}
           onDelete={deleteStat}
+          onGenerateWithAI={() => setShowGenerator(true)}
           searchPlaceholder="Search stats..."
           createLabel="Add Stat"
           deleteConfirmTitle="Delete Stat"
@@ -94,24 +103,12 @@ export function StatsEditor() {
           <ScrollArea className="h-full">
             <div className="max-w-2xl space-y-6 p-6">
               <Card>
-                <CardHeader>
+                <CardHeader className="flex flex-row items-center justify-between space-y-0">
                   <CardTitle>Basic Information</CardTitle>
+                  <EntityIdBadge id={selectedStat.id} />
                 </CardHeader>
                 <CardContent className="space-y-4">
                   <div className="grid gap-4 sm:grid-cols-2">
-                    <div className="grid gap-2">
-                      <Label htmlFor="id">ID</Label>
-                      <Input
-                        id="id"
-                        value={selectedStat.id}
-                        onChange={(e) => handleUpdate({ id: e.target.value })}
-                        placeholder="stat_id"
-                      />
-                      <p className="text-xs text-muted-foreground">
-                        Used in expressions: stats.{selectedStat.id}
-                      </p>
-                    </div>
-
                     <div className="grid gap-2">
                       <Label htmlFor="name">Name</Label>
                       <Input
@@ -121,9 +118,7 @@ export function StatsEditor() {
                         placeholder="Stat Name"
                       />
                     </div>
-                  </div>
 
-                  <div className="grid gap-4 sm:grid-cols-2">
                     <div className="grid gap-2">
                       <Label htmlFor="short">Short Name</Label>
                       <Input
@@ -133,36 +128,49 @@ export function StatsEditor() {
                         placeholder="STR, DEX, etc."
                       />
                     </div>
+                  </div>
 
-                    <div className="grid gap-2">
-                      <Label htmlFor="type">Type</Label>
-                      <Select
-                        value={selectedStat.type}
-                        onValueChange={(value: "number" | "boolean" | "text") =>
-                          handleUpdate({ type: value, base: value === "number" ? 0 : value === "boolean" ? false : "" })
-                        }
-                      >
-                        <SelectTrigger>
-                          <SelectValue />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="number">Number</SelectItem>
-                          <SelectItem value="boolean">Boolean</SelectItem>
-                          <SelectItem value="text">Text</SelectItem>
-                        </SelectContent>
-                      </Select>
-                    </div>
+                  <p className="text-xs text-muted-foreground">
+                    Used in expressions: stats.{selectedStat.id}
+                  </p>
+
+                  <div className="grid gap-2">
+                    <Label htmlFor="type">Type</Label>
+                    <Select
+                      value={selectedStat.type}
+                      onValueChange={(value: "number" | "boolean" | "text") =>
+                        handleUpdate({ type: value, base: value === "number" ? 0 : value === "boolean" ? false : "" })
+                      }
+                    >
+                      <SelectTrigger>
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="number">Number</SelectItem>
+                        <SelectItem value="boolean">Boolean</SelectItem>
+                        <SelectItem value="text">Text</SelectItem>
+                      </SelectContent>
+                    </Select>
                   </div>
 
                   <div className="grid gap-2">
                     <Label htmlFor="description">Description</Label>
-                    <Textarea
-                      id="description"
-                      value={selectedStat.description || ""}
-                      onChange={(e) => handleUpdate({ description: e.target.value || undefined })}
-                      placeholder="What does this stat represent?"
-                      rows={2}
-                    />
+                    <AIFieldWrapper
+                      entityType="stat"
+                      field="description"
+                      universe={universe}
+                      currentEntity={selectedStat as unknown as Record<string, unknown>}
+                      currentValue={selectedStat.description || ""}
+                      onValueChange={(value) => handleUpdate({ description: value || undefined })}
+                    >
+                      <Textarea
+                        id="description"
+                        value={selectedStat.description || ""}
+                        onChange={(e) => handleUpdate({ description: e.target.value || undefined })}
+                        placeholder="What does this stat represent?"
+                        rows={2}
+                      />
+                    </AIFieldWrapper>
                   </div>
                 </CardContent>
               </Card>
@@ -189,15 +197,14 @@ export function StatsEditor() {
 
                         <div className="grid gap-2">
                           <Label htmlFor="formula">Formula (optional)</Label>
-                          <Input
-                            id="formula"
+                          <ExpressionBuilder
                             value={selectedStat.formula || ""}
-                            onChange={(e) => handleUpdate({ formula: e.target.value || undefined })}
+                            onChange={(value) => handleUpdate({ formula: value || undefined })}
+                            mode="formula"
+                            universe={universe}
                             placeholder="$base + stats.strength / 2"
+                            rows={1}
                           />
-                          <p className="text-xs text-muted-foreground">
-                            Use $base for the base value, stats.X for other stats
-                          </p>
                         </div>
                       </div>
 
@@ -301,15 +308,14 @@ export function StatsEditor() {
 
                     <div className="grid gap-2">
                       <Label htmlFor="color">Color</Label>
-                      <Input
-                        id="color"
+                      <ColorPicker
                         value={selectedStat.display?.color || ""}
-                        onChange={(e) =>
+                        onChange={(color) =>
                           handleUpdate({
-                            display: { ...selectedStat.display, color: e.target.value || undefined },
+                            display: { ...selectedStat.display, color: color || undefined },
                           })
                         }
-                        placeholder="#ff0000 or red"
+                        placeholder="Select color"
                       />
                     </div>
                   </div>
@@ -385,6 +391,17 @@ export function StatsEditor() {
           </div>
         )}
       </div>
+
+      {/* AI Stat Generator */}
+      <StatGenerator
+        open={showGenerator}
+        onOpenChange={setShowGenerator}
+        universe={universe}
+        onAccept={(stat) => {
+          addStat(stat);
+          selectEntity(stat.id);
+        }}
+      />
     </div>
   );
 }

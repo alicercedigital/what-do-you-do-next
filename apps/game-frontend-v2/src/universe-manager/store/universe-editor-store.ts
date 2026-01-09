@@ -114,6 +114,24 @@ type UniverseEditorStore = UniverseEditorState & UniverseEditorActions;
 
 const API_BASE = "/api";
 
+/**
+ * Generate a readable entity ID
+ * Format: {type}_{slug}_{shortId}
+ * Example: char_elena_a3f2b1
+ */
+export function generateEntityId(type: string, name?: string): string {
+  const shortId = Math.random().toString(36).slice(2, 8);
+  if (name && name.trim()) {
+    const slug = name
+      .toLowerCase()
+      .replace(/[^a-z0-9]+/g, "_")
+      .replace(/^_|_$/g, "")
+      .slice(0, 20);
+    return slug ? `${type}_${slug}_${shortId}` : `${type}_${shortId}`;
+  }
+  return `${type}_${shortId}`;
+}
+
 const initialState: UniverseEditorState = {
   universe: null,
   originalUniverse: null,

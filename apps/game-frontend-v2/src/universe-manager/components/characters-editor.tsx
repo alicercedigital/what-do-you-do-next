@@ -1,3 +1,4 @@
+import * as React from "react";
 import type { v2 } from "@wdydn/shared";
 import { Card, CardContent, CardHeader, CardTitle } from "@/shared/components/ui/card";
 import { Input } from "@/shared/components/ui/input";
@@ -7,15 +8,18 @@ import { Switch } from "@/shared/components/ui/switch";
 import { ScrollArea } from "@/shared/components/ui/scroll-area";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/shared/components/ui/tabs";
 import { EntityList } from "@/shared/components/ui/entity-list";
+import { EntityIdBadge } from "@/shared/components/ui/entity-id-badge";
 import { User, Star } from "lucide-react";
 
-import { useUniverseEditorStore } from "../store/universe-editor-store";
+import { useUniverseEditorStore, generateEntityId } from "../store/universe-editor-store";
+import { AIFieldWrapper } from "./ai-field-wrapper";
+import { CharacterGenerator } from "./entity-generator";
 
 type Character = v2.Character;
 
 function createDefaultCharacter(): Character {
   return {
-    id: `char_${Date.now()}`,
+    id: generateEntityId("char", "new_character"),
     name: "New Character",
     stats: {},
     disposition: {},
@@ -30,6 +34,8 @@ function createDefaultCharacter(): Character {
 }
 
 export function CharactersEditor() {
+  const [showGenerator, setShowGenerator] = React.useState(false);
+
   const {
     universe,
     selectedEntityId,
@@ -80,6 +86,7 @@ export function CharactersEditor() {
           onSelect={selectEntity}
           onCreate={handleCreate}
           onDelete={deleteCharacter}
+          onGenerateWithAI={() => setShowGenerator(true)}
           searchPlaceholder="Search characters..."
           createLabel="Add Character"
           deleteConfirmTitle="Delete Character"
@@ -125,43 +132,43 @@ export function CharactersEditor() {
 
                 <TabsContent value="basic" className="mt-6 space-y-6">
                   <Card>
-                    <CardHeader>
+                    <CardHeader className="flex flex-row items-center justify-between space-y-0">
                       <CardTitle>Basic Information</CardTitle>
+                      <EntityIdBadge id={selectedCharacter.id} />
                     </CardHeader>
                     <CardContent className="space-y-4">
-                      <div className="grid gap-4 sm:grid-cols-2">
-                        <div className="grid gap-2">
-                          <Label htmlFor="id">ID</Label>
-                          <Input
-                            id="id"
-                            value={selectedCharacter.id}
-                            onChange={(e) => handleUpdate({ id: e.target.value })}
-                            placeholder="character_id"
-                          />
-                        </div>
-
-                        <div className="grid gap-2">
-                          <Label htmlFor="name">Name</Label>
-                          <Input
-                            id="name"
-                            value={selectedCharacter.name}
-                            onChange={(e) => handleUpdate({ name: e.target.value })}
-                            placeholder="Character Name"
-                          />
-                        </div>
+                      <div className="grid gap-2">
+                        <Label htmlFor="name">Name</Label>
+                        <Input
+                          id="name"
+                          value={selectedCharacter.name}
+                          onChange={(e) => handleUpdate({ name: e.target.value })}
+                          placeholder="Character Name"
+                        />
                       </div>
 
                       <div className="grid gap-2">
                         <Label htmlFor="description">Description</Label>
-                        <Textarea
-                          id="description"
-                          value={selectedCharacter.description || ""}
-                          onChange={(e) =>
-                            handleUpdate({ description: e.target.value || undefined })
+                        <AIFieldWrapper
+                          entityType="character"
+                          field="description"
+                          universe={universe}
+                          currentEntity={selectedCharacter as unknown as Record<string, unknown>}
+                          currentValue={selectedCharacter.description || ""}
+                          onValueChange={(value) =>
+                            handleUpdate({ description: value || undefined })
                           }
-                          placeholder="Background and lore..."
-                          rows={4}
-                        />
+                        >
+                          <Textarea
+                            id="description"
+                            value={selectedCharacter.description || ""}
+                            onChange={(e) =>
+                              handleUpdate({ description: e.target.value || undefined })
+                            }
+                            placeholder="Background and lore..."
+                            rows={4}
+                          />
+                        </AIFieldWrapper>
                       </div>
 
                       <div className="flex flex-wrap gap-6">
@@ -404,6 +411,17 @@ export function CharactersEditor() {
           </div>
         )}
       </div>
+
+      {/* AI Character Generator */}
+      <CharacterGenerator
+        open={showGenerator}
+        onOpenChange={setShowGenerator}
+        universe={universe}
+        onAccept={(character) => {
+          addCharacter(character);
+          selectEntity(character.id);
+        }}
+      />
     </div>
   );
 }
