@@ -1025,3 +1025,351 @@ interface GameState {
 **Decision:** Direct URLs everywhere. No `Universe.assets` registry.
 
 **Rationale:** Simpler. Location/Item just stores the actual URL/path to the asset.
+
+---
+
+# Moment System Redesign v2.2
+
+> **Note:** This section supersedes all previous Choice/Moment decisions from v2 and v2.1. The key changes are:
+> - `Choice` type eliminated entirely - moments ARE choices
+> - `GameState.moments` is an ordered array (not a Record)
+> - Status field on Moment is the single source of truth
+> - `momentPool`, `storyPath`, and `currentMomentId` are removed from GameState
+> - Transitions system replaces separate navigation/consequence logic
+
+---
+
+## 1. Choice Elimination - Moments ARE Choices
+
+**Decision:** Remove the `Choice` type entirely. Moments themselves serve as choices.
+
+**Rationale:**
+- Choices were simplified to just: id, text, description, visible, enabled
+- They no longer navigate (no `nextMomentId`), no longer have effects (no costs), no longer trigger skill checks
+- The moment pool already contains "what can you do next?" - each Moment in the pool IS a choice
+- Why have a separate Choice type that just displays text?
+
+**Changes:**
+- Remove `Choice` interface
+- Remove `choices?: Choice[]` from Moment
+- Add `preview?: string` to Moment - short text shown when moment appears as choice option in the available list
+
+---
+
+## 2. Moment Status System
+
+**Decision:** Add a `status` field directly on Moment with these values:
+- `available` - can be chosen by player
+- `active` - currently being experienced (only one at a time)
+- `lived` - was chosen and experienced
+- `passed` - was available but opportunity expired (e.g., urgent moments not chosen in time)
+- `hidden` - exists but not shown to player
+- `locked` - shown but cannot be chosen
+
+**Rationale:** Status on the moment itself provides single source of truth. No need for separate tracking.
+
+---
+
+## 3. GameState.moments as Array
+
+**Decision:** GameState stores moments as an ordered array, not a Record.
+
+```typescript
+interface GameState {
+  moments: Moment[];  // ordered array, single source of truth
+  // ... rest
+}
+```
+
+**Rationale from performance testing:**
+- Tested with 50, 100, 2000, 10000, 100000 moments
+- Array approach is 7x-300x faster for retrieving ordered history
+- Array filter + map beats Record filter + sort
+- For 500 moments (max expected), both are sub-millisecond but array is cleaner
+- Test script location: `packages/scripts/src/perf-test-moment-ordering.ts`
+
+**Benefits of array:**
+- Order is inherent (array order = chronological order)
+- Can have duplicate moment instances
+- Filter by status to get available/lived/passed
+- No separate history needed - the array IS the history
+
+---
+
+## 4. Remove currentMomentId
+
+**Decision:** Remove `currentMomentId` from GameState. The moment with `status: 'active'` IS the current moment.
+
+```typescript
+// Get current moment
+const current = gameState.moments.find(m => m.status === 'active');
+```
+
+**Rationale:** Single source of truth. Status tells us everything.
+
+---
+
+## 5. Remove Separate History Tracking
+
+**Decision:** Remove `storyPath` / history array. Derive history from moments array.
+
+```typescript
+// Get history (lived moments in order)
+const history = gameState.moments.filter(m => m.status === 'lived');
+```
+
+**Rationale:** Array is already ordered chronologically. No need for duplicate tracking.
+
+---
+
+## 6. Remove momentPool
+
+**Decision:** Remove `momentPool` from GameState. Available moments are derived from status.
+
+```typescript
+// Get available moments
+const available = gameState.moments.filter(m => m.status === 'available');
+```
+
+---
+
+## 7. No Timestamps on Moments
+
+**Decision:** Do not add timestamp fields like `enteredAt`, `concludedAt`, `livedAt`.
+
+**Rationale:** Array order provides chronology. Timestamps would be redundant. If needed later, can add as non-breaking change.
+
+---
+
+## 8. Transitions System
+
+**Decision:** Add `transitions` field to Moment - expressions organized by status they run at.
+
+```typescript
+interface Moment {
+  // ... other fields
+  transitions?: {
+    locked?: Expression[];     // evaluated while status is 'locked'
+    hidden?: Expression[];     // evaluated while status is 'hidden'
+    available?: Expression[];  // evaluated while status is 'available'
+    active?: Expression[];     // evaluated while status is 'active' (consequences)
+  };
+}
+```
+
+**How it works:**
+- Key = the "from" status (which status the moment must be in for these expressions to run)
+- Expression = the "when" condition + "to" status change + any effects
+- System loops through moments, checks current status, evaluates corresponding expressions
+
+**Example:**
+```typescript
+{
+  id: 'tavern_fight',
+  status: 'locked',
+  preview: 'Start a bar fight',
+
+  transitions: {
+    locked: [
+      '$self.status = available when player.gold >= 10'
+    ],
+    available: [
+      '$self.status = passed when $turn > 3'  // urgent expiry
+    ],
+    active: [
+      'player.reputation += 5',
+      '$self.status = lived'
+    ]
+  }
+}
+```
+
+---
+
+## 9. Unified Expression Syntax with AI Conditions
+
+**Decision:** The `when` clause in expressions can be either mechanical (expression) or AI-evaluated (natural language).
+
+**Syntax:**
+```typescript
+// Mechanical condition - expression evaluator handles
+'$self.status = available when player.gold >= 10'
+
+// AI condition - AI evaluates natural language
+'$self.status = available when ai(player visits a place that sells lottery tickets)'
+```
+
+**How ai() works:**
+- Parser detects `ai(...)` in the `when` clause
+- Routes condition to AI for evaluation instead of expression evaluator
+- AI receives the natural language hint and current game context
+- AI returns true/false, system applies the result
+
+**Rationale:** Same syntax structure for both. `ai()` is just another condition type. Enables authored content to "wait" for narrative-appropriate moments that only AI can detect.
+
+---
+
+## 10. $self Variable
+
+**Decision:** Expressions can use `$self` to reference the moment they belong to.
+
+```typescript
+'$self.status = lived'           // mark this moment as lived
+'$self.status = available'       // make this moment available
+```
+
+---
+
+## 11. Duplicate Moments with Auto-Increment IDs
+
+**Decision:** Allow duplicate instances of the same moment template. Each instance gets a unique ID using auto-increment pattern.
+
+**Pattern:** `momentId-0`, `momentId-1`, `momentId-2`, etc.
+
+**Example:**
+- First instance of "tavern_fight" → `tavern_fight-0`
+- Second instance → `tavern_fight-1`
+
+**Rationale:** Same narrative moment may occur multiple times in a story. Array allows this naturally.
+
+---
+
+## 12. Moment Targeting Syntax
+
+**Decision:** Three ways to target moments in expressions:
+
+```typescript
+// Target self (current moment)
+'$self.status = lived'
+
+// Target specific instance by full ID
+'moment.tavern_fight-0.status = available'
+
+// Target ALL instances of a moment template (wildcard)
+'moment.tavern_fight-*.status = passed'
+```
+
+---
+
+## 13. Starting Moments
+
+**Decision:** Moments with `status: 'available'` in the Universe template are the starting moments.
+
+**How game initialization works:**
+1. Deep copy moments from Universe template to GameState.moments
+2. Moments that had `status: 'available'` in template start as available
+3. Other moments start in their template-defined status (hidden, locked, etc.)
+
+**Rationale:** No need for separate `startingMomentIds` array. Status on template defines starting state.
+
+---
+
+## 14. Template vs Instance Relationship
+
+**Decision:** Universe templates are starters only. GameState.moments is the single source of truth.
+
+**Flow:**
+1. Universe.moments contains moment templates (definitions)
+2. When game starts, templates are deep-copied to GameState.moments
+3. During play, only GameState.moments is modified
+4. Template never changes; it's just the starting point
+
+---
+
+## 15. Locked Reason Display
+
+**Decision:** Lock reason is derived from the `when` condition in `transitions.locked`.
+
+**Example:**
+```typescript
+transitions: {
+  locked: [
+    '$self.status = available when player.gold >= 10'
+  ]
+}
+// UI shows: "Requires: 10 gold" (derived from condition)
+```
+
+**Rationale:** No separate `lockedReason` field needed. Parse the condition to generate display text.
+
+---
+
+## 16. Naming Convention
+
+**Decision:** Always use `[thing]Id` format, never `templateId`.
+
+- `momentId`
+- `characterId`
+- ~~`templateId`~~
+
+---
+
+## 17. GameState Structure (Updated)
+
+**Decision:** Update GameState to use new moment system:
+
+```typescript
+interface GameState {
+  id: string;
+  universeId: string;
+  createdAt: number;
+  savedAt: number;
+  seed: number;
+  player: PlayerCharacter;
+  characters: Character[];
+  moments: Moment[];  // NEW: replaces momentPool, storyPath, currentMomentId
+  globalStats: Record<string, number | boolean | string>;
+}
+```
+
+**Removed fields:**
+- `momentPool` - replaced by `moments.filter(m => m.status === 'available')`
+- `storyPath` - replaced by `moments.filter(m => m.status === 'lived')`
+- `currentMomentId` - replaced by `moments.find(m => m.status === 'active')`
+
+---
+
+## 18. Moment Structure (Final)
+
+```typescript
+interface Moment {
+  id: string;                    // Instance ID: "momentId-0", "momentId-1", etc.
+  title?: string;                // Full title when viewing
+  text?: string;                 // Narrative text
+  preview?: string;              // Short text shown as choice button
+  status?: 'available' | 'active' | 'lived' | 'passed' | 'hidden' | 'locked';
+
+  // Location and presentation
+  locationId?: string;
+  stage?: Record<"left" | "center" | "right", { characterId: string; emotion?: Emotion; speaking?: boolean } | undefined>;
+
+  // Status transitions and consequences
+  transitions?: {
+    locked?: Expression[];       // runs while locked
+    hidden?: Expression[];       // runs while hidden
+    available?: Expression[];    // runs while available
+    active?: Expression[];       // runs while active (main consequences)
+  };
+
+  // For challenges
+  challenge?: Challenge;
+
+  // Urgency
+  urgent?: boolean;
+}
+```
+
+---
+
+## 19. Player Flow (Updated)
+
+1. Game initializes: deep copy Universe.moments to GameState.moments
+2. Moments with `status: 'available'` appear as choices
+3. Player picks one → status becomes `active`
+4. System runs expressions in `transitions.active`
+5. Player experiences the moment (narrative, visuals, etc.)
+6. Moment status becomes `lived`
+7. Transitions may have added new moments or changed statuses
+8. System evaluates all moment transitions based on current status
+9. Player sees newly available moments
+10. Repeat from step 3
