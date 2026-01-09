@@ -1,10 +1,15 @@
 {
   "permissions": {
     "allow": [
-      "Bash(bun run check-types:*)",
       "Bash(mkdir:*)",
-      "Bash(bun install)",
-      "Bash(bun run:*)"
+      "Bash(bun:*)",
+      "Bash(node:*)",
+      "Bash(npm:*)",
+      "Bash(npx:*)"
     ]
+  },
+  "statusLine": {
+    "type": "command",
+    "command": "node .claude/statusline.js"
   }
 }

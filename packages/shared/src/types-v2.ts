@@ -210,12 +210,6 @@ export interface PooledMoment {
   addedAt: number;
 }
 
-export interface StoryPathEntry {
-  momentId: string;
-  choiceId?: string;
-  timestamp: number;
-}
-
 export interface GameState {
   id: string;
   universeId: string;
@@ -226,6 +220,10 @@ export interface GameState {
   characters: Character[];
   globalStats: Record<string, number | boolean | string>;
   momentPool: PooledMoment[];
-  storyPath: StoryPathEntry[];
+  storyPath: {
+    momentId: string;
+    choiceId?: string;
+    timestamp: number;
+  }[];
   currentMomentId: string | null;
 }
