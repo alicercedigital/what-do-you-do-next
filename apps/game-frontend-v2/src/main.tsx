@@ -6,6 +6,7 @@ import "./globals.css";
 import { ThemeProvider } from "./shared/components/theme-provider";
 import { HomePage } from "./pages/home";
 import { PlayPage } from "./pages/play";
+import { UniverseListPage, UniverseEditorPage } from "./universe-manager";
 
 const router = createBrowserRouter([
   {
@@ -15,6 +16,14 @@ const router = createBrowserRouter([
   {
     path: "/play",
     element: <PlayPage />,
+  },
+  {
+    path: "/universes",
+    element: <UniverseListPage />,
+  },
+  {
+    path: "/universes/:id",
+    element: <UniverseEditorPage />,
   },
 ]);
 

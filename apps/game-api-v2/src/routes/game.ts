@@ -10,6 +10,7 @@ import {
   deleteGame,
   getUniverse,
   saveUniverse,
+  deleteUniverse,
   getAllUniverses,
   getAllGames,
 } from "../storage";
@@ -67,6 +68,85 @@ router.get("/universes", (_req, res) => {
   }));
 
   return res.json(list);
+});
+
+/**
+ * Update a universe
+ * PUT /api/universe/:id
+ */
+router.put("/universe/:id", (req, res) => {
+  try {
+    const existingUniverse = getUniverse(req.params.id);
+
+    if (!existingUniverse) {
+      return res.status(404).json({ error: "Universe not found" });
+    }
+
+    const universe: Universe = req.body;
+
+    if (universe.id !== req.params.id) {
+      return res.status(400).json({ error: "Universe ID mismatch" });
+    }
+
+    saveUniverse(universe);
+
+    return res.json({
+      success: true,
+      universeId: universe.id,
+    });
+  } catch (error) {
+    console.error("Failed to update universe:", error);
+    return res.status(500).json({ error: "Failed to update universe" });
+  }
+});
+
+/**
+ * Delete a universe
+ * DELETE /api/universe/:id
+ */
+router.delete("/universe/:id", (req, res) => {
+  try {
+    const existed = deleteUniverse(req.params.id);
+
+    return res.json({
+      success: existed,
+    });
+  } catch (error) {
+    console.error("Failed to delete universe:", error);
+    return res.status(500).json({ error: "Failed to delete universe" });
+  }
+});
+
+/**
+ * Duplicate a universe
+ * POST /api/universe/:id/duplicate
+ */
+router.post("/universe/:id/duplicate", (req, res) => {
+  try {
+    const sourceUniverse = getUniverse(req.params.id);
+
+    if (!sourceUniverse) {
+      return res.status(404).json({ error: "Universe not found" });
+    }
+
+    // Deep clone the universe
+    const newUniverse: Universe = JSON.parse(JSON.stringify(sourceUniverse));
+
+    // Generate new ID and update name
+    newUniverse.id = `${sourceUniverse.id}-copy-${Date.now()}`;
+    newUniverse.name = `${sourceUniverse.name} (Copy)`;
+    newUniverse.version = 1;
+
+    saveUniverse(newUniverse);
+
+    return res.json({
+      success: true,
+      universeId: newUniverse.id,
+    });
+  } catch (error) {
+    console.error("Failed to duplicate universe:", error);
+    return res.status(500).json({ error: "Failed to duplicate universe" });
+  }
 });
 
 /**
