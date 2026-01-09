@@ -15,6 +15,7 @@ import { SearchPage } from "./pages/marketplace/search";
 import { UniverseDetailPage } from "./pages/marketplace/universe-detail";
 import { CreatorProfilePage } from "./pages/marketplace/creator-profile";
 import { NotificationsPage } from "./pages/notifications";
+import { LibraryPage } from "./pages/library";
 import { AuthGuard, GuestGuard } from "./shared/components/auth";
 import { useAuthStore } from "./store/auth-store";
 
@@ -95,7 +96,7 @@ const router = createBrowserRouter([
           // Placeholder routes for future pages
           {
             path: "/library",
-            element: <div className="min-h-screen flex items-center justify-center"><p className="text-muted-foreground">Library - Coming soon</p></div>,
+            element: <LibraryPage />,
           },
           {
             path: "/profile",
