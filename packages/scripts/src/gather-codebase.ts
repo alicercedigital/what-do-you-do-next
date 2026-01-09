@@ -17,7 +17,6 @@ const ADDITIONAL_IGNORE_PATTERNS = [
   "*.woff2",
   "*.ttf",
   "*.eot",
-  "ui/",
   "packages/scripts",
   "packages/config",
   ".vscode",
