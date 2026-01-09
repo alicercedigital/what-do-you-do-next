@@ -10,6 +10,7 @@ import { marketplaceRouter } from "./marketplace";
 import { socialRouter } from "./social";
 import { savesRouter } from "./saves";
 import { economyRouter } from "./economy";
+import { analyticsRouter } from "./analytics";
 
 const router = Router();
 
@@ -26,5 +27,6 @@ router.use("/api/marketplace", marketplaceRouter);
 router.use("/api/social", socialRouter);
 router.use("/api/saves", savesRouter);
 router.use("/api/economy", economyRouter);
+router.use("/api/analytics", analyticsRouter);
 
 export { router as apiRouter };

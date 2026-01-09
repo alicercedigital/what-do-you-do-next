@@ -16,6 +16,9 @@ import { UniverseDetailPage } from "./pages/marketplace/universe-detail";
 import { CreatorProfilePage } from "./pages/marketplace/creator-profile";
 import { NotificationsPage } from "./pages/notifications";
 import { LibraryPage } from "./pages/library";
+import { StudioPage } from "./pages/studio";
+import { AnalyticsPage } from "./pages/studio/analytics";
+import { EarningsPage } from "./pages/studio/earnings";
 import { AuthGuard, GuestGuard } from "./shared/components/auth";
 import { useAuthStore } from "./store/auth-store";
 
@@ -108,7 +111,15 @@ const router = createBrowserRouter([
           },
           {
             path: "/studio",
-            element: <div className="min-h-screen flex items-center justify-center"><p className="text-muted-foreground">Creator Studio - Coming soon</p></div>,
+            element: <StudioPage />,
+          },
+          {
+            path: "/studio/analytics",
+            element: <AnalyticsPage />,
+          },
+          {
+            path: "/studio/earnings",
+            element: <EarningsPage />,
           },
           {
             path: "/notifications",
