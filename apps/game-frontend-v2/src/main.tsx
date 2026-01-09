@@ -1,29 +1,98 @@
-import { StrictMode } from "react";
+import { StrictMode, useEffect } from "react";
 import { createRoot } from "react-dom/client";
-import { createBrowserRouter, RouterProvider } from "react-router-dom";
+import { createBrowserRouter, RouterProvider, Outlet } from "react-router-dom";
 
 import "./globals.css";
 import { ThemeProvider } from "./shared/components/theme-provider";
 import { HomePage } from "./pages/home";
 import { PlayPage } from "./pages/play";
 import { UniverseListPage, UniverseEditorPage } from "./universe-manager";
+import { LoginPage } from "./pages/auth/login";
+import { RegisterPage } from "./pages/auth/register";
+import { AuthCallbackPage } from "./pages/auth/callback";
+import { AuthGuard, GuestGuard } from "./shared/components/auth";
+import { useAuthStore } from "./store/auth-store";
+
+// Root layout that initializes auth
+function RootLayout() {
+  const initialize = useAuthStore((state) => state.initialize);
+
+  useEffect(() => {
+    initialize();
+  }, [initialize]);
+
+  return <Outlet />;
+}
 
 const router = createBrowserRouter([
   {
-    path: "/",
-    element: <HomePage />,
-  },
-  {
-    path: "/play",
-    element: <PlayPage />,
-  },
-  {
-    path: "/universes",
-    element: <UniverseListPage />,
-  },
-  {
-    path: "/universes/:id",
-    element: <UniverseEditorPage />,
+    element: <RootLayout />,
+    children: [
+      // Public routes
+      {
+        path: "/",
+        element: <HomePage />,
+      },
+      {
+        path: "/play",
+        element: <PlayPage />,
+      },
+
+      // Auth routes (guest only)
+      {
+        element: <GuestGuard />,
+        children: [
+          {
+            path: "/login",
+            element: <LoginPage />,
+          },
+          {
+            path: "/register",
+            element: <RegisterPage />,
+          },
+        ],
+      },
+      {
+        path: "/auth/callback",
+        element: <AuthCallbackPage />,
+      },
+
+      // Protected routes (require auth)
+      {
+        element: <AuthGuard />,
+        children: [
+          {
+            path: "/universes",
+            element: <UniverseListPage />,
+          },
+          {
+            path: "/universes/:id",
+            element: <UniverseEditorPage />,
+          },
+          // Placeholder routes for future pages
+          {
+            path: "/library",
+            element: <div className="min-h-screen flex items-center justify-center"><p className="text-muted-foreground">Library - Coming soon</p></div>,
+          },
+          {
+            path: "/profile",
+            element: <div className="min-h-screen flex items-center justify-center"><p className="text-muted-foreground">Profile - Coming soon</p></div>,
+          },
+          {
+            path: "/profile/settings",
+            element: <div className="min-h-screen flex items-center justify-center"><p className="text-muted-foreground">Settings - Coming soon</p></div>,
+          },
+          {
+            path: "/studio",
+            element: <div className="min-h-screen flex items-center justify-center"><p className="text-muted-foreground">Creator Studio - Coming soon</p></div>,
+          },
+          {
+            path: "/marketplace",
+            element: <div className="min-h-screen flex items-center justify-center"><p className="text-muted-foreground">Marketplace - Coming soon</p></div>,
+          },
+        ],
+      },
+    ],
   },
 ]);
 

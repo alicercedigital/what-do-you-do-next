@@ -42,7 +42,7 @@ router.post("/evaluate-condition", async (req, res) => {
       return res.status(400).json({ error: "gameId is required" });
     }
 
-    const game = getGame(gameId);
+    const game = await getGame(gameId);
     if (!game) {
       return res.status(404).json({ error: "Game not found" });
     }
@@ -80,7 +80,7 @@ router.post("/evaluate-conditions", async (req, res) => {
       return res.status(400).json({ error: "gameId is required" });
     }
 
-    const game = getGame(gameId);
+    const game = await getGame(gameId);
     if (!game) {
       return res.status(404).json({ error: "Game not found" });
     }
@@ -121,7 +121,7 @@ router.post("/generate-moment", async (req, res) => {
       return res.status(400).json({ error: "gameId is required" });
     }
 
-    const game = getGame(gameId);
+    const game = await getGame(gameId);
     if (!game) {
       return res.status(404).json({ error: "Game not found" });
     }
@@ -165,7 +165,7 @@ router.post("/generate-options", async (req, res) => {
       return res.status(400).json({ error: "gameId is required" });
     }
 
-    const game = getGame(gameId);
+    const game = await getGame(gameId);
     if (!game) {
       return res.status(404).json({ error: "Game not found" });
     }
@@ -209,7 +209,7 @@ router.post("/expand-moment", async (req, res) => {
       return res.status(400).json({ error: "moment with title is required" });
     }
 
-    const game = getGame(gameId);
+    const game = await getGame(gameId);
     if (!game) {
       return res.status(404).json({ error: "Game not found" });
     }
@@ -250,7 +250,7 @@ router.post("/fill-gap", async (req, res) => {
       return res.status(400).json({ error: "gameId is required" });
     }
 
-    const game = getGame(gameId);
+    const game = await getGame(gameId);
     if (!game) {
       return res.status(404).json({ error: "Game not found" });
     }

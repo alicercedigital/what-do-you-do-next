@@ -1,14 +1,18 @@
 import { Router } from "express";
 import { GameEngine } from "../engine";
 import { getGame, saveGame } from "../storage";
+import { optionalAuth, type AuthenticatedRequest } from "../middleware/auth";
 
 const router = Router();
+
+// Apply optional auth to all routes
+router.use(optionalAuth);
 
 /**
  * Select a moment
  * POST /api/game/:id/moment/select
  */
-router.post("/game/:id/moment/select", (req, res) => {
+router.post("/game/:id/moment/select", async (req: AuthenticatedRequest, res) => {
   try {
     const { momentInstanceId } = req.body;
 
@@ -16,7 +20,7 @@ router.post("/game/:id/moment/select", (req, res) => {
       return res.status(400).json({ error: "momentInstanceId is required" });
     }
 
-    const game = getGame(req.params.id);
+    const game = await getGame(req.params.id);
     if (!game) {
       return res.status(404).json({ error: "Game not found" });
     }
@@ -25,7 +29,7 @@ router.post("/game/:id/moment/select", (req, res) => {
     const result = engine.selectMoment(momentInstanceId);
 
     // Update stored state
-    saveGame({ state: engine.getState(), universe: game.universe });
+    await saveGame({ state: engine.getState(), universe: game.universe }, req.user?.id);
 
     return res.json({
       state: engine.getState(),
@@ -44,9 +48,9 @@ router.post("/game/:id/moment/select", (req, res) => {
  * Complete the active moment
  * POST /api/game/:id/moment/complete
  */
-router.post("/game/:id/moment/complete", (req, res) => {
+router.post("/game/:id/moment/complete", async (req: AuthenticatedRequest, res) => {
   try {
-    const game = getGame(req.params.id);
+    const game = await getGame(req.params.id);
     if (!game) {
       return res.status(404).json({ error: "Game not found" });
     }
@@ -55,7 +59,7 @@ router.post("/game/:id/moment/complete", (req, res) => {
     const result = engine.completeMoment();
 
     // Update stored state
-    saveGame({ state: engine.getState(), universe: game.universe });
+    await saveGame({ state: engine.getState(), universe: game.universe }, req.user?.id);
 
     return res.json({
       state: engine.getState(),
@@ -74,7 +78,7 @@ router.post("/game/:id/moment/complete", (req, res) => {
  * Add a new moment instance
  * POST /api/game/:id/moment/create
  */
-router.post("/game/:id/moment/create", (req, res) => {
+router.post("/game/:id/moment/create", async (req: AuthenticatedRequest, res) => {
   try {
     const { templateId, initialStatus } = req.body;
 
@@ -82,7 +86,7 @@ router.post("/game/:id/moment/create", (req, res) => {
       return res.status(400).json({ error: "templateId is required" });
     }
 
-    const game = getGame(req.params.id);
+    const game = await getGame(req.params.id);
     if (!game) {
       return res.status(404).json({ error: "Game not found" });
     }
@@ -91,7 +95,7 @@ router.post("/game/:id/moment/create", (req, res) => {
     const { momentInstanceId } = engine.addMoment(templateId, initialStatus);
 
     // Update stored state
-    saveGame({ state: engine.getState(), universe: game.universe });
+    await saveGame({ state: engine.getState(), universe: game.universe }, req.user?.id);
 
     return res.json({
       state: engine.getState(),
@@ -109,8 +113,8 @@ router.post("/game/:id/moment/create", (req, res) => {
  * Get available moments
  * GET /api/game/:id/moments/available
  */
-router.get("/game/:id/moments/available", (req, res) => {
-  const game = getGame(req.params.id);
+router.get("/game/:id/moments/available", async (req, res) => {
+  const game = await getGame(req.params.id);
   if (!game) {
     return res.status(404).json({ error: "Game not found" });
   }
@@ -125,8 +129,8 @@ router.get("/game/:id/moments/available", (req, res) => {
  * Get the active moment
  * GET /api/game/:id/moments/active
  */
-router.get("/game/:id/moments/active", (req, res) => {
-  const game = getGame(req.params.id);
+router.get("/game/:id/moments/active", async (req, res) => {
+  const game = await getGame(req.params.id);
   if (!game) {
     return res.status(404).json({ error: "Game not found" });
   }
@@ -145,8 +149,8 @@ router.get("/game/:id/moments/active", (req, res) => {
  * Get lived moments (history)
  * GET /api/game/:id/moments/history
  */
-router.get("/game/:id/moments/history", (req, res) => {
-  const game = getGame(req.params.id);
+router.get("/game/:id/moments/history", async (req, res) => {
+  const game = await getGame(req.params.id);
   if (!game) {
     return res.status(404).json({ error: "Game not found" });
   }
@@ -161,9 +165,9 @@ router.get("/game/:id/moments/history", (req, res) => {
  * Run transitions manually
  * POST /api/game/:id/transitions/run
  */
-router.post("/game/:id/transitions/run", (req, res) => {
+router.post("/game/:id/transitions/run", async (req: AuthenticatedRequest, res) => {
   try {
-    const game = getGame(req.params.id);
+    const game = await getGame(req.params.id);
     if (!game) {
       return res.status(404).json({ error: "Game not found" });
     }
@@ -172,7 +176,7 @@ router.post("/game/:id/transitions/run", (req, res) => {
     const result = engine.runTransitions();
 
     // Update stored state
-    saveGame({ state: engine.getState(), universe: game.universe });
+    await saveGame({ state: engine.getState(), universe: game.universe }, req.user?.id);
 
     return res.json({
       state: engine.getState(),

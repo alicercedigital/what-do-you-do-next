@@ -52,7 +52,7 @@ router.post("/smart-input", async (req, res) => {
       system: systemPrompt,
       prompt: prompt,
       temperature: action === "suggestions" ? 0.9 : 0.7,
-      maxTokens: action === "expand" ? 500 : 200,
+      maxOutputTokens: action === "expand" ? 500 : 200,
     });
 
     return res.json({ result: text.trim() });
@@ -104,7 +104,7 @@ Make it unique from existing stats.`;
       system: systemPrompt,
       prompt: userPrompt,
       temperature: 0.8,
-      maxTokens: 300,
+      maxOutputTokens: 300,
     });
 
     const entity = parseJSON(text);
@@ -113,7 +113,7 @@ Make it unique from existing stats.`;
     }
 
     // Ensure ID is properly formatted
-    entity.id = `stat_${slugify(entity.name)}_${randomId()}`;
+    entity.id = `stat_${slugify(String(entity.name || "stat"))}_${randomId()}`;
 
     return res.json({ entity });
   } catch (error) {
@@ -172,7 +172,7 @@ Make them distinct from existing characters.`;
       system: systemPrompt,
       prompt: userPrompt,
       temperature: 0.85,
-      maxTokens: 600,
+      maxOutputTokens: 600,
     });
 
     const entity = parseJSON(text);
@@ -180,7 +180,7 @@ Make them distinct from existing characters.`;
       return res.status(500).json({ error: "Failed to parse generated entity" });
     }
 
-    entity.id = `char_${slugify(entity.name)}_${randomId()}`;
+    entity.id = `char_${slugify(String(entity.name || "char"))}_${randomId()}`;
 
     return res.json({ entity });
   } catch (error) {
@@ -233,7 +233,7 @@ ${hints.hints ? `Additional context: ${hints.hints}` : ""}`;
       system: systemPrompt,
       prompt: userPrompt,
       temperature: 0.85,
-      maxTokens: 500,
+      maxOutputTokens: 500,
     });
 
     const entity = parseJSON(text);
@@ -241,7 +241,7 @@ ${hints.hints ? `Additional context: ${hints.hints}` : ""}`;
       return res.status(500).json({ error: "Failed to parse generated entity" });
     }
 
-    entity.id = `loc_${slugify(entity.name)}_${randomId()}`;
+    entity.id = `loc_${slugify(String(entity.name || "loc"))}_${randomId()}`;
 
     return res.json({ entity });
   } catch (error) {
@@ -307,7 +307,7 @@ ${hints.hints ? `Additional context: ${hints.hints}` : ""}`;
       system: systemPrompt,
       prompt: userPrompt,
       temperature: 0.85,
-      maxTokens: 400,
+      maxOutputTokens: 400,
     });
 
     const entity = parseJSON(text);
@@ -315,7 +315,7 @@ ${hints.hints ? `Additional context: ${hints.hints}` : ""}`;
       return res.status(500).json({ error: "Failed to parse generated entity" });
     }
 
-    entity.id = `item_${slugify(entity.name)}_${randomId()}`;
+    entity.id = `item_${slugify(String(entity.name || "item"))}_${randomId()}`;
 
     return res.json({ entity });
   } catch (error) {
@@ -373,7 +373,7 @@ ${hints.hints ? `Additional context: ${hints.hints}` : ""}`;
       system: systemPrompt,
       prompt: userPrompt,
       temperature: 0.8,
-      maxTokens: 800,
+      maxOutputTokens: 800,
     });
 
     const entity = parseJSON(text);
@@ -381,7 +381,7 @@ ${hints.hints ? `Additional context: ${hints.hints}` : ""}`;
       return res.status(500).json({ error: "Failed to parse generated entity" });
     }
 
-    entity.id = `challenge_${slugify(entity.name)}_${randomId()}`;
+    entity.id = `challenge_${slugify(String(entity.name || "challenge"))}_${randomId()}`;
 
     return res.json({ entity });
   } catch (error) {
@@ -435,7 +435,7 @@ ${hints.hints ? `Additional context: ${hints.hints}` : ""}`;
       system: systemPrompt,
       prompt: userPrompt,
       temperature: 0.85,
-      maxTokens: 600,
+      maxOutputTokens: 600,
     });
 
     const entity = parseJSON(text);
@@ -443,7 +443,7 @@ ${hints.hints ? `Additional context: ${hints.hints}` : ""}`;
       return res.status(500).json({ error: "Failed to parse generated entity" });
     }
 
-    entity.id = `moment_${slugify(entity.title)}_${randomId()}`;
+    entity.id = `moment_${slugify(String(entity.title || "moment"))}_${randomId()}`;
 
     return res.json({ entity });
   } catch (error) {

@@ -1,8 +1,12 @@
 import { Router } from "express";
 import { getGame, saveGame, getChallengeState, saveChallengeState, deleteChallengeState } from "../storage";
 import { createChallengeProcessor } from "../engine";
+import { optionalAuth, type AuthenticatedRequest } from "../middleware/auth";
 
 const router = Router();
+
+// Apply optional auth to all routes
+router.use(optionalAuth);
 
 /**
  * Start a challenge
@@ -10,7 +14,7 @@ const router = Router();
  *
  * Body: { roleAssignments: Record<string, string> }
  */
-router.post("/game/:id/challenge/start", (req, res) => {
+router.post("/game/:id/challenge/start", async (req: AuthenticatedRequest, res) => {
   try {
     const { roleAssignments } = req.body;
     const gameId = req.params.id;
@@ -19,7 +23,7 @@ router.post("/game/:id/challenge/start", (req, res) => {
       return res.status(400).json({ error: "roleAssignments is required" });
     }
 
-    const game = getGame(gameId);
+    const game = await getGame(gameId);
     if (!game) {
       return res.status(404).json({ error: "Game not found" });
     }
@@ -57,7 +61,7 @@ router.post("/game/:id/challenge/start", (req, res) => {
     saveChallengeState(gameId, result.challengeState);
 
     // Save the updated game state
-    saveGame({ state: result.state, universe: game.universe });
+    await saveGame({ state: result.state, universe: game.universe }, req.user?.id);
 
     return res.json({
       state: result.state,
@@ -77,11 +81,11 @@ router.post("/game/:id/challenge/start", (req, res) => {
  * Advance a challenge round
  * POST /api/game/:id/challenge/advance
  */
-router.post("/game/:id/challenge/advance", (req, res) => {
+router.post("/game/:id/challenge/advance", async (req: AuthenticatedRequest, res) => {
   try {
     const gameId = req.params.id;
 
-    const game = getGame(gameId);
+    const game = await getGame(gameId);
     if (!game) {
       return res.status(404).json({ error: "Game not found" });
     }
@@ -122,7 +126,7 @@ router.post("/game/:id/challenge/advance", (req, res) => {
     }
 
     // Save the updated game state
-    saveGame({ state: result.state, universe: game.universe });
+    await saveGame({ state: result.state, universe: game.universe }, req.user?.id);
 
     return res.json({
       state: result.state,
@@ -142,10 +146,10 @@ router.post("/game/:id/challenge/advance", (req, res) => {
  * Get challenge state
  * GET /api/game/:id/challenge
  */
-router.get("/game/:id/challenge", (req, res) => {
+router.get("/game/:id/challenge", async (req, res) => {
   const gameId = req.params.id;
 
-  const game = getGame(gameId);
+  const game = await getGame(gameId);
   if (!game) {
     return res.status(404).json({ error: "Game not found" });
   }
@@ -171,10 +175,10 @@ router.get("/game/:id/challenge", (req, res) => {
  * End/cancel a challenge
  * POST /api/game/:id/challenge/end
  */
-router.post("/game/:id/challenge/end", (req, res) => {
+router.post("/game/:id/challenge/end", async (req, res) => {
   const gameId = req.params.id;
 
-  const game = getGame(gameId);
+  const game = await getGame(gameId);
   if (!game) {
     return res.status(404).json({ error: "Game not found" });
   }

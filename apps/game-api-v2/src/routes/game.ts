@@ -3,25 +3,30 @@ import type { v2 } from "@wdydn/shared";
 type Universe = v2.Universe;
 import { GameEngine } from "../engine";
 import {
-  games,
-  universes,
   getGame,
   saveGame,
   deleteGame,
   getUniverse,
   saveUniverse,
   deleteUniverse,
-  getAllUniverses,
+  getUniverseSummaries,
   getAllGames,
 } from "../storage";
+import {
+  optionalAuth,
+  type AuthenticatedRequest,
+} from "../middleware/auth";
 
 const router = Router();
+
+// Apply optional auth to all routes - allows both authenticated and anonymous access
+router.use(optionalAuth);
 
 /**
  * Register a universe (for testing/development)
  * POST /api/universe
  */
-router.post("/universe", (req, res) => {
+router.post("/universe", async (req: AuthenticatedRequest, res) => {
   try {
     const universe: Universe = req.body;
 
@@ -29,7 +34,7 @@ router.post("/universe", (req, res) => {
       return res.status(400).json({ error: "Universe ID is required" });
     }
 
-    saveUniverse(universe);
+    await saveUniverse(universe, req.user?.id);
 
     return res.json({
       success: true,
@@ -45,8 +50,8 @@ router.post("/universe", (req, res) => {
  * Get a universe
  * GET /api/universe/:id
  */
-router.get("/universe/:id", (req, res) => {
-  const universe = getUniverse(req.params.id);
+router.get("/universe/:id", async (req, res) => {
+  const universe = await getUniverse(req.params.id);
 
   if (!universe) {
     return res.status(404).json({ error: "Universe not found" });
@@ -59,14 +64,8 @@ router.get("/universe/:id", (req, res) => {
  * List all universes
  * GET /api/universes
  */
-router.get("/universes", (_req, res) => {
-  const list = getAllUniverses().map((u) => ({
-    id: u.id,
-    name: u.name,
-    description: u.description,
-    theme: u.theme,
-  }));
-
+router.get("/universes", async (req: AuthenticatedRequest, res) => {
+  const list = await getUniverseSummaries(req.user?.id);
   return res.json(list);
 });
 
@@ -74,9 +73,9 @@ router.get("/universes", (_req, res) => {
  * Update a universe
  * PUT /api/universe/:id
  */
-router.put("/universe/:id", (req, res) => {
+router.put("/universe/:id", async (req: AuthenticatedRequest, res) => {
   try {
-    const existingUniverse = getUniverse(req.params.id);
+    const existingUniverse = await getUniverse(req.params.id);
 
     if (!existingUniverse) {
       return res.status(404).json({ error: "Universe not found" });
@@ -88,7 +87,7 @@ router.put("/universe/:id", (req, res) => {
       return res.status(400).json({ error: "Universe ID mismatch" });
     }
 
-    saveUniverse(universe);
+    await saveUniverse(universe, req.user?.id);
 
     return res.json({
       success: true,
@@ -104,9 +103,9 @@ router.put("/universe/:id", (req, res) => {
  * Delete a universe
  * DELETE /api/universe/:id
  */
-router.delete("/universe/:id", (req, res) => {
+router.delete("/universe/:id", async (req, res) => {
   try {
-    const existed = deleteUniverse(req.params.id);
+    const existed = await deleteUniverse(req.params.id);
 
     return res.json({
       success: existed,
@@ -121,9 +120,9 @@ router.delete("/universe/:id", (req, res) => {
  * Duplicate a universe
  * POST /api/universe/:id/duplicate
  */
-router.post("/universe/:id/duplicate", (req, res) => {
+router.post("/universe/:id/duplicate", async (req: AuthenticatedRequest, res) => {
   try {
-    const sourceUniverse = getUniverse(req.params.id);
+    const sourceUniverse = await getUniverse(req.params.id);
 
     if (!sourceUniverse) {
       return res.status(404).json({ error: "Universe not found" });
@@ -137,7 +136,7 @@ router.post("/universe/:id/duplicate", (req, res) => {
     newUniverse.name = `${sourceUniverse.name} (Copy)`;
     newUniverse.version = 1;
 
-    saveUniverse(newUniverse);
+    await saveUniverse(newUniverse, req.user?.id);
 
     return res.json({
       success: true,
@@ -153,11 +152,11 @@ router.post("/universe/:id/duplicate", (req, res) => {
  * Create a new game
  * POST /api/game/create
  */
-router.post("/game/create", (req, res) => {
+router.post("/game/create", async (req: AuthenticatedRequest, res) => {
   try {
     const { universeId, characterId } = req.body;
 
-    const universe = getUniverse(universeId);
+    const universe = await getUniverse(universeId);
     if (!universe) {
       return res.status(404).json({ error: "Universe not found" });
     }
@@ -170,7 +169,7 @@ router.post("/game/create", (req, res) => {
     const state = engine.getState();
 
     // Store the game
-    saveGame({ state, universe });
+    await saveGame({ state, universe }, req.user?.id);
 
     return res.json({
       gameId: state.id,
@@ -186,8 +185,8 @@ router.post("/game/create", (req, res) => {
  * Get game state
  * GET /api/game/:id
  */
-router.get("/game/:id", (req, res) => {
-  const game = getGame(req.params.id);
+router.get("/game/:id", async (req, res) => {
+  const game = await getGame(req.params.id);
 
   if (!game) {
     return res.status(404).json({ error: "Game not found" });
@@ -203,8 +202,8 @@ router.get("/game/:id", (req, res) => {
  * Save game state
  * PUT /api/game/:id/save
  */
-router.put("/game/:id/save", (req, res) => {
-  const game = getGame(req.params.id);
+router.put("/game/:id/save", async (req: AuthenticatedRequest, res) => {
+  const game = await getGame(req.params.id);
 
   if (!game) {
     return res.status(404).json({ error: "Game not found" });
@@ -213,7 +212,7 @@ router.put("/game/:id/save", (req, res) => {
   const engine = GameEngine.loadGame(game.state, game.universe);
   const savedState = engine.save();
 
-  saveGame({ state: savedState, universe: game.universe });
+  await saveGame({ state: savedState, universe: game.universe }, req.user?.id);
 
   return res.json({
     success: true,
@@ -225,8 +224,8 @@ router.put("/game/:id/save", (req, res) => {
  * Delete a game
  * DELETE /api/game/:id
  */
-router.delete("/game/:id", (req, res) => {
-  const existed = deleteGame(req.params.id);
+router.delete("/game/:id", async (req, res) => {
+  const existed = await deleteGame(req.params.id);
 
   return res.json({
     success: existed,
@@ -237,8 +236,8 @@ router.delete("/game/:id", (req, res) => {
  * List all games
  * GET /api/games
  */
-router.get("/games", (_req, res) => {
-  const list = getAllGames().map(({ state }) => ({
+router.get("/games", async (req: AuthenticatedRequest, res) => {
+  const list = (await getAllGames(req.user?.id)).map(({ state }) => ({
     id: state.id,
     universeId: state.universeId,
     createdAt: state.createdAt,
