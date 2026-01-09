@@ -6,6 +6,7 @@ import { aiRouter } from "./ai";
 import { editorAIRouter } from "./editor-ai";
 import { helperAIRouter } from "./helper-ai";
 import { imagesRouter } from "./images";
+import { marketplaceRouter } from "./marketplace";
 
 const router = Router();
 
@@ -18,5 +19,6 @@ router.use("/api/editor/ai", editorAIRouter);
 router.use("/api/editor/ai/helper", helperAIRouter);
 router.use("/api/images", imagesRouter);
 router.use("/api", imagesRouter); // Also mount for /api/ai/generate-image/* routes
+router.use("/api/marketplace", marketplaceRouter);
 
 export { router as apiRouter };

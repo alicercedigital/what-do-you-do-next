@@ -10,6 +10,10 @@ import { UniverseListPage, UniverseEditorPage } from "./universe-manager";
 import { LoginPage } from "./pages/auth/login";
 import { RegisterPage } from "./pages/auth/register";
 import { AuthCallbackPage } from "./pages/auth/callback";
+import { MarketplacePage } from "./pages/marketplace";
+import { SearchPage } from "./pages/marketplace/search";
+import { UniverseDetailPage } from "./pages/marketplace/universe-detail";
+import { CreatorProfilePage } from "./pages/marketplace/creator-profile";
 import { AuthGuard, GuestGuard } from "./shared/components/auth";
 import { useAuthStore } from "./store/auth-store";
 
@@ -36,6 +40,24 @@ const router = createBrowserRouter([
       {
         path: "/play",
         element: <PlayPage />,
+      },
+
+      // Marketplace routes (public)
+      {
+        path: "/marketplace",
+        element: <MarketplacePage />,
+      },
+      {
+        path: "/marketplace/search",
+        element: <SearchPage />,
+      },
+      {
+        path: "/marketplace/universe/:id",
+        element: <UniverseDetailPage />,
+      },
+      {
+        path: "/marketplace/creator/:username",
+        element: <CreatorProfilePage />,
       },
 
       // Auth routes (guest only)
@@ -85,10 +107,6 @@ const router = createBrowserRouter([
           {
             path: "/studio",
             element: <div className="min-h-screen flex items-center justify-center"><p className="text-muted-foreground">Creator Studio - Coming soon</p></div>,
-          },
-          {
-            path: "/marketplace",
-            element: <div className="min-h-screen flex items-center justify-center"><p className="text-muted-foreground">Marketplace - Coming soon</p></div>,
           },
         ],
       },
