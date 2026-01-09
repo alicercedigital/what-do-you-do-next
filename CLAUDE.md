@@ -21,7 +21,6 @@ bun run format       # Format code with Prettier
 # Run a single package
 bun run --filter @wdydn/game-api-v2 dev
 bun run --filter @wdydn/game-frontend-v2 dev
-bun run --filter @wdydn/logger test
 
 # Run a single test file (in a package directory)
 cd apps/game-api-v2 && bun run test -- path/to/test.spec.ts
@@ -32,7 +31,6 @@ cd apps/game-api-v2 && bun run test -- path/to/test.spec.ts
 - **apps/game-api-v2** - Express API server with AI integration (Anthropic/OpenAI via Vercel AI SDK)
 - **apps/game-frontend-v2** - React frontend (Vite, Tailwind v4, Zustand, shadcn/ui components)
 - **packages/shared** - Shared types (Universe, GameState, Moment, Character, etc.)
-- **packages/logger** - Logging utility
 - **packages/config** - Shared ESLint, TypeScript, and Jest configurations
 - **packages/scripts** - Build/utility scripts
 
