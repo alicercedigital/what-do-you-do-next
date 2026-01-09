@@ -311,7 +311,7 @@ export function CreationHelper() {
         </div>
 
         {/* Right: Preview panel */}
-        <div className="w-80 border-l bg-muted/30 p-4">
+        <div className="w-80 border-l bg-muted/30 p-4 flex flex-col min-h-0">
           <HelperPreview
             stepId={helper.currentStep}
             selectedValues={helper.currentStepState.selectedValues}
@@ -321,14 +321,8 @@ export function CreationHelper() {
             onSkip={handleSkip}
             canGenerate={helper.hasSelections && !helper.isGenerating}
             canSkip={helper.canGoNext}
+            error={helper.error}
           />
-
-          {/* Error display */}
-          {helper.error && (
-            <div className="mt-4 rounded-lg bg-destructive/10 p-3 text-sm text-destructive">
-              {helper.error}
-            </div>
-          )}
         </div>
       </div>
     </div>

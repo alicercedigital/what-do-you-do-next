@@ -14,6 +14,7 @@ interface HelperPreviewProps {
   onSkip: () => void;
   canGenerate: boolean;
   canSkip: boolean;
+  error?: string | null;
 }
 
 export function HelperPreview({
@@ -26,6 +27,7 @@ export function HelperPreview({
   onSkip,
   canGenerate,
   canSkip,
+  error,
 }: HelperPreviewProps) {
   const hasContent = selectedValues.length > 0 || freeformText.trim().length > 0;
 
@@ -98,6 +100,13 @@ export function HelperPreview({
             </div>
           )}
         </ScrollArea>
+
+        {/* Error display - above buttons so it stays visible */}
+        {error && (
+          <div className="rounded-lg bg-destructive/10 p-3 text-sm text-destructive">
+            {error}
+          </div>
+        )}
 
         <div className="flex gap-2 pt-2 border-t">
           <Button
