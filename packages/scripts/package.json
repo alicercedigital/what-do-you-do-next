@@ -4,17 +4,14 @@
   "type": "module",
   "private": true,
   "bin": {
-    "gather-codebase": "./dist/gather-codebase.js"
+    "gather-codebase": "./src/gather-codebase.ts"
   },
   "scripts": {
-    "build": "bunchee",
-    "dev": "bunchee --watch",
     "gather": "bun run src/gather-codebase.ts"
   },
   "devDependencies": {
     "@wdydn/config": "*",
     "@types/node": "^22.15.3",
-    "bunchee": "^6.4.0",
     "ignore": "^7.0.4",
     "typescript": "5.9.3"
   }
