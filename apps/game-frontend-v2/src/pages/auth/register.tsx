@@ -1,5 +1,5 @@
-import { useState } from "react";
-import { Link, useNavigate, useSearchParams } from "react-router-dom";
+import { useState, useEffect, useCallback } from "react";
+import { Link, useSearchParams } from "react-router-dom";
 import { useAuthStore } from "@/store/auth-store";
 import { Button } from "@/shared/components/ui/button";
 import {
@@ -12,20 +12,88 @@ import {
 } from "@/shared/components/ui/card";
 import { Input } from "@/shared/components/ui/input";
 import { Label } from "@/shared/components/ui/label";
+import {
+  PasswordInput,
+  calculatePasswordStrength,
+} from "@/shared/components/ui/password-input";
+import { Check, X, Loader2, Mail, ArrowRight, Sparkles } from "lucide-react";
+import { cn } from "@/shared/lib/utils";
+import { supabase } from "@/shared/lib/supabase";
+
+type RegistrationStep = "form" | "success";
 
 export function RegisterPage() {
-  const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const redirectTo = searchParams.get("redirect") || "/";
 
   const { signUp, signInWithOAuth, isLoading, error, clearError } =
     useAuthStore();
 
+  const [step, setStep] = useState<RegistrationStep>("form");
   const [email, setEmail] = useState("");
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [localError, setLocalError] = useState<string | null>(null);
+
+  // Username validation states
+  const [isCheckingUsername, setIsCheckingUsername] = useState(false);
+  const [usernameAvailable, setUsernameAvailable] = useState<boolean | null>(
+    null
+  );
+  const [usernameTouched, setUsernameTouched] = useState(false);
+
+  // Debounced username check
+  const checkUsernameAvailability = useCallback(async (name: string) => {
+    if (name.length < 3 || !/^[a-zA-Z0-9_]+$/.test(name)) {
+      setUsernameAvailable(null);
+      return;
+    }
+
+    setIsCheckingUsername(true);
+    try {
+      const { data } = await supabase
+        .from("profiles")
+        .select("id")
+        .eq("username", name.toLowerCase())
+        .single();
+
+      setUsernameAvailable(!data);
+    } catch {
+      setUsernameAvailable(true); // Assume available on error
+    } finally {
+      setIsCheckingUsername(false);
+    }
+  }, []);
+
+  // Debounce username check
+  useEffect(() => {
+    if (!usernameTouched || username.length < 3) {
+      setUsernameAvailable(null);
+      return;
+    }
+
+    const timer = setTimeout(() => {
+      checkUsernameAvailability(username);
+    }, 500);
+
+    return () => clearTimeout(timer);
+  }, [username, usernameTouched, checkUsernameAvailability]);
+
+  // Validation helpers
+  const usernameValid =
+    username.length >= 3 && /^[a-zA-Z0-9_]+$/.test(username);
+  const passwordStrength = calculatePasswordStrength(password);
+  const passwordsMatch =
+    password.length > 0 &&
+    confirmPassword.length > 0 &&
+    password === confirmPassword;
+  const canSubmit =
+    usernameValid &&
+    usernameAvailable !== false &&
+    passwordStrength.score >= 2 &&
+    passwordsMatch &&
+    email.length > 0;
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -51,54 +119,168 @@ export function RegisterPage() {
     }
 
     if (!/^[a-zA-Z0-9_]+$/.test(username)) {
-      setLocalError("Username can only contain letters, numbers, and underscores");
+      setLocalError(
+        "Username can only contain letters, numbers, and underscores"
+      );
       return;
     }
 
     const result = await signUp(email, password, username);
     if (result.success) {
-      navigate(redirectTo);
+      setStep("success");
     }
   };
 
-  const handleOAuthSignIn = async (provider: "google" | "github" | "discord") => {
+  const handleOAuthSignIn = async (
+    provider: "google" | "github" | "discord"
+  ) => {
     clearError();
     await signInWithOAuth(provider);
   };
 
   const displayError = localError || error;
 
+  // Success state - email verification sent
+  if (step === "success") {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-background p-4">
+        <Card className="w-full max-w-md">
+          <CardHeader className="text-center pb-2">
+            <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-green-100 dark:bg-green-900/30">
+              <Mail className="h-8 w-8 text-green-600 dark:text-green-400" />
+            </div>
+            <CardTitle className="text-2xl">Check your email</CardTitle>
+            <CardDescription className="mt-2">
+              We've sent a verification link to
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="text-center space-y-4">
+            <p className="font-medium text-foreground">{email}</p>
+            <p className="text-sm text-muted-foreground">
+              Click the link in the email to verify your account and get
+              started. The link will expire in 24 hours.
+            </p>
+            <div className="pt-4 space-y-3">
+              <p className="text-xs text-muted-foreground">
+                Didn't receive the email? Check your spam folder or
+              </p>
+              <Button
+                variant="outline"
+                onClick={() => {
+                  setStep("form");
+                }}
+                className="w-full"
+              >
+                Try a different email
+              </Button>
+            </div>
+          </CardContent>
+          <CardFooter className="justify-center pt-0">
+            <p className="text-sm text-muted-foreground">
+              Already verified?{" "}
+              <Link
+                to={`/login${redirectTo !== "/" ? `?redirect=${redirectTo}` : ""}`}
+                className="text-foreground hover:underline font-medium"
+              >
+                Sign in
+              </Link>
+            </p>
+          </CardFooter>
+        </Card>
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-screen flex items-center justify-center bg-background p-4">
       <Card className="w-full max-w-md">
-        <CardHeader className="text-center">
+        <CardHeader className="text-center pb-2">
+          <div className="mx-auto mb-2 flex h-12 w-12 items-center justify-center rounded-full bg-primary/10">
+            <Sparkles className="h-6 w-6 text-primary" />
+          </div>
           <CardTitle className="text-2xl">Create an account</CardTitle>
-          <CardDescription>Join the community of creators and players</CardDescription>
+          <CardDescription>
+            Join the community of creators and players
+          </CardDescription>
         </CardHeader>
         <CardContent>
           <form onSubmit={handleSubmit} className="space-y-4">
             {displayError && (
-              <div className="p-3 rounded-md bg-destructive/10 text-destructive text-sm">
-                {displayError}
+              <div className="p-3 rounded-md bg-destructive/10 text-destructive text-sm flex items-start gap-2">
+                <X className="h-4 w-4 mt-0.5 shrink-0" />
+                <span>{displayError}</span>
               </div>
             )}
 
+            {/* Username field with availability check */}
             <div className="space-y-2">
               <Label htmlFor="username">Username</Label>
-              <Input
-                id="username"
-                type="text"
-                placeholder="coolcreator42"
-                value={username}
-                onChange={(e) => setUsername(e.target.value)}
-                required
-                disabled={isLoading}
-              />
-              <p className="text-xs text-muted-foreground">
-                This will be your public display name
-              </p>
+              <div className="relative">
+                <Input
+                  id="username"
+                  type="text"
+                  placeholder="coolcreator42"
+                  value={username}
+                  onChange={(e) => setUsername(e.target.value)}
+                  onBlur={() => setUsernameTouched(true)}
+                  required
+                  disabled={isLoading}
+                  className={cn(
+                    "pr-10",
+                    usernameTouched &&
+                      usernameValid &&
+                      usernameAvailable === true &&
+                      "border-green-500 focus-visible:border-green-500",
+                    usernameTouched &&
+                      (usernameAvailable === false ||
+                        (username.length > 0 && !usernameValid)) &&
+                      "border-destructive focus-visible:border-destructive"
+                  )}
+                />
+                {usernameTouched && username.length > 0 && (
+                  <div className="absolute right-2 top-1/2 -translate-y-1/2">
+                    {isCheckingUsername ? (
+                      <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
+                    ) : usernameValid && usernameAvailable === true ? (
+                      <Check className="h-4 w-4 text-green-500" />
+                    ) : usernameAvailable === false || !usernameValid ? (
+                      <X className="h-4 w-4 text-destructive" />
+                    ) : null}
+                  </div>
+                )}
+              </div>
+              {usernameTouched && (
+                <p
+                  className={cn(
+                    "text-xs transition-colors",
+                    !usernameValid && username.length > 0
+                      ? "text-destructive"
+                      : usernameAvailable === false
+                        ? "text-destructive"
+                        : usernameAvailable === true
+                          ? "text-green-600 dark:text-green-400"
+                          : "text-muted-foreground"
+                  )}
+                >
+                  {!usernameValid && username.length > 0
+                    ? username.length < 3
+                      ? "Username must be at least 3 characters"
+                      : "Only letters, numbers, and underscores"
+                    : usernameAvailable === false
+                      ? "This username is already taken"
+                      : usernameAvailable === true
+                        ? "Username is available"
+                        : "This will be your public display name"}
+                </p>
+              )}
+              {!usernameTouched && (
+                <p className="text-xs text-muted-foreground">
+                  This will be your public display name
+                </p>
+              )}
             </div>
 
+            {/* Email field */}
             <div className="space-y-2">
               <Label htmlFor="email">Email</Label>
               <Input
@@ -112,34 +294,52 @@ export function RegisterPage() {
               />
             </div>
 
+            {/* Password field with strength meter */}
             <div className="space-y-2">
               <Label htmlFor="password">Password</Label>
-              <Input
+              <PasswordInput
                 id="password"
-                type="password"
-                placeholder="At least 8 characters"
+                placeholder="Create a strong password"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 required
                 disabled={isLoading}
+                showStrength
+                showRequirements
               />
             </div>
 
+            {/* Confirm password field with match indicator */}
             <div className="space-y-2">
               <Label htmlFor="confirmPassword">Confirm Password</Label>
-              <Input
+              <PasswordInput
                 id="confirmPassword"
-                type="password"
                 placeholder="Confirm your password"
                 value={confirmPassword}
                 onChange={(e) => setConfirmPassword(e.target.value)}
                 required
                 disabled={isLoading}
+                confirmValue={password}
+                showMatchIndicator
               />
             </div>
 
-            <Button type="submit" className="w-full" disabled={isLoading}>
-              {isLoading ? "Creating account..." : "Create Account"}
+            <Button
+              type="submit"
+              className="w-full"
+              disabled={isLoading || !canSubmit}
+            >
+              {isLoading ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  Creating account...
+                </>
+              ) : (
+                <>
+                  Create Account
+                  <ArrowRight className="ml-2 h-4 w-4" />
+                </>
+              )}
             </Button>
           </form>
 
@@ -159,6 +359,7 @@ export function RegisterPage() {
               variant="outline"
               onClick={() => handleOAuthSignIn("google")}
               disabled={isLoading}
+              className="relative"
             >
               <svg className="h-4 w-4" viewBox="0 0 24 24">
                 <path
@@ -200,8 +401,14 @@ export function RegisterPage() {
           </div>
 
           <p className="text-xs text-muted-foreground text-center mt-4">
-            By creating an account, you agree to our Terms of Service and Privacy
-            Policy
+            By creating an account, you agree to our{" "}
+            <Link to="/terms" className="underline hover:text-foreground">
+              Terms of Service
+            </Link>{" "}
+            and{" "}
+            <Link to="/privacy" className="underline hover:text-foreground">
+              Privacy Policy
+            </Link>
           </p>
         </CardContent>
         <CardFooter className="justify-center">
@@ -209,7 +416,7 @@ export function RegisterPage() {
             Already have an account?{" "}
             <Link
               to={`/login${redirectTo !== "/" ? `?redirect=${redirectTo}` : ""}`}
-              className="text-foreground hover:underline"
+              className="text-foreground hover:underline font-medium"
             >
               Sign in
             </Link>

@@ -137,7 +137,11 @@ export const useGameStore = create<GameStore>()(
             state.isLoading = false;
           });
         } catch (error) {
+          // Clear gameId on failure to prevent infinite retry loops
+          // This handles cases where the game was deleted or doesn't exist
           set((state) => {
+            state.gameId = null;
+            state.phase = "menu";
             state.error =
               error instanceof Error ? error.message : "Failed to load game";
             state.isLoading = false;

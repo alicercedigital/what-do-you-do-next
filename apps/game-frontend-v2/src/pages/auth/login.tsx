@@ -12,6 +12,8 @@ import {
 } from "@/shared/components/ui/card";
 import { Input } from "@/shared/components/ui/input";
 import { Label } from "@/shared/components/ui/label";
+import { PasswordInput } from "@/shared/components/ui/password-input";
+import { Loader2, X, LogIn } from "lucide-react";
 
 export function LoginPage() {
   const navigate = useNavigate();
@@ -24,6 +26,8 @@ export function LoginPage() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
 
+  const canSubmit = email.length > 0 && password.length > 0;
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     clearError();
@@ -34,7 +38,9 @@ export function LoginPage() {
     }
   };
 
-  const handleOAuthSignIn = async (provider: "google" | "github" | "discord") => {
+  const handleOAuthSignIn = async (
+    provider: "google" | "github" | "discord"
+  ) => {
     clearError();
     await signInWithOAuth(provider);
   };
@@ -42,15 +48,19 @@ export function LoginPage() {
   return (
     <div className="min-h-screen flex items-center justify-center bg-background p-4">
       <Card className="w-full max-w-md">
-        <CardHeader className="text-center">
+        <CardHeader className="text-center pb-2">
+          <div className="mx-auto mb-2 flex h-12 w-12 items-center justify-center rounded-full bg-primary/10">
+            <LogIn className="h-6 w-6 text-primary" />
+          </div>
           <CardTitle className="text-2xl">Welcome back</CardTitle>
-          <CardDescription>Sign in to your account</CardDescription>
+          <CardDescription>Sign in to your account to continue</CardDescription>
         </CardHeader>
         <CardContent>
           <form onSubmit={handleSubmit} className="space-y-4">
             {error && (
-              <div className="p-3 rounded-md bg-destructive/10 text-destructive text-sm">
-                {error}
+              <div className="p-3 rounded-md bg-destructive/10 text-destructive text-sm flex items-start gap-2">
+                <X className="h-4 w-4 mt-0.5 shrink-0" />
+                <span>{error}</span>
               </div>
             )}
 
@@ -64,6 +74,8 @@ export function LoginPage() {
                 onChange={(e) => setEmail(e.target.value)}
                 required
                 disabled={isLoading}
+                autoComplete="email"
+                autoFocus
               />
             </div>
 
@@ -72,24 +84,35 @@ export function LoginPage() {
                 <Label htmlFor="password">Password</Label>
                 <Link
                   to="/forgot-password"
-                  className="text-sm text-muted-foreground hover:text-foreground"
+                  className="text-sm text-muted-foreground hover:text-foreground transition-colors"
                 >
                   Forgot password?
                 </Link>
               </div>
-              <Input
+              <PasswordInput
                 id="password"
-                type="password"
-                placeholder="Your password"
+                placeholder="Enter your password"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 required
                 disabled={isLoading}
+                autoComplete="current-password"
               />
             </div>
 
-            <Button type="submit" className="w-full" disabled={isLoading}>
-              {isLoading ? "Signing in..." : "Sign In"}
+            <Button
+              type="submit"
+              className="w-full"
+              disabled={isLoading || !canSubmit}
+            >
+              {isLoading ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  Signing in...
+                </>
+              ) : (
+                "Sign In"
+              )}
             </Button>
           </form>
 
@@ -109,6 +132,7 @@ export function LoginPage() {
               variant="outline"
               onClick={() => handleOAuthSignIn("google")}
               disabled={isLoading}
+              className="relative"
             >
               <svg className="h-4 w-4" viewBox="0 0 24 24">
                 <path
@@ -154,7 +178,7 @@ export function LoginPage() {
             Don't have an account?{" "}
             <Link
               to={`/register${redirectTo !== "/" ? `?redirect=${redirectTo}` : ""}`}
-              className="text-foreground hover:underline"
+              className="text-foreground hover:underline font-medium"
             >
               Sign up
             </Link>

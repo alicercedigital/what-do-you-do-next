@@ -1,5 +1,6 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import { AnimatePresence, motion } from "framer-motion";
+import { toast } from "sonner";
 import { useGameStore, useActiveMoment, useAvailableMoments, useCurrentLocation, useIsLoading } from "@/store";
 import { GameHeader } from "./game-header";
 import { MomentDisplay } from "./moment-display";
@@ -34,6 +35,7 @@ export function GameSession() {
 
   // State for showing role assignment when a moment has a challenge
   const [showRoleAssignment, setShowRoleAssignment] = useState(false);
+  const lastErrorRef = useRef<string | null>(null);
 
   // Check if active moment has an unstarted challenge
   const momentHasChallenge = activeMoment?.challenge && !challengeState;
@@ -43,11 +45,12 @@ export function GameSession() {
     setShowRoleAssignment(false);
   };
 
-  // Clear error after 5 seconds
+  // Show error as toast notification
   useEffect(() => {
-    if (error) {
-      const timer = setTimeout(() => setError(null), 5000);
-      return () => clearTimeout(timer);
+    if (error && error !== lastErrorRef.current) {
+      toast.error(error);
+      lastErrorRef.current = error;
+      setError(null);
     }
   }, [error, setError]);
 
@@ -62,13 +65,6 @@ export function GameSession() {
   return (
     <div className="min-h-screen bg-background flex flex-col">
       <GameHeader />
-
-      {/* Error toast */}
-      {error && (
-        <div className="fixed top-4 right-4 z-50 bg-destructive text-destructive-foreground px-4 py-2 rounded-lg shadow-lg">
-          {error}
-        </div>
-      )}
 
       <main className="flex-1 relative overflow-hidden">
         {/* Location background */}

@@ -61,6 +61,41 @@ export interface ChallengeStateResponse {
 }
 
 /**
+ * Health check result type
+ */
+export interface HealthCheckResult {
+  ok: boolean;
+  error?: string;
+  status?: string;
+  version?: string;
+}
+
+/**
+ * Get user-friendly error message from fetch error
+ */
+function getErrorMessage(error: unknown): string {
+  if (error instanceof TypeError) {
+    // Network errors (connection refused, DNS failure, etc.)
+    return "Connection failed. Please check your internet and try again.";
+  }
+  if (error instanceof Error) {
+    // Don't expose raw error messages to users - they may contain technical details
+    const msg = error.message.toLowerCase();
+    if (msg.includes("not found")) {
+      return "The requested resource was not found.";
+    }
+    if (msg.includes("unauthorized") || msg.includes("forbidden")) {
+      return "You don't have permission to access this resource.";
+    }
+    // For known API errors (from our backend), pass through
+    if (!msg.includes("fetch") && !msg.includes("network") && !msg.includes("failed")) {
+      return error.message;
+    }
+  }
+  return "Something went wrong. Please try again.";
+}
+
+/**
  * API Client for game-api-v2
  */
 class ApiClient {
@@ -74,17 +109,23 @@ class ApiClient {
     path: string,
     options: RequestInit = {}
   ): Promise<T> {
-    const response = await fetch(`${this.baseUrl}${path}`, {
-      headers: {
-        "Content-Type": "application/json",
-        ...options.headers,
-      },
-      ...options,
-    });
+    let response: Response;
+
+    try {
+      response = await fetch(`${this.baseUrl}${path}`, {
+        headers: {
+          "Content-Type": "application/json",
+          ...options.headers,
+        },
+        ...options,
+      });
+    } catch (error) {
+      throw new Error(getErrorMessage(error));
+    }
 
     if (!response.ok) {
       const error = await response.json().catch(() => ({}));
-      throw new Error(error.error || `API error: ${response.status}`);
+      throw new Error(error.error || `Request failed (${response.status})`);
     }
 
     return response.json();
@@ -204,9 +245,23 @@ class ApiClient {
     });
   }
 
-  // Health check
-  async healthCheck(): Promise<{ status: string; version: string }> {
-    return this.request("/health");
+  /**
+   * Check API connectivity - returns result object instead of throwing
+   */
+  async checkHealth(): Promise<HealthCheckResult> {
+    try {
+      const response = await fetch(`${this.baseUrl}/health`);
+      if (!response.ok) {
+        return { ok: false, error: "Server is temporarily unavailable. Please try again." };
+      }
+      const data = await response.json();
+      return { ok: true, status: data.status, version: data.version };
+    } catch {
+      return {
+        ok: false,
+        error: "Please check your internet connection and try again.",
+      };
+    }
   }
 }
 

@@ -38,6 +38,10 @@ interface AuthStoreActions {
   ) => Promise<{ success: boolean; error?: string }>;
   signOut: () => Promise<void>;
 
+  // Password recovery
+  forgotPassword: (email: string) => Promise<{ success: boolean; error?: string }>;
+  resetPassword: (newPassword: string) => Promise<{ success: boolean; error?: string }>;
+
   // Profile
   loadProfile: () => Promise<void>;
   updateProfile: (
@@ -274,6 +278,68 @@ export const useAuthStore = create<AuthStore>()(
               error instanceof Error ? error.message : "Failed to sign out";
             state.isLoading = false;
           });
+        }
+      },
+
+      forgotPassword: async (email) => {
+        set((state) => {
+          state.isLoading = true;
+          state.error = null;
+        });
+
+        try {
+          const { error } = await supabase.auth.resetPasswordForEmail(email, {
+            redirectTo: `${window.location.origin}/reset-password`,
+          });
+
+          if (error) throw error;
+
+          set((state) => {
+            state.isLoading = false;
+          });
+
+          return { success: true };
+        } catch (error) {
+          const errorMessage =
+            error instanceof Error
+              ? error.message
+              : "Failed to send reset email";
+          set((state) => {
+            state.error = errorMessage;
+            state.isLoading = false;
+          });
+          return { success: false, error: errorMessage };
+        }
+      },
+
+      resetPassword: async (newPassword) => {
+        set((state) => {
+          state.isLoading = true;
+          state.error = null;
+        });
+
+        try {
+          const { error } = await supabase.auth.updateUser({
+            password: newPassword,
+          });
+
+          if (error) throw error;
+
+          set((state) => {
+            state.isLoading = false;
+          });
+
+          return { success: true };
+        } catch (error) {
+          const errorMessage =
+            error instanceof Error
+              ? error.message
+              : "Failed to reset password";
+          set((state) => {
+            state.error = errorMessage;
+            state.isLoading = false;
+          });
+          return { success: false, error: errorMessage };
         }
       },
 
