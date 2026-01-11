@@ -2,14 +2,12 @@ import { useEffect } from "react";
 import { Link } from "react-router-dom";
 import { formatDistanceToNow } from "date-fns";
 import {
-  ArrowLeft,
   Coins,
   Heart,
   ShoppingCart,
   TrendingUp,
   Loader2,
 } from "lucide-react";
-import { Button } from "@/shared/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/shared/components/ui/card";
 import { Avatar, AvatarFallback, AvatarImage } from "@/shared/components/ui/avatar";
 import { useEconomyStore, useEarnings } from "@/store/economy-store";
@@ -33,21 +31,14 @@ export function EarningsPage() {
   const isLoading = isLoadingEarnings || isLoadingTips;
 
   return (
-    <div className="min-h-screen bg-background">
-      <div className="mx-auto max-w-4xl px-4 py-8">
-        {/* Header */}
-        <div className="mb-8">
-          <Button variant="ghost" size="sm" asChild className="mb-4">
-            <Link to="/studio">
-              <ArrowLeft className="mr-2 h-4 w-4" />
-              Back to Studio
-            </Link>
-          </Button>
-          <h1 className="text-2xl font-bold">Earnings</h1>
-          <p className="text-muted-foreground">
-            Track your tips and sales revenue
-          </p>
-        </div>
+    <div className="mx-auto max-w-4xl px-4 py-8">
+      {/* Header */}
+      <div className="mb-8">
+        <h1 className="text-2xl font-bold">Earnings</h1>
+        <p className="text-muted-foreground">
+          Track your tips and sales revenue
+        </p>
+      </div>
 
         {isLoading && !earnings ? (
           <div className="flex items-center justify-center py-12">
@@ -204,6 +195,5 @@ export function EarningsPage() {
           </>
         )}
       </div>
-    </div>
   );
 }

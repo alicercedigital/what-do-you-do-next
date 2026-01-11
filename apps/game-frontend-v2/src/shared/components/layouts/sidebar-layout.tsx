@@ -1,6 +1,5 @@
 import { Outlet } from "react-router-dom";
 import { TopBar } from "@/shared/components/navigation/top-bar";
-import { MobileMenu } from "@/shared/components/navigation/mobile-menu";
 import {
   Sheet,
   SheetContent,

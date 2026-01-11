@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
-import { Link, useNavigate } from "react-router-dom";
-import { Play, Upload, FolderOpen, Compass, Palette } from "lucide-react";
+import { useNavigate } from "react-router-dom";
+import { Play, Upload, FolderOpen } from "lucide-react";
 import { useGameStore } from "@/store";
 import { api } from "@/shared/lib/api";
 import { Button } from "@/shared/components/ui/button";
@@ -13,7 +13,6 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/shared/components/ui/dialog";
-import { UserMenu } from "@/shared/components/auth";
 
 interface UniverseInfo {
   id: string;
@@ -89,30 +88,7 @@ export function HomePage() {
   }
 
   return (
-    <div className="min-h-screen bg-background">
-      {/* Top navigation */}
-      <header className="border-b">
-        <div className="container flex items-center justify-between h-14 max-w-6xl mx-auto px-4">
-          <Link to="/" className="font-semibold">WDYDN</Link>
-          <nav className="flex items-center gap-4">
-            <Button variant="ghost" size="sm" asChild>
-              <Link to="/marketplace" className="flex items-center gap-2">
-                <Compass className="h-4 w-4" />
-                <span className="hidden sm:inline">Explore</span>
-              </Link>
-            </Button>
-            <Button variant="ghost" size="sm" asChild>
-              <Link to="/universes" className="flex items-center gap-2">
-                <Palette className="h-4 w-4" />
-                <span className="hidden sm:inline">Create</span>
-              </Link>
-            </Button>
-            <UserMenu />
-          </nav>
-        </div>
-      </header>
-
-      <div className="container py-12 max-w-4xl mx-auto px-4">
+    <div className="container py-12 max-w-4xl mx-auto px-4">
         {/* Header */}
         <div className="text-center mb-12">
           <h1 className="text-4xl font-bold mb-2">What Do You Do Next?</h1>
@@ -249,6 +225,5 @@ export function HomePage() {
           </Button>
         </div>
       </div>
-    </div>
   );
 }

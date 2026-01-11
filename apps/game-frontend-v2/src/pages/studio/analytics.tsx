@@ -1,7 +1,6 @@
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import {
-  ArrowLeft,
   Heart,
   Play,
   MessageSquare,
@@ -72,21 +71,14 @@ export function AnalyticsPage() {
   }, [sortBy]);
 
   return (
-    <div className="min-h-screen bg-background">
-      <div className="mx-auto max-w-6xl px-4 py-8">
-        {/* Header */}
-        <div className="mb-8">
-          <Button variant="ghost" size="sm" asChild className="mb-4">
-            <Link to="/studio">
-              <ArrowLeft className="mr-2 h-4 w-4" />
-              Back to Studio
-            </Link>
-          </Button>
-          <h1 className="text-2xl font-bold">Analytics</h1>
-          <p className="text-muted-foreground">
-            Track your content performance
-          </p>
-        </div>
+    <div className="mx-auto max-w-6xl px-4 py-8">
+      {/* Header */}
+      <div className="mb-8">
+        <h1 className="text-2xl font-bold">Analytics</h1>
+        <p className="text-muted-foreground">
+          Track your content performance
+        </p>
+      </div>
 
         {/* Trends Summary */}
         {trends && (
@@ -227,6 +219,5 @@ export function AnalyticsPage() {
           </CardContent>
         </Card>
       </div>
-    </div>
   );
 }
