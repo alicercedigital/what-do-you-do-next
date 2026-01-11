@@ -146,18 +146,29 @@ function NotificationItem({ notification, onMarkRead, onDelete }: NotificationIt
 
 export function NotificationBell() {
   const [open, setOpen] = useState(false);
-  const { loadNotifications, markNotificationsRead, deleteNotification, isLoadingNotifications } =
-    useSocialStore();
+  const {
+    loadNotifications,
+    markNotificationsRead,
+    deleteNotification,
+    subscribeToNotifications,
+    unsubscribeFromNotifications,
+    isLoadingNotifications,
+  } = useSocialStore();
   const notifications = useNotifications();
   const unreadCount = useUnreadCount();
   const user = useAuthStore((state) => state.user);
 
-  // Load notifications when component mounts or user changes
+  // Load notifications and subscribe to realtime updates when user changes
   useEffect(() => {
     if (user) {
       loadNotifications();
+      subscribeToNotifications(user.id);
     }
-  }, [user, loadNotifications]);
+
+    return () => {
+      unsubscribeFromNotifications();
+    };
+  }, [user, loadNotifications, subscribeToNotifications, unsubscribeFromNotifications]);
 
   // Mark all as read when popover closes
   useEffect(() => {

@@ -12,6 +12,9 @@ import { UniverseListPage, UniverseEditorPage } from "./universe-manager";
 import { LoginPage } from "./pages/auth/login";
 import { RegisterPage } from "./pages/auth/register";
 import { AuthCallbackPage } from "./pages/auth/callback";
+import { ForgotPasswordPage } from "./pages/auth/forgot-password";
+import { ResetPasswordPage } from "./pages/auth/reset-password";
+import { VerifyEmailPage } from "./pages/auth/verify-email";
 import { MarketplacePage } from "./pages/marketplace";
 import { SearchPage } from "./pages/marketplace/search";
 import { UniverseDetailPage } from "./pages/marketplace/universe-detail";
@@ -21,6 +24,8 @@ import { LibraryPage } from "./pages/library";
 import { StudioPage } from "./pages/studio";
 import { AnalyticsPage } from "./pages/studio/analytics";
 import { EarningsPage } from "./pages/studio/earnings";
+import { ProfilePage } from "./pages/profile";
+import { SettingsPage } from "./pages/profile/settings";
 import { AuthGuard, GuestGuard } from "./shared/components/auth";
 import { useAuthStore } from "./store/auth-store";
 
@@ -119,11 +124,24 @@ const router = createBrowserRouter([
             path: "/register",
             element: <RegisterPage />,
           },
+          {
+            path: "/forgot-password",
+            element: <ForgotPasswordPage />,
+          },
         ],
       },
+      // Auth routes (public - for password reset and email verification)
       {
         path: "/auth/callback",
         element: <AuthCallbackPage />,
+      },
+      {
+        path: "/reset-password",
+        element: <ResetPasswordPage />,
+      },
+      {
+        path: "/verify-email",
+        element: <VerifyEmailPage />,
       },
 
       // Protected routes (require auth)
@@ -145,11 +163,11 @@ const router = createBrowserRouter([
           },
           {
             path: "/profile",
-            element: <div className="min-h-screen flex items-center justify-center"><p className="text-muted-foreground">Profile - Coming soon</p></div>,
+            element: <ProfilePage />,
           },
           {
             path: "/profile/settings",
-            element: <div className="min-h-screen flex items-center justify-center"><p className="text-muted-foreground">Settings - Coming soon</p></div>,
+            element: <SettingsPage />,
           },
           {
             path: "/studio",

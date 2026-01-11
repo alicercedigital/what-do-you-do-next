@@ -1,4 +1,6 @@
 import { create } from "zustand";
+import { supabase } from "@/shared/lib/supabase";
+import type { RealtimeChannel } from "@supabase/supabase-js";
 
 /**
  * Comment user info
@@ -85,6 +87,10 @@ interface SocialState {
   totalNotifications: number;
   isLoadingNotifications: boolean;
 
+  // Realtime
+  realtimeChannel: RealtimeChannel | null;
+  subscribedUserId: string | null;
+
   // Error
   error: string | null;
 }
@@ -117,6 +123,11 @@ interface SocialActions {
   markNotificationsRead: (ids?: string[]) => Promise<void>;
   deleteNotification: (notificationId: string) => Promise<void>;
 
+  // Realtime subscriptions
+  subscribeToNotifications: (userId: string) => void;
+  unsubscribeFromNotifications: () => void;
+  addNotification: (notification: Notification) => void;
+
   // Reset
   reset: () => void;
   setError: (error: string | null) => void;
@@ -133,6 +144,8 @@ const initialState: SocialState = {
   unreadCount: 0,
   totalNotifications: 0,
   isLoadingNotifications: false,
+  realtimeChannel: null,
+  subscribedUserId: null,
   error: null,
 };
 
@@ -447,8 +460,70 @@ export const useSocialStore = create<SocialStore>((set, get) => ({
     }
   },
 
+  // ============================================
+  // REALTIME SUBSCRIPTIONS
+  // ============================================
+
+  subscribeToNotifications: (userId: string) => {
+    // Don't re-subscribe if already subscribed to same user
+    if (get().subscribedUserId === userId) return;
+
+    // Unsubscribe from any existing channel
+    get().unsubscribeFromNotifications();
+
+    const channel = supabase
+      .channel(`notifications:${userId}`)
+      .on(
+        "postgres_changes",
+        {
+          event: "INSERT",
+          schema: "public",
+          table: "notifications",
+          filter: `user_id=eq.${userId}`,
+        },
+        async (payload) => {
+          // Fetch the full notification with actor details
+          const response = await fetch(`${API_BASE}/notifications?limit=1`, {
+            credentials: "include",
+          });
+          if (response.ok) {
+            const data = await response.json();
+            if (data.notifications?.[0]?.id === payload.new.id) {
+              get().addNotification(data.notifications[0]);
+            }
+          }
+        }
+      )
+      .subscribe();
+
+    set({
+      realtimeChannel: channel,
+      subscribedUserId: userId,
+    });
+  },
+
+  unsubscribeFromNotifications: () => {
+    const channel = get().realtimeChannel;
+    if (channel) {
+      supabase.removeChannel(channel);
+      set({
+        realtimeChannel: null,
+        subscribedUserId: null,
+      });
+    }
+  },
+
+  addNotification: (notification: Notification) => {
+    set((state) => ({
+      notifications: [notification, ...state.notifications],
+      unreadCount: state.unreadCount + 1,
+      totalNotifications: state.totalNotifications + 1,
+    }));
+  },
+
   // Reset store
   reset: () => {
+    get().unsubscribeFromNotifications();
     set(initialState);
   },
 

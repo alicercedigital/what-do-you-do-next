@@ -14,6 +14,7 @@ import {
   AlertDialogTitle,
 } from "@/shared/components/ui/alert-dialog";
 import { useUniverseEditorStore, useUniverseMetadata, useIsPublishing } from "../store/universe-editor-store";
+import { VersionSelector } from "./version-selector";
 
 export function EditorHeader() {
   const navigate = useNavigate();
@@ -114,6 +115,8 @@ export function EditorHeader() {
             {error}
           </span>
         )}
+
+        <VersionSelector />
 
         <Button variant="outline" size="sm" onClick={handleExport}>
           <Download className="mr-2 h-4 w-4" />

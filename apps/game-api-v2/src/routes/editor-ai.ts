@@ -1,8 +1,66 @@
-import { Router } from "express";
+import { Router, Response } from "express";
 import { generateText } from "ai";
-import { getModel, isAIConfigured } from "../ai/client";
+import { getModelWithFallback, isAIAvailable } from "../ai/client";
+import {
+  optionalAuth,
+  loadProfile,
+  deductCredits,
+  type AuthenticatedRequest,
+} from "../middleware/auth";
 
 const router = Router();
+
+// Apply optional auth to all routes
+router.use(optionalAuth);
+router.use(loadProfile);
+
+// Credit costs for editor AI operations
+const CREDIT_COSTS = {
+  smartInput: 1,
+  generateEntity: 3,
+};
+
+/**
+ * Check if user can use their own API key (bypasses credits)
+ */
+function hasOwnApiKey(req: AuthenticatedRequest): boolean {
+  return Boolean(req.user?.profile?.openrouter_api_key);
+}
+
+/**
+ * Pre-check credits before AI operation
+ */
+async function chargeCredits(
+  req: AuthenticatedRequest,
+  res: Response,
+  cost: number
+): Promise<boolean> {
+  if (hasOwnApiKey(req)) return true;
+  if (!req.user?.id) return true;
+
+  const balance = req.user.profile?.ai_credits ?? 0;
+  if (balance < cost) {
+    res.status(402).json({
+      error: "Insufficient credits",
+      required: cost,
+      available: balance,
+    });
+    return false;
+  }
+  return true;
+}
+
+/**
+ * Finalize credit charge after successful operation
+ */
+async function finalizeCharge(
+  req: AuthenticatedRequest,
+  cost: number,
+  description: string
+): Promise<void> {
+  if (hasOwnApiKey(req) || !req.user?.id) return;
+  await deductCredits(req.user.id, cost, "ai_usage", description);
+}
 
 // Types for generation requests
 interface FieldGenerationRequest {
@@ -32,9 +90,14 @@ interface EntityGenerationRequest {
  * Generate or improve field content
  * POST /api/ai/smart-input
  */
-router.post("/smart-input", async (req, res) => {
+router.post("/smart-input", async (req: AuthenticatedRequest, res) => {
+  const cost = CREDIT_COSTS.smartInput;
+  if (!(await chargeCredits(req, res, cost))) return;
+
+  const userApiKey = req.user?.profile?.openrouter_api_key;
+
   try {
-    if (!isAIConfigured()) {
+    if (!isAIAvailable(userApiKey)) {
       return res.status(503).json({ error: "AI not configured" });
     }
 
@@ -48,13 +111,14 @@ router.post("/smart-input", async (req, res) => {
     const systemPrompt = buildFieldSystemPrompt(entityType, field, context);
 
     const { text } = await generateText({
-      model: getModel(),
+      model: getModelWithFallback(userApiKey),
       system: systemPrompt,
       prompt: prompt,
       temperature: action === "suggestions" ? 0.9 : 0.7,
       maxOutputTokens: action === "expand" ? 500 : 200,
     });
 
+    await finalizeCharge(req, cost, "AI smart input");
     return res.json({ result: text.trim() });
   } catch (error) {
     console.error("Field generation failed:", error);
@@ -68,9 +132,14 @@ router.post("/smart-input", async (req, res) => {
  * Generate a stat
  * POST /api/editor/ai/generate/stat
  */
-router.post("/generate/stat", async (req, res) => {
+router.post("/generate/stat", async (req: AuthenticatedRequest, res) => {
+  const cost = CREDIT_COSTS.generateEntity;
+  if (!(await chargeCredits(req, res, cost))) return;
+
+  const userApiKey = req.user?.profile?.openrouter_api_key;
+
   try {
-    if (!isAIConfigured()) {
+    if (!isAIAvailable(userApiKey)) {
       return res.status(503).json({ error: "AI not configured" });
     }
 
@@ -100,7 +169,7 @@ ${hints.hints ? `Additional context: ${hints.hints}` : ""}
 Make it unique from existing stats.`;
 
     const { text } = await generateText({
-      model: getModel(),
+      model: getModelWithFallback(userApiKey),
       system: systemPrompt,
       prompt: userPrompt,
       temperature: 0.8,
@@ -115,6 +184,7 @@ Make it unique from existing stats.`;
     // Ensure ID is properly formatted
     entity.id = `stat_${slugify(String(entity.name || "stat"))}_${randomId()}`;
 
+    await finalizeCharge(req, cost, "AI stat generation");
     return res.json({ entity });
   } catch (error) {
     console.error("Stat generation failed:", error);
@@ -128,9 +198,14 @@ Make it unique from existing stats.`;
  * Generate a character
  * POST /api/editor/ai/generate/character
  */
-router.post("/generate/character", async (req, res) => {
+router.post("/generate/character", async (req: AuthenticatedRequest, res) => {
+  const cost = CREDIT_COSTS.generateEntity;
+  if (!(await chargeCredits(req, res, cost))) return;
+
+  const userApiKey = req.user?.profile?.openrouter_api_key;
+
   try {
-    if (!isAIConfigured()) {
+    if (!isAIAvailable(userApiKey)) {
       return res.status(503).json({ error: "AI not configured" });
     }
 
@@ -168,7 +243,7 @@ ${hints.hints ? `Additional context: ${hints.hints}` : ""}
 Make them distinct from existing characters.`;
 
     const { text } = await generateText({
-      model: getModel(),
+      model: getModelWithFallback(userApiKey),
       system: systemPrompt,
       prompt: userPrompt,
       temperature: 0.85,
@@ -182,6 +257,7 @@ Make them distinct from existing characters.`;
 
     entity.id = `char_${slugify(String(entity.name || "char"))}_${randomId()}`;
 
+    await finalizeCharge(req, cost, "AI character generation");
     return res.json({ entity });
   } catch (error) {
     console.error("Character generation failed:", error);
@@ -195,9 +271,14 @@ Make them distinct from existing characters.`;
  * Generate a location
  * POST /api/editor/ai/generate/location
  */
-router.post("/generate/location", async (req, res) => {
+router.post("/generate/location", async (req: AuthenticatedRequest, res) => {
+  const cost = CREDIT_COSTS.generateEntity;
+  if (!(await chargeCredits(req, res, cost))) return;
+
+  const userApiKey = req.user?.profile?.openrouter_api_key;
+
   try {
-    if (!isAIConfigured()) {
+    if (!isAIAvailable(userApiKey)) {
       return res.status(503).json({ error: "AI not configured" });
     }
 
@@ -229,7 +310,7 @@ ${connectedLocation ? `This location should connect to "${connectedLocation}".` 
 ${hints.hints ? `Additional context: ${hints.hints}` : ""}`;
 
     const { text } = await generateText({
-      model: getModel(),
+      model: getModelWithFallback(userApiKey),
       system: systemPrompt,
       prompt: userPrompt,
       temperature: 0.85,
@@ -243,6 +324,7 @@ ${hints.hints ? `Additional context: ${hints.hints}` : ""}`;
 
     entity.id = `loc_${slugify(String(entity.name || "loc"))}_${randomId()}`;
 
+    await finalizeCharge(req, cost, "AI location generation");
     return res.json({ entity });
   } catch (error) {
     console.error("Location generation failed:", error);
@@ -256,9 +338,14 @@ ${hints.hints ? `Additional context: ${hints.hints}` : ""}`;
  * Generate an item
  * POST /api/editor/ai/generate/item
  */
-router.post("/generate/item", async (req, res) => {
+router.post("/generate/item", async (req: AuthenticatedRequest, res) => {
+  const cost = CREDIT_COSTS.generateEntity;
+  if (!(await chargeCredits(req, res, cost))) return;
+
+  const userApiKey = req.user?.profile?.openrouter_api_key;
+
   try {
-    if (!isAIConfigured()) {
+    if (!isAIAvailable(userApiKey)) {
       return res.status(503).json({ error: "AI not configured" });
     }
 
@@ -303,7 +390,7 @@ ${hints.slot ? `Equipment slot: ${hints.slot}` : ""}
 ${hints.hints ? `Additional context: ${hints.hints}` : ""}`;
 
     const { text } = await generateText({
-      model: getModel(),
+      model: getModelWithFallback(userApiKey),
       system: systemPrompt,
       prompt: userPrompt,
       temperature: 0.85,
@@ -317,6 +404,7 @@ ${hints.hints ? `Additional context: ${hints.hints}` : ""}`;
 
     entity.id = `item_${slugify(String(entity.name || "item"))}_${randomId()}`;
 
+    await finalizeCharge(req, cost, "AI item generation");
     return res.json({ entity });
   } catch (error) {
     console.error("Item generation failed:", error);
@@ -330,9 +418,14 @@ ${hints.hints ? `Additional context: ${hints.hints}` : ""}`;
  * Generate a challenge
  * POST /api/editor/ai/generate/challenge
  */
-router.post("/generate/challenge", async (req, res) => {
+router.post("/generate/challenge", async (req: AuthenticatedRequest, res) => {
+  const cost = CREDIT_COSTS.generateEntity;
+  if (!(await chargeCredits(req, res, cost))) return;
+
+  const userApiKey = req.user?.profile?.openrouter_api_key;
+
   try {
-    if (!isAIConfigured()) {
+    if (!isAIAvailable(userApiKey)) {
       return res.status(503).json({ error: "AI not configured" });
     }
 
@@ -369,7 +462,7 @@ Number of roles: ${hints.roleCount || 2}
 ${hints.hints ? `Additional context: ${hints.hints}` : ""}`;
 
     const { text } = await generateText({
-      model: getModel(),
+      model: getModelWithFallback(userApiKey),
       system: systemPrompt,
       prompt: userPrompt,
       temperature: 0.8,
@@ -383,6 +476,7 @@ ${hints.hints ? `Additional context: ${hints.hints}` : ""}`;
 
     entity.id = `challenge_${slugify(String(entity.name || "challenge"))}_${randomId()}`;
 
+    await finalizeCharge(req, cost, "AI challenge generation");
     return res.json({ entity });
   } catch (error) {
     console.error("Challenge generation failed:", error);
@@ -396,9 +490,14 @@ ${hints.hints ? `Additional context: ${hints.hints}` : ""}`;
  * Generate a moment
  * POST /api/editor/ai/generate/moment
  */
-router.post("/generate/moment", async (req, res) => {
+router.post("/generate/moment", async (req: AuthenticatedRequest, res) => {
+  const cost = CREDIT_COSTS.generateEntity;
+  if (!(await chargeCredits(req, res, cost))) return;
+
+  const userApiKey = req.user?.profile?.openrouter_api_key;
+
   try {
-    if (!isAIConfigured()) {
+    if (!isAIAvailable(userApiKey)) {
       return res.status(503).json({ error: "AI not configured" });
     }
 
@@ -431,7 +530,7 @@ ${hints.connectTo ? `This moment should flow from or connect to another moment.`
 ${hints.hints ? `Additional context: ${hints.hints}` : ""}`;
 
     const { text } = await generateText({
-      model: getModel(),
+      model: getModelWithFallback(userApiKey),
       system: systemPrompt,
       prompt: userPrompt,
       temperature: 0.85,
@@ -445,6 +544,7 @@ ${hints.hints ? `Additional context: ${hints.hints}` : ""}`;
 
     entity.id = `moment_${slugify(String(entity.title || "moment"))}_${randomId()}`;
 
+    await finalizeCharge(req, cost, "AI moment generation");
     return res.json({ entity });
   } catch (error) {
     console.error("Moment generation failed:", error);

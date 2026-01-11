@@ -1,4 +1,12 @@
-export { getModel, getAIProvider, isAIConfigured, type AIProvider } from "./client";
+export {
+  getModel,
+  getAIProvider,
+  isAIConfigured,
+  isAIAvailable,
+  getModelWithUserKey,
+  getModelWithFallback,
+  type AIProvider,
+} from "./client";
 export {
   evaluateCondition,
   evaluateConditions,

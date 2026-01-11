@@ -1,4 +1,4 @@
-import { Router } from "express";
+import { Router, Response } from "express";
 import { getGame } from "../storage";
 import {
   evaluateCondition,
@@ -8,8 +8,85 @@ import {
   expandMomentText,
   isAIConfigured,
 } from "../ai";
+import {
+  optionalAuth,
+  loadProfile,
+  deductCredits,
+  type AuthenticatedRequest,
+} from "../middleware/auth";
 
 const router = Router();
+
+// Apply optional auth to all routes to identify users for credit deduction
+router.use(optionalAuth);
+router.use(loadProfile);
+
+// Credit costs for different AI operations
+const CREDIT_COSTS = {
+  evaluateCondition: 1,
+  evaluateConditions: 1, // Per condition
+  generateMoment: 5,
+  generateOptions: 3,
+  expandMoment: 2,
+  fillGap: 5,
+};
+
+/**
+ * Check if user can use their own API key (bypasses credits)
+ */
+function hasOwnApiKey(req: AuthenticatedRequest): boolean {
+  return Boolean(req.user?.profile?.openrouter_api_key);
+}
+
+/**
+ * Deduct credits from user after AI usage
+ */
+async function chargeCredits(
+  req: AuthenticatedRequest,
+  res: Response,
+  cost: number,
+  description: string
+): Promise<boolean> {
+  // Skip charging if user has their own API key
+  if (hasOwnApiKey(req)) {
+    return true;
+  }
+
+  // Skip charging if no user (anonymous/dev mode)
+  if (!req.user?.id) {
+    return true;
+  }
+
+  // Check balance
+  const balance = req.user.profile?.ai_credits ?? 0;
+  if (balance < cost) {
+    res.status(402).json({
+      error: "Insufficient credits",
+      required: cost,
+      available: balance,
+    });
+    return false;
+  }
+
+  // Note: Credits are deducted after successful operation
+  // This is a pre-check only
+  return true;
+}
+
+/**
+ * Deduct credits after successful AI call
+ */
+async function finalizeCharge(
+  req: AuthenticatedRequest,
+  cost: number,
+  description: string
+): Promise<void> {
+  if (hasOwnApiKey(req) || !req.user?.id) {
+    return;
+  }
+
+  await deductCredits(req.user.id, cost, "ai_usage", description);
+}
 
 /**
  * Check AI availability
@@ -30,7 +107,14 @@ router.get("/status", (_req, res) => {
  *
  * Body: { hint: string, gameId: string, momentId?: string }
  */
-router.post("/evaluate-condition", async (req, res) => {
+router.post("/evaluate-condition", async (req: AuthenticatedRequest, res) => {
+  const cost = CREDIT_COSTS.evaluateCondition;
+
+  // Pre-check credits
+  if (!(await chargeCredits(req, res, cost, "AI condition evaluation"))) {
+    return;
+  }
+
   try {
     const { hint, gameId, momentId } = req.body;
 
@@ -53,6 +137,9 @@ router.post("/evaluate-condition", async (req, res) => {
       momentId,
     });
 
+    // Charge credits after successful operation
+    await finalizeCharge(req, cost, "AI condition evaluation");
+
     return res.json(result);
   } catch (error) {
     console.error("Condition evaluation failed:", error);
@@ -68,12 +155,19 @@ router.post("/evaluate-condition", async (req, res) => {
  *
  * Body: { conditions: Array<{ hint: string, momentId?: string }>, gameId: string }
  */
-router.post("/evaluate-conditions", async (req, res) => {
+router.post("/evaluate-conditions", async (req: AuthenticatedRequest, res) => {
   try {
     const { conditions, gameId } = req.body;
 
     if (!Array.isArray(conditions)) {
       return res.status(400).json({ error: "conditions array is required" });
+    }
+
+    const cost = CREDIT_COSTS.evaluateConditions * conditions.length;
+
+    // Pre-check credits
+    if (!(await chargeCredits(req, res, cost, "AI conditions evaluation"))) {
+      return;
     }
 
     if (!gameId) {
@@ -92,6 +186,9 @@ router.post("/evaluate-conditions", async (req, res) => {
     }));
 
     const results = await evaluateConditions(requests);
+
+    // Charge credits after successful operation
+    await finalizeCharge(req, cost, "AI conditions evaluation");
 
     return res.json({ results });
   } catch (error) {
@@ -113,7 +210,14 @@ router.post("/evaluate-conditions", async (req, res) => {
  *   locationId?: string
  * }
  */
-router.post("/generate-moment", async (req, res) => {
+router.post("/generate-moment", async (req: AuthenticatedRequest, res) => {
+  const cost = CREDIT_COSTS.generateMoment;
+
+  // Pre-check credits
+  if (!(await chargeCredits(req, res, cost, "AI moment generation"))) {
+    return;
+  }
+
   try {
     const { gameId, context, momentType, locationId } = req.body;
 
@@ -138,6 +242,9 @@ router.post("/generate-moment", async (req, res) => {
       return res.status(500).json({ error: "Failed to generate moment" });
     }
 
+    // Charge credits after successful operation
+    await finalizeCharge(req, cost, "AI moment generation");
+
     return res.json({ moment });
   } catch (error) {
     console.error("Moment generation failed:", error);
@@ -157,7 +264,14 @@ router.post("/generate-moment", async (req, res) => {
  *   context?: string
  * }
  */
-router.post("/generate-options", async (req, res) => {
+router.post("/generate-options", async (req: AuthenticatedRequest, res) => {
+  const cost = CREDIT_COSTS.generateOptions;
+
+  // Pre-check credits
+  if (!(await chargeCredits(req, res, cost, "AI options generation"))) {
+    return;
+  }
+
   try {
     const { gameId, count = 3, context } = req.body;
 
@@ -179,6 +293,9 @@ router.post("/generate-options", async (req, res) => {
       Math.min(count, 5) // Cap at 5 options
     );
 
+    // Charge credits after successful operation
+    await finalizeCharge(req, cost, "AI options generation");
+
     return res.json({ options });
   } catch (error) {
     console.error("Options generation failed:", error);
@@ -197,7 +314,14 @@ router.post("/generate-options", async (req, res) => {
  *   moment: { title: string, text?: string, preview?: string }
  * }
  */
-router.post("/expand-moment", async (req, res) => {
+router.post("/expand-moment", async (req: AuthenticatedRequest, res) => {
+  const cost = CREDIT_COSTS.expandMoment;
+
+  // Pre-check credits
+  if (!(await chargeCredits(req, res, cost, "AI moment expansion"))) {
+    return;
+  }
+
   try {
     const { gameId, moment } = req.body;
 
@@ -224,6 +348,9 @@ router.post("/expand-moment", async (req, res) => {
       return res.status(500).json({ error: "Failed to expand moment" });
     }
 
+    // Charge credits after successful operation
+    await finalizeCharge(req, cost, "AI moment expansion");
+
     return res.json({ text: expandedText });
   } catch (error) {
     console.error("Moment expansion failed:", error);
@@ -242,7 +369,14 @@ router.post("/expand-moment", async (req, res) => {
  *   context?: string
  * }
  */
-router.post("/fill-gap", async (req, res) => {
+router.post("/fill-gap", async (req: AuthenticatedRequest, res) => {
+  const cost = CREDIT_COSTS.fillGap;
+
+  // Pre-check credits
+  if (!(await chargeCredits(req, res, cost, "AI gap filling"))) {
+    return;
+  }
+
   try {
     const { gameId, context } = req.body;
 
@@ -265,6 +399,9 @@ router.post("/fill-gap", async (req, res) => {
     if (!moment) {
       return res.status(500).json({ error: "Failed to fill gap" });
     }
+
+    // Charge credits after successful operation
+    await finalizeCharge(req, cost, "AI gap filling");
 
     return res.json({ moment });
   } catch (error) {

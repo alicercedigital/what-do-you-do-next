@@ -11,6 +11,8 @@ import { socialRouter } from "./social";
 import { savesRouter } from "./saves";
 import { economyRouter } from "./economy";
 import { analyticsRouter } from "./analytics";
+import { badgesRouter } from "./badges";
+import { stripeRouter } from "./stripe";
 
 const router = Router();
 
@@ -28,5 +30,7 @@ router.use("/api/social", socialRouter);
 router.use("/api/saves", savesRouter);
 router.use("/api/economy", economyRouter);
 router.use("/api/analytics", analyticsRouter);
+router.use("/api/badges", badgesRouter);
+router.use("/api/stripe", stripeRouter);
 
 export { router as apiRouter };
