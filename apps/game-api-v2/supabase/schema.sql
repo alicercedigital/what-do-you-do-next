@@ -1,6 +1,9 @@
 -- =============================================================================
 -- WDYDN Marketplace Database Schema
--- Run this in Supabase SQL Editor to set up the database
+--
+-- NOTE: Migrations are now managed in /supabase/migrations/
+-- Use `npx supabase db push` to apply migrations.
+-- This file is kept for reference.
 -- =============================================================================
 
 -- =============================================================================

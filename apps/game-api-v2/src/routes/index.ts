@@ -13,6 +13,7 @@ import { economyRouter } from "./economy";
 import { analyticsRouter } from "./analytics";
 import { badgesRouter } from "./badges";
 import { stripeRouter } from "./stripe";
+import { adminRouter } from "./admin";
 
 const router = Router();
 
@@ -32,5 +33,6 @@ router.use("/api/economy", economyRouter);
 router.use("/api/analytics", analyticsRouter);
 router.use("/api/badges", badgesRouter);
 router.use("/api/stripe", stripeRouter);
+router.use("/api", adminRouter);
 
 export { router as apiRouter };
