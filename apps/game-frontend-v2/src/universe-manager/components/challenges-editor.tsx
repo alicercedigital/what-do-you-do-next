@@ -1,7 +1,12 @@
 import * as React from "react";
 import type { v2 } from "@wdydn/shared";
 import { Button } from "@/shared/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/shared/components/ui/card";
+import {
+  Card,
+  CardContent,
+  CardHeader,
+  CardTitle,
+} from "@/shared/components/ui/card";
 import { Input } from "@/shared/components/ui/input";
 import { Label } from "@/shared/components/ui/label";
 import { Textarea } from "@/shared/components/ui/textarea";
@@ -10,7 +15,10 @@ import { EntityList } from "@/shared/components/ui/entity-list";
 import { EntityIdBadge } from "@/shared/components/ui/entity-id-badge";
 import { Swords, Plus, Trash2 } from "lucide-react";
 
-import { useUniverseEditorStore, generateEntityId } from "../store/universe-editor-store";
+import {
+  useUniverseEditorStore,
+  generateEntityId,
+} from "../store/universe-editor-store";
 import { AIFieldWrapper } from "./ai-field-wrapper";
 import { ChallengeGenerator } from "./entity-generator";
 
@@ -157,7 +165,7 @@ export function ChallengesEditor() {
       </div>
 
       {/* Detail panel */}
-      <div className="flex-1 overflow-hidden">
+      <div className="">
         {selectedChallenge ? (
           <ScrollArea className="h-full">
             <div className="max-w-3xl space-y-6 p-6">
@@ -183,15 +191,21 @@ export function ChallengesEditor() {
                       entityType="challenge"
                       field="description"
                       universe={universe}
-                      currentEntity={selectedChallenge as unknown as Record<string, unknown>}
+                      currentEntity={
+                        selectedChallenge as unknown as Record<string, unknown>
+                      }
                       currentValue={selectedChallenge.description || ""}
-                      onValueChange={(value) => handleUpdate({ description: value || undefined })}
+                      onValueChange={(value) =>
+                        handleUpdate({ description: value || undefined })
+                      }
                     >
                       <Textarea
                         id="description"
                         value={selectedChallenge.description || ""}
                         onChange={(e) =>
-                          handleUpdate({ description: e.target.value || undefined })
+                          handleUpdate({
+                            description: e.target.value || undefined,
+                          })
                         }
                         placeholder="What kind of challenge is this?"
                         rows={2}
@@ -251,7 +265,9 @@ export function ChallengesEditor() {
                           type="checkbox"
                           checked={role.required}
                           onChange={(e) =>
-                            handleUpdateRole(index, { required: e.target.checked })
+                            handleUpdateRole(index, {
+                              required: e.target.checked,
+                            })
                           }
                         />
                         Required
@@ -302,7 +318,11 @@ Example: character.player.stats.hp -= $roll(1d6) + character.opponent.stats.stre
               <Card>
                 <CardHeader className="flex flex-row items-center justify-between">
                   <CardTitle>Outcomes</CardTitle>
-                  <Button size="sm" variant="outline" onClick={handleAddOutcome}>
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={handleAddOutcome}
+                  >
                     <Plus className="mr-1 h-3 w-3" />
                     Add Outcome
                   </Button>

@@ -69,7 +69,11 @@ export function HelperInput({
     if (e.key === "Enter" && inputValue.trim()) {
       e.preventDefault();
       handleAddCustom();
-    } else if (e.key === "Backspace" && !inputValue && selectedValues.length > 0) {
+    } else if (
+      e.key === "Backspace" &&
+      !inputValue &&
+      selectedValues.length > 0
+    ) {
       // Remove last selection on backspace if input is empty
       handleRemoveSelection(selectedValues[selectedValues.length - 1]);
     }
@@ -97,10 +101,41 @@ export function HelperInput({
       {/* Question header */}
       <div className="text-center space-y-2">
         <h2 className="text-2xl font-semibold">{question}</h2>
-        {description && (
-          <p className="text-muted-foreground">{description}</p>
-        )}
+        {description && <p className="text-muted-foreground">{description}</p>}
       </div>
+
+      {/* Text input area */}
+      {mode === "open" ? (
+        <div className="max-w-2xl mx-auto">
+          <Textarea
+            value={textValue}
+            onChange={(e) => onTextChange(e.target.value)}
+            placeholder={placeholder}
+            rows={4}
+            className="resize-none"
+          />
+        </div>
+      ) : (
+        <div className="relative max-w-xl mx-auto">
+          <Input
+            value={inputValue}
+            onChange={(e) => setInputValue(e.target.value)}
+            onKeyDown={handleKeyDown}
+            placeholder={placeholder}
+            className="pr-10"
+          />
+          <Button
+            type="button"
+            variant="ghost"
+            size="icon"
+            onClick={handleAddCustom}
+            disabled={!inputValue.trim()}
+            className="absolute right-1 top-1/2 -translate-y-1/2 h-7 w-7"
+          >
+            <Plus className="h-4 w-4" />
+          </Button>
+        </div>
+      )}
 
       {/* Selected values as badges */}
       {selectedValues.length > 0 && (
@@ -161,39 +196,6 @@ export function HelperInput({
               </button>
             )}
           </div>
-        </div>
-      )}
-
-      {/* Text input area */}
-      {mode === "open" ? (
-        <div className="max-w-2xl mx-auto">
-          <Textarea
-            value={textValue}
-            onChange={(e) => onTextChange(e.target.value)}
-            placeholder={placeholder}
-            rows={4}
-            className="resize-none"
-          />
-        </div>
-      ) : (
-        <div className="relative max-w-xl mx-auto">
-          <Input
-            value={inputValue}
-            onChange={(e) => setInputValue(e.target.value)}
-            onKeyDown={handleKeyDown}
-            placeholder={placeholder}
-            className="pr-10"
-          />
-          <Button
-            type="button"
-            variant="ghost"
-            size="icon"
-            onClick={handleAddCustom}
-            disabled={!inputValue.trim()}
-            className="absolute right-1 top-1/2 -translate-y-1/2 h-7 w-7"
-          >
-            <Plus className="h-4 w-4" />
-          </Button>
         </div>
       )}
 

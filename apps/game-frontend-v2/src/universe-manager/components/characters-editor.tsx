@@ -1,17 +1,30 @@
 import * as React from "react";
 import type { v2 } from "@wdydn/shared";
-import { Card, CardContent, CardHeader, CardTitle } from "@/shared/components/ui/card";
+import {
+  Card,
+  CardContent,
+  CardHeader,
+  CardTitle,
+} from "@/shared/components/ui/card";
 import { Input } from "@/shared/components/ui/input";
 import { Label } from "@/shared/components/ui/label";
 import { Textarea } from "@/shared/components/ui/textarea";
 import { Switch } from "@/shared/components/ui/switch";
 import { ScrollArea } from "@/shared/components/ui/scroll-area";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/shared/components/ui/tabs";
+import {
+  Tabs,
+  TabsContent,
+  TabsList,
+  TabsTrigger,
+} from "@/shared/components/ui/tabs";
 import { EntityList } from "@/shared/components/ui/entity-list";
 import { EntityIdBadge } from "@/shared/components/ui/entity-id-badge";
 import { User, Star } from "lucide-react";
 
-import { useUniverseEditorStore, generateEntityId } from "../store/universe-editor-store";
+import {
+  useUniverseEditorStore,
+  generateEntityId,
+} from "../store/universe-editor-store";
 import { AIFieldWrapper } from "./ai-field-wrapper";
 import { CharacterGenerator } from "./entity-generator";
 
@@ -47,7 +60,9 @@ export function CharactersEditor() {
 
   if (!universe) return null;
 
-  const selectedCharacter = universe.characters.find((c) => c.id === selectedEntityId);
+  const selectedCharacter = universe.characters.find(
+    (c) => c.id === selectedEntityId
+  );
 
   const handleCreate = () => {
     const newCharacter = createDefaultCharacter();
@@ -108,8 +123,8 @@ export function CharactersEditor() {
                   {char.isPlayer
                     ? "Player"
                     : char.playable
-                    ? "Playable"
-                    : "NPC"}
+                      ? "Playable"
+                      : "NPC"}
                 </p>
               </div>
             </div>
@@ -118,7 +133,7 @@ export function CharactersEditor() {
       </div>
 
       {/* Detail panel */}
-      <div className="flex-1 overflow-hidden">
+      <div className="">
         {selectedCharacter ? (
           <ScrollArea className="h-full">
             <div className="max-w-3xl space-y-6 p-6">
@@ -142,7 +157,9 @@ export function CharactersEditor() {
                         <Input
                           id="name"
                           value={selectedCharacter.name}
-                          onChange={(e) => handleUpdate({ name: e.target.value })}
+                          onChange={(e) =>
+                            handleUpdate({ name: e.target.value })
+                          }
                           placeholder="Character Name"
                         />
                       </div>
@@ -153,7 +170,12 @@ export function CharactersEditor() {
                           entityType="character"
                           field="description"
                           universe={universe}
-                          currentEntity={selectedCharacter as unknown as Record<string, unknown>}
+                          currentEntity={
+                            selectedCharacter as unknown as Record<
+                              string,
+                              unknown
+                            >
+                          }
                           currentValue={selectedCharacter.description || ""}
                           onValueChange={(value) =>
                             handleUpdate({ description: value || undefined })
@@ -163,7 +185,9 @@ export function CharactersEditor() {
                             id="description"
                             value={selectedCharacter.description || ""}
                             onChange={(e) =>
-                              handleUpdate({ description: e.target.value || undefined })
+                              handleUpdate({
+                                description: e.target.value || undefined,
+                              })
                             }
                             placeholder="Background and lore..."
                             rows={4}
@@ -212,21 +236,27 @@ export function CharactersEditor() {
                         <div className="grid gap-4 sm:grid-cols-2">
                           {universe.stats.map((stat) => (
                             <div key={stat.id} className="grid gap-2">
-                              <Label htmlFor={`stat-${stat.id}`}>{stat.name}</Label>
+                              <Label htmlFor={`stat-${stat.id}`}>
+                                {stat.name}
+                              </Label>
                               {stat.type === "number" && (
                                 <Input
                                   id={`stat-${stat.id}`}
                                   type="number"
                                   value={
-                                    typeof selectedCharacter.stats[stat.id] === "number"
-                                      ? (selectedCharacter.stats[stat.id] as number)
-                                      : (stat.base as number) ?? 0
+                                    typeof selectedCharacter.stats[stat.id] ===
+                                    "number"
+                                      ? (selectedCharacter.stats[
+                                          stat.id
+                                        ] as number)
+                                      : ((stat.base as number) ?? 0)
                                   }
                                   onChange={(e) =>
                                     handleUpdate({
                                       stats: {
                                         ...selectedCharacter.stats,
-                                        [stat.id]: parseFloat(e.target.value) || 0,
+                                        [stat.id]:
+                                          parseFloat(e.target.value) || 0,
                                       },
                                     })
                                   }
@@ -235,7 +265,9 @@ export function CharactersEditor() {
                               {stat.type === "boolean" && (
                                 <Switch
                                   id={`stat-${stat.id}`}
-                                  checked={selectedCharacter.stats[stat.id] === true}
+                                  checked={
+                                    selectedCharacter.stats[stat.id] === true
+                                  }
                                   onCheckedChange={(checked) =>
                                     handleUpdate({
                                       stats: {
@@ -250,9 +282,12 @@ export function CharactersEditor() {
                                 <Input
                                   id={`stat-${stat.id}`}
                                   value={
-                                    typeof selectedCharacter.stats[stat.id] === "string"
-                                      ? (selectedCharacter.stats[stat.id] as string)
-                                      : (stat.base as string) ?? ""
+                                    typeof selectedCharacter.stats[stat.id] ===
+                                    "string"
+                                      ? (selectedCharacter.stats[
+                                          stat.id
+                                        ] as string)
+                                      : ((stat.base as string) ?? "")
                                   }
                                   onChange={(e) =>
                                     handleUpdate({
@@ -282,8 +317,12 @@ export function CharactersEditor() {
                         <Label htmlFor="traits">Traits</Label>
                         <Input
                           id="traits"
-                          value={selectedCharacter.personality.traits.join(", ")}
-                          onChange={(e) => handlePersonalityUpdate("traits", e.target.value)}
+                          value={selectedCharacter.personality.traits.join(
+                            ", "
+                          )}
+                          onChange={(e) =>
+                            handlePersonalityUpdate("traits", e.target.value)
+                          }
                           placeholder="brave, cunning, stubborn..."
                         />
                         <p className="text-xs text-muted-foreground">
@@ -295,8 +334,12 @@ export function CharactersEditor() {
                         <Label htmlFor="values">Values</Label>
                         <Input
                           id="values"
-                          value={selectedCharacter.personality.values.join(", ")}
-                          onChange={(e) => handlePersonalityUpdate("values", e.target.value)}
+                          value={selectedCharacter.personality.values.join(
+                            ", "
+                          )}
+                          onChange={(e) =>
+                            handlePersonalityUpdate("values", e.target.value)
+                          }
                           placeholder="honor, family, wealth..."
                         />
                         <p className="text-xs text-muted-foreground">
@@ -309,7 +352,9 @@ export function CharactersEditor() {
                         <Input
                           id="fears"
                           value={selectedCharacter.personality.fears.join(", ")}
-                          onChange={(e) => handlePersonalityUpdate("fears", e.target.value)}
+                          onChange={(e) =>
+                            handlePersonalityUpdate("fears", e.target.value)
+                          }
                           placeholder="failure, heights, loneliness..."
                         />
                         <p className="text-xs text-muted-foreground">
@@ -321,8 +366,12 @@ export function CharactersEditor() {
                         <Label htmlFor="desires">Desires</Label>
                         <Input
                           id="desires"
-                          value={selectedCharacter.personality.desires.join(", ")}
-                          onChange={(e) => handlePersonalityUpdate("desires", e.target.value)}
+                          value={selectedCharacter.personality.desires.join(
+                            ", "
+                          )}
+                          onChange={(e) =>
+                            handlePersonalityUpdate("desires", e.target.value)
+                          }
                           placeholder="power, love, redemption..."
                         />
                         <p className="text-xs text-muted-foreground">
@@ -341,7 +390,9 @@ export function CharactersEditor() {
                         value={selectedCharacter.memories.join("\n")}
                         onChange={(e) =>
                           handleUpdate({
-                            memories: e.target.value.split("\n").filter(Boolean),
+                            memories: e.target.value
+                              .split("\n")
+                              .filter(Boolean),
                           })
                         }
                         placeholder="Enter memories, one per line..."
@@ -361,8 +412,9 @@ export function CharactersEditor() {
                     </CardHeader>
                     <CardContent>
                       <p className="text-sm text-muted-foreground">
-                        Add image URLs for different emotional states. The images will be used
-                        for character portraits during gameplay.
+                        Add image URLs for different emotional states. The
+                        images will be used for character portraits during
+                        gameplay.
                       </p>
                       <div className="mt-4 grid gap-4 sm:grid-cols-2">
                         {(
@@ -380,7 +432,10 @@ export function CharactersEditor() {
                           ] as const
                         ).map((emotion) => (
                           <div key={emotion} className="grid gap-2">
-                            <Label htmlFor={`image-${emotion}`} className="capitalize">
+                            <Label
+                              htmlFor={`image-${emotion}`}
+                              className="capitalize"
+                            >
                               {emotion}
                             </Label>
                             <Input

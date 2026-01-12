@@ -13,11 +13,20 @@ import type { ChoiceOption } from "./helper-choice-button";
 const API_BASE = import.meta.env.VITE_API_URL || "http://localhost:3001";
 
 export function CreationHelper() {
-  const { universe, updateUniverse, addStat, addCharacter, addLocation, addItem, addMoment } =
-    useUniverseEditorStore();
+  const {
+    universe,
+    updateUniverse,
+    addStat,
+    addCharacter,
+    addLocation,
+    addItem,
+    addMoment,
+  } = useUniverseEditorStore();
 
   const helper = useCreationHelper();
-  const [aiRegenerateOptions, setAiRegenerateOptions] = React.useState<RegenerateOption[]>([]);
+  const [aiRegenerateOptions, setAiRegenerateOptions] = React.useState<
+    RegenerateOption[]
+  >([]);
   const [isLoadingAiOptions, setIsLoadingAiOptions] = React.useState(false);
 
   // Load AI regenerate options when selections change
@@ -30,15 +39,20 @@ export function CreationHelper() {
 
       setIsLoadingAiOptions(true);
       try {
-        const response = await fetch(`${API_BASE}/api/editor/ai/helper/regenerate-options`, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            step: helper.currentStep,
-            currentSelections: helper.currentStepState.selectedValues,
-            universe: universe ? { name: universe.name, theme: universe.theme } : null,
-          }),
-        });
+        const response = await fetch(
+          `${API_BASE}/api/editor/ai/helper/regenerate-options`,
+          {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              step: helper.currentStep,
+              currentSelections: helper.currentStepState.selectedValues,
+              universe: universe
+                ? { name: universe.name, theme: universe.theme }
+                : null,
+            }),
+          }
+        );
 
         if (response.ok) {
           const data = await response.json();
@@ -58,27 +72,37 @@ export function CreationHelper() {
 
     const timeout = setTimeout(loadAiOptions, 500);
     return () => clearTimeout(timeout);
-  }, [helper.currentStep, helper.currentStepState.selectedValues, universe?.name, universe?.theme]);
+  }, [
+    helper.currentStep,
+    helper.currentStepState.selectedValues,
+    universe?.name,
+    universe?.theme,
+  ]);
 
   const handleRequestMoreOptions = async () => {
     helper.setLoadingOptions(true);
     try {
-      const response = await fetch(`${API_BASE}/api/editor/ai/helper/suggestions`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          step: helper.currentStep,
-          universe: universe
-            ? {
-                name: universe.name,
-                theme: universe.theme,
-                description: universe.description,
-              }
-            : null,
-          existingOptions: helper.currentStepState.options.map((o) => o.label),
-          currentSelections: helper.currentStepState.selectedValues,
-        }),
-      });
+      const response = await fetch(
+        `${API_BASE}/api/editor/ai/helper/suggestions`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            step: helper.currentStep,
+            universe: universe
+              ? {
+                  name: universe.name,
+                  theme: universe.theme,
+                  description: universe.description,
+                }
+              : null,
+            existingOptions: helper.currentStepState.options.map(
+              (o) => o.label
+            ),
+            currentSelections: helper.currentStepState.selectedValues,
+          }),
+        }
+      );
 
       if (response.ok) {
         const data = await response.json();
@@ -103,22 +127,25 @@ export function CreationHelper() {
   const handleRegenerate = async (option: RegenerateOption) => {
     helper.setLoadingOptions(true);
     try {
-      const response = await fetch(`${API_BASE}/api/editor/ai/helper/suggestions`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          step: helper.currentStep,
-          universe: universe
-            ? {
-                name: universe.name,
-                theme: universe.theme,
-                description: universe.description,
-              }
-            : null,
-          regenerateMode: option.id,
-          currentSelections: helper.currentStepState.selectedValues,
-        }),
-      });
+      const response = await fetch(
+        `${API_BASE}/api/editor/ai/helper/suggestions`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            step: helper.currentStep,
+            universe: universe
+              ? {
+                  name: universe.name,
+                  theme: universe.theme,
+                  description: universe.description,
+                }
+              : null,
+            regenerateMode: option.id,
+            currentSelections: helper.currentStepState.selectedValues,
+          }),
+        }
+      );
 
       if (response.ok) {
         const data = await response.json();
@@ -146,26 +173,29 @@ export function CreationHelper() {
     helper.setError(null);
 
     try {
-      const response = await fetch(`${API_BASE}/api/editor/ai/helper/generate-content`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          step: helper.currentStep,
-          selections: helper.currentStepState.selectedValues,
-          freeformText: helper.currentStepState.freeformText,
-          universe: {
-            id: universe.id,
-            name: universe.name,
-            theme: universe.theme,
-            description: universe.description,
-            stats: universe.stats,
-            characters: universe.characters,
-            locations: universe.locations,
-            items: universe.items,
-            moments: universe.moments,
-          },
-        }),
-      });
+      const response = await fetch(
+        `${API_BASE}/api/editor/ai/helper/generate-content`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            step: helper.currentStep,
+            selections: helper.currentStepState.selectedValues,
+            freeformText: helper.currentStepState.freeformText,
+            universe: {
+              id: universe.id,
+              name: universe.name,
+              theme: universe.theme,
+              description: universe.description,
+              stats: universe.stats,
+              characters: universe.characters,
+              locations: universe.locations,
+              items: universe.items,
+              moments: universe.moments,
+            },
+          }),
+        }
+      );
 
       if (!response.ok) {
         throw new Error("Failed to generate content");
@@ -243,7 +273,7 @@ export function CreationHelper() {
   }
 
   return (
-    <div className="flex h-[calc(100vh-7rem)] flex-col">
+    <div className="flex h-[calc(100vh-10em)] flex-col">
       {/* Progress bar */}
       <div className="border-b bg-card/50 px-6 py-4">
         <HelperProgress
@@ -257,7 +287,7 @@ export function CreationHelper() {
       <div className="flex flex-1 min-h-0">
         {/* Left: Input area */}
         <div className="flex-1 flex flex-col min-w-0">
-          <ScrollArea className="flex-1">
+          <ScrollArea className="flex-1 overflow-hidden">
             <div className="max-w-4xl mx-auto px-6 py-8">
               <HelperInput
                 mode={helper.currentStepConfig.inputMode}

@@ -143,9 +143,10 @@ router.post("/generate/stat", async (req: AuthenticatedRequest, res) => {
       return res.status(503).json({ error: "AI not configured" });
     }
 
-    const { universe, hints, existingEntities } = req.body as EntityGenerationRequest;
+    const { universe, hints, existingEntities } =
+      req.body as EntityGenerationRequest;
 
-    const systemPrompt = `You are a game designer creating stats for an interactive fiction universe.
+    const systemPrompt = `You are a game designer creating stats for an interactive game universe.
 Universe: "${universe.name}"
 Theme: ${universe.theme}
 ${universe.description ? `Description: ${universe.description}` : ""}
@@ -178,7 +179,9 @@ Make it unique from existing stats.`;
 
     const entity = parseJSON(text);
     if (!entity) {
-      return res.status(500).json({ error: "Failed to parse generated entity" });
+      return res
+        .status(500)
+        .json({ error: "Failed to parse generated entity" });
     }
 
     // Ensure ID is properly formatted
@@ -212,7 +215,7 @@ router.post("/generate/character", async (req: AuthenticatedRequest, res) => {
     const { universe, hints, existingEntities, stats } =
       req.body as EntityGenerationRequest;
 
-    const systemPrompt = `You are a creative writer designing characters for an interactive fiction universe.
+    const systemPrompt = `You are a creative writer designing characters for an interactive game universe.
 Universe: "${universe.name}"
 Theme: ${universe.theme}
 ${universe.description ? `Description: ${universe.description}` : ""}
@@ -252,7 +255,9 @@ Make them distinct from existing characters.`;
 
     const entity = parseJSON(text);
     if (!entity) {
-      return res.status(500).json({ error: "Failed to parse generated entity" });
+      return res
+        .status(500)
+        .json({ error: "Failed to parse generated entity" });
     }
 
     entity.id = `char_${slugify(String(entity.name || "char"))}_${randomId()}`;
@@ -282,13 +287,14 @@ router.post("/generate/location", async (req: AuthenticatedRequest, res) => {
       return res.status(503).json({ error: "AI not configured" });
     }
 
-    const { universe, hints, existingEntities } = req.body as EntityGenerationRequest;
+    const { universe, hints, existingEntities } =
+      req.body as EntityGenerationRequest;
 
     const connectedLocation = hints.connectedTo
       ? existingEntities.find((e) => e.id === hints.connectedTo)?.name
       : null;
 
-    const systemPrompt = `You are a world builder creating locations for an interactive fiction universe.
+    const systemPrompt = `You are a world builder creating locations for an interactive game universe.
 Universe: "${universe.name}"
 Theme: ${universe.theme}
 ${universe.description ? `Description: ${universe.description}` : ""}
@@ -319,7 +325,9 @@ ${hints.hints ? `Additional context: ${hints.hints}` : ""}`;
 
     const entity = parseJSON(text);
     if (!entity) {
-      return res.status(500).json({ error: "Failed to parse generated entity" });
+      return res
+        .status(500)
+        .json({ error: "Failed to parse generated entity" });
     }
 
     entity.id = `loc_${slugify(String(entity.name || "loc"))}_${randomId()}`;
@@ -354,7 +362,7 @@ router.post("/generate/item", async (req: AuthenticatedRequest, res) => {
 
     const equipmentSlots = universe.config?.equipmentSlots || [];
 
-    const systemPrompt = `You are a game designer creating items for an interactive fiction universe.
+    const systemPrompt = `You are a game designer creating items for an interactive game universe.
 Universe: "${universe.name}"
 Theme: ${universe.theme}
 ${universe.description ? `Description: ${universe.description}` : ""}
@@ -370,19 +378,19 @@ Generate a unique item. Return ONLY valid JSON:
   "description": "Item description and lore",
   "kind": "${hints.kind || "equipment"}",
   "rarity": "${hints.rarity || "common"}"${
-      hints.kind === "equipment"
-        ? `,
+    hints.kind === "equipment"
+      ? `,
   "slot": "${hints.slot || equipmentSlots[0] || ""}",
   "whileEquipped": []`
-        : ""
-    }${
-      hints.kind === "consumable"
-        ? `,
+      : ""
+  }${
+    hints.kind === "consumable"
+      ? `,
   "onUse": [],
   "stackable": true,
   "maxStack": 99`
-        : ""
-    }
+      : ""
+  }
 }`;
 
     const userPrompt = `Create a ${hints.rarity || "common"} ${hints.kind || "equipment"} item for ${hints.purpose || "general use"}.
@@ -399,7 +407,9 @@ ${hints.hints ? `Additional context: ${hints.hints}` : ""}`;
 
     const entity = parseJSON(text);
     if (!entity) {
-      return res.status(500).json({ error: "Failed to parse generated entity" });
+      return res
+        .status(500)
+        .json({ error: "Failed to parse generated entity" });
     }
 
     entity.id = `item_${slugify(String(entity.name || "item"))}_${randomId()}`;
@@ -432,7 +442,7 @@ router.post("/generate/challenge", async (req: AuthenticatedRequest, res) => {
     const { universe, hints, existingEntities, stats } =
       req.body as EntityGenerationRequest;
 
-    const systemPrompt = `You are a game designer creating challenges for an interactive fiction universe.
+    const systemPrompt = `You are a game designer creating challenges for an interactive game universe.
 Universe: "${universe.name}"
 Theme: ${universe.theme}
 ${universe.description ? `Description: ${universe.description}` : ""}
@@ -471,7 +481,9 @@ ${hints.hints ? `Additional context: ${hints.hints}` : ""}`;
 
     const entity = parseJSON(text);
     if (!entity) {
-      return res.status(500).json({ error: "Failed to parse generated entity" });
+      return res
+        .status(500)
+        .json({ error: "Failed to parse generated entity" });
     }
 
     entity.id = `challenge_${slugify(String(entity.name || "challenge"))}_${randomId()}`;
@@ -501,14 +513,20 @@ router.post("/generate/moment", async (req: AuthenticatedRequest, res) => {
       return res.status(503).json({ error: "AI not configured" });
     }
 
-    const { universe, hints, existingEntities } = req.body as EntityGenerationRequest;
+    const { universe, hints, existingEntities } =
+      req.body as EntityGenerationRequest;
 
-    const systemPrompt = `You are a narrative designer creating story moments for an interactive fiction universe.
+    const systemPrompt = `You are a narrative designer creating story moments for an interactive game universe.
 Universe: "${universe.name}"
 Theme: ${universe.theme}
 ${universe.description ? `Description: ${universe.description}` : ""}
 
-Existing moments: ${existingEntities.slice(0, 10).map((e) => e.title || e.name).join(", ") || "None"}
+Existing moments: ${
+      existingEntities
+        .slice(0, 10)
+        .map((e) => e.title || e.name)
+        .join(", ") || "None"
+    }
 
 Generate a unique moment. Return ONLY valid JSON:
 {
@@ -539,7 +557,9 @@ ${hints.hints ? `Additional context: ${hints.hints}` : ""}`;
 
     const entity = parseJSON(text);
     if (!entity) {
-      return res.status(500).json({ error: "Failed to parse generated entity" });
+      return res
+        .status(500)
+        .json({ error: "Failed to parse generated entity" });
     }
 
     entity.id = `moment_${slugify(String(entity.title || "moment"))}_${randomId()}`;
@@ -561,7 +581,9 @@ function buildFieldSystemPrompt(
   field: string,
   context: Record<string, unknown>
 ): string {
-  const universeInfo = context.universe as { name?: string; theme?: string } | undefined;
+  const universeInfo = context.universe as
+    | { name?: string; theme?: string }
+    | undefined;
 
   return `You are a creative assistant helping design content for an interactive fiction game.
 Universe: "${universeInfo?.name || "Unknown"}"

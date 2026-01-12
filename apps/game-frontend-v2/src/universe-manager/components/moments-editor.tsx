@@ -1,12 +1,22 @@
 import * as React from "react";
 import type { v2 } from "@wdydn/shared";
-import { Card, CardContent, CardHeader, CardTitle } from "@/shared/components/ui/card";
+import {
+  Card,
+  CardContent,
+  CardHeader,
+  CardTitle,
+} from "@/shared/components/ui/card";
 import { Input } from "@/shared/components/ui/input";
 import { Label } from "@/shared/components/ui/label";
 import { Textarea } from "@/shared/components/ui/textarea";
 import { Switch } from "@/shared/components/ui/switch";
 import { ScrollArea } from "@/shared/components/ui/scroll-area";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/shared/components/ui/tabs";
+import {
+  Tabs,
+  TabsContent,
+  TabsList,
+  TabsTrigger,
+} from "@/shared/components/ui/tabs";
 import {
   Select,
   SelectContent,
@@ -17,7 +27,10 @@ import {
 import { EntityList } from "@/shared/components/ui/entity-list";
 import { EntityIdBadge } from "@/shared/components/ui/entity-id-badge";
 
-import { useUniverseEditorStore, generateEntityId } from "../store/universe-editor-store";
+import {
+  useUniverseEditorStore,
+  generateEntityId,
+} from "../store/universe-editor-store";
 import { AIFieldWrapper } from "./ai-field-wrapper";
 import { MomentGenerator } from "./entity-generator";
 
@@ -80,7 +93,9 @@ export function MomentsEditor() {
 
   if (!universe) return null;
 
-  const selectedMoment = universe.moments.find((m) => m.id === selectedEntityId);
+  const selectedMoment = universe.moments.find(
+    (m) => m.id === selectedEntityId
+  );
 
   const handleCreate = () => {
     const newMoment = createDefaultMoment();
@@ -95,10 +110,16 @@ export function MomentsEditor() {
 
   const handleStageUpdate = (
     position: "left" | "center" | "right",
-    value: { characterId: string; emotion?: Emotion; speaking?: boolean } | undefined
+    value:
+      | { characterId: string; emotion?: Emotion; speaking?: boolean }
+      | undefined
   ) => {
     if (!selectedMoment) return;
-    const currentStage = selectedMoment.stage || { left: undefined, center: undefined, right: undefined };
+    const currentStage = selectedMoment.stage || {
+      left: undefined,
+      center: undefined,
+      right: undefined,
+    };
     handleUpdate({
       stage: {
         left: currentStage.left,
@@ -109,7 +130,10 @@ export function MomentsEditor() {
     });
   };
 
-  const handleTransitionUpdate = (status: MomentStatus, expressions: string[]) => {
+  const handleTransitionUpdate = (
+    status: MomentStatus,
+    expressions: string[]
+  ) => {
     if (!selectedMoment) return;
     const newTransitions = { ...selectedMoment.transitions };
     if (expressions.length > 0) {
@@ -141,7 +165,9 @@ export function MomentsEditor() {
           renderItem={(moment) => (
             <div>
               <div className="flex items-center justify-between">
-                <p className="truncate font-medium">{moment.title || moment.id}</p>
+                <p className="truncate font-medium">
+                  {moment.title || moment.id}
+                </p>
                 {moment.status && (
                   <span
                     className={`ml-2 shrink-0 rounded px-1 py-0.5 text-[10px] capitalize ${
@@ -152,14 +178,16 @@ export function MomentsEditor() {
                   </span>
                 )}
               </div>
-              <p className="truncate text-xs text-muted-foreground">{moment.id}</p>
+              <p className="truncate text-xs text-muted-foreground">
+                {moment.id}
+              </p>
             </div>
           )}
         />
       </div>
 
       {/* Detail panel */}
-      <div className="flex-1 overflow-hidden">
+      <div className="">
         {selectedMoment ? (
           <ScrollArea className="h-full">
             <div className="max-w-3xl space-y-6 p-6">
@@ -196,7 +224,9 @@ export function MomentsEditor() {
                           id="preview"
                           value={selectedMoment.preview || ""}
                           onChange={(e) =>
-                            handleUpdate({ preview: e.target.value || undefined })
+                            handleUpdate({
+                              preview: e.target.value || undefined,
+                            })
                           }
                           placeholder="Short text shown as choice button"
                         />
@@ -211,15 +241,21 @@ export function MomentsEditor() {
                           entityType="moment"
                           field="text"
                           universe={universe}
-                          currentEntity={selectedMoment as unknown as Record<string, unknown>}
+                          currentEntity={
+                            selectedMoment as unknown as Record<string, unknown>
+                          }
                           currentValue={selectedMoment.text || ""}
-                          onValueChange={(value) => handleUpdate({ text: value || undefined })}
+                          onValueChange={(value) =>
+                            handleUpdate({ text: value || undefined })
+                          }
                         >
                           <Textarea
                             id="text"
                             value={selectedMoment.text || ""}
                             onChange={(e) =>
-                              handleUpdate({ text: e.target.value || undefined })
+                              handleUpdate({
+                                text: e.target.value || undefined,
+                              })
                             }
                             placeholder="The main narrative content..."
                             rows={8}
@@ -237,83 +273,93 @@ export function MomentsEditor() {
                     </CardHeader>
                     <CardContent>
                       <div className="grid gap-4 sm:grid-cols-3">
-                        {(["left", "center", "right"] as const).map((position) => {
-                          const slot = selectedMoment.stage?.[position];
-                          return (
-                            <div key={position} className="space-y-2">
-                              <Label className="capitalize">{position}</Label>
-                              <div className="rounded-lg border p-3 space-y-2">
-                                <Select
-                                  value={slot?.characterId || "__none__"}
-                                  onValueChange={(value) => {
-                                    if (value && value !== "__none__") {
-                                      handleStageUpdate(position, {
-                                        characterId: value,
-                                        emotion: slot?.emotion || "neutral",
-                                        speaking: slot?.speaking,
-                                      });
-                                    } else {
-                                      handleStageUpdate(position, undefined);
-                                    }
-                                  }}
-                                >
-                                  <SelectTrigger>
-                                    <SelectValue placeholder="No character" />
-                                  </SelectTrigger>
-                                  <SelectContent>
-                                    <SelectItem value="__none__">None</SelectItem>
-                                    {universe.characters.map((char) => (
-                                      <SelectItem key={char.id} value={char.id}>
-                                        {char.name}
-                                      </SelectItem>
-                                    ))}
-                                  </SelectContent>
-                                </Select>
-
-                                {slot && (
-                                  <>
-                                    <Select
-                                      value={slot.emotion || "neutral"}
-                                      onValueChange={(value: Emotion) =>
+                        {(["left", "center", "right"] as const).map(
+                          (position) => {
+                            const slot = selectedMoment.stage?.[position];
+                            return (
+                              <div key={position} className="space-y-2">
+                                <Label className="capitalize">{position}</Label>
+                                <div className="rounded-lg border p-3 space-y-2">
+                                  <Select
+                                    value={slot?.characterId || "__none__"}
+                                    onValueChange={(value) => {
+                                      if (value && value !== "__none__") {
                                         handleStageUpdate(position, {
-                                          ...slot,
-                                          emotion: value,
-                                        })
+                                          characterId: value,
+                                          emotion: slot?.emotion || "neutral",
+                                          speaking: slot?.speaking,
+                                        });
+                                      } else {
+                                        handleStageUpdate(position, undefined);
                                       }
-                                    >
-                                      <SelectTrigger>
-                                        <SelectValue />
-                                      </SelectTrigger>
-                                      <SelectContent>
-                                        {EMOTIONS.map((emotion) => (
-                                          <SelectItem key={emotion} value={emotion}>
-                                            {emotion}
-                                          </SelectItem>
-                                        ))}
-                                      </SelectContent>
-                                    </Select>
+                                    }}
+                                  >
+                                    <SelectTrigger>
+                                      <SelectValue placeholder="No character" />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                      <SelectItem value="__none__">
+                                        None
+                                      </SelectItem>
+                                      {universe.characters.map((char) => (
+                                        <SelectItem
+                                          key={char.id}
+                                          value={char.id}
+                                        >
+                                          {char.name}
+                                        </SelectItem>
+                                      ))}
+                                    </SelectContent>
+                                  </Select>
 
-                                    <div className="flex items-center gap-2">
-                                      <Switch
-                                        id={`speaking-${position}`}
-                                        checked={slot.speaking === true}
-                                        onCheckedChange={(checked) =>
+                                  {slot && (
+                                    <>
+                                      <Select
+                                        value={slot.emotion || "neutral"}
+                                        onValueChange={(value: Emotion) =>
                                           handleStageUpdate(position, {
                                             ...slot,
-                                            speaking: checked || undefined,
+                                            emotion: value,
                                           })
                                         }
-                                      />
-                                      <Label htmlFor={`speaking-${position}`}>
-                                        Speaking
-                                      </Label>
-                                    </div>
-                                  </>
-                                )}
+                                      >
+                                        <SelectTrigger>
+                                          <SelectValue />
+                                        </SelectTrigger>
+                                        <SelectContent>
+                                          {EMOTIONS.map((emotion) => (
+                                            <SelectItem
+                                              key={emotion}
+                                              value={emotion}
+                                            >
+                                              {emotion}
+                                            </SelectItem>
+                                          ))}
+                                        </SelectContent>
+                                      </Select>
+
+                                      <div className="flex items-center gap-2">
+                                        <Switch
+                                          id={`speaking-${position}`}
+                                          checked={slot.speaking === true}
+                                          onCheckedChange={(checked) =>
+                                            handleStageUpdate(position, {
+                                              ...slot,
+                                              speaking: checked || undefined,
+                                            })
+                                          }
+                                        />
+                                        <Label htmlFor={`speaking-${position}`}>
+                                          Speaking
+                                        </Label>
+                                      </div>
+                                    </>
+                                  )}
+                                </div>
                               </div>
-                            </div>
-                          );
-                        })}
+                            );
+                          }
+                        )}
                       </div>
 
                       <div className="mt-4 grid gap-2">
@@ -321,7 +367,10 @@ export function MomentsEditor() {
                         <Select
                           value={selectedMoment.locationId || "__none__"}
                           onValueChange={(value) =>
-                            handleUpdate({ locationId: value === "__none__" ? undefined : value })
+                            handleUpdate({
+                              locationId:
+                                value === "__none__" ? undefined : value,
+                            })
                           }
                         >
                           <SelectTrigger>
@@ -360,9 +409,9 @@ export function MomentsEditor() {
                             </span>
                           </div>
                           <Textarea
-                            value={
-                              (selectedMoment.transitions?.[status] || []).join("\n")
-                            }
+                            value={(
+                              selectedMoment.transitions?.[status] || []
+                            ).join("\n")}
                             onChange={(e) =>
                               handleTransitionUpdate(
                                 status,
@@ -485,8 +534,8 @@ Example: $self.status = available when character.$player.stats.gold >= 10`}
                         </SelectContent>
                       </Select>
                       <p className="mt-2 text-xs text-muted-foreground">
-                        Attach a challenge template to this moment. The challenge will
-                        be copied when the moment is entered.
+                        Attach a challenge template to this moment. The
+                        challenge will be copied when the moment is entered.
                       </p>
                     </CardContent>
                   </Card>

@@ -33,7 +33,7 @@ export function HelperRegenerate({
       {/* Section header */}
       <div className="flex items-center gap-2 text-sm text-muted-foreground">
         <RefreshCw className="h-4 w-4" />
-        <span>Need different options? Try:</span>
+        <span>Need more suggestions? Try:</span>
       </div>
 
       {/* Fixed regenerate buttons */}

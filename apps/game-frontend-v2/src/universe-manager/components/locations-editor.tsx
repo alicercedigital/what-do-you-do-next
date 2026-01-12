@@ -1,6 +1,11 @@
 import * as React from "react";
 import type { v2 } from "@wdydn/shared";
-import { Card, CardContent, CardHeader, CardTitle } from "@/shared/components/ui/card";
+import {
+  Card,
+  CardContent,
+  CardHeader,
+  CardTitle,
+} from "@/shared/components/ui/card";
 import { Input } from "@/shared/components/ui/input";
 import { Label } from "@/shared/components/ui/label";
 import { Textarea } from "@/shared/components/ui/textarea";
@@ -9,7 +14,10 @@ import { EntityList } from "@/shared/components/ui/entity-list";
 import { EntityIdBadge } from "@/shared/components/ui/entity-id-badge";
 import { MapPin, Image } from "lucide-react";
 
-import { useUniverseEditorStore, generateEntityId } from "../store/universe-editor-store";
+import {
+  useUniverseEditorStore,
+  generateEntityId,
+} from "../store/universe-editor-store";
 import { AIFieldWrapper } from "./ai-field-wrapper";
 import { LocationGenerator } from "./entity-generator";
 
@@ -37,7 +45,9 @@ export function LocationsEditor() {
 
   if (!universe) return null;
 
-  const selectedLocation = universe.locations.find((l) => l.id === selectedEntityId);
+  const selectedLocation = universe.locations.find(
+    (l) => l.id === selectedEntityId
+  );
 
   const handleCreate = () => {
     const newLocation = createDefaultLocation();
@@ -88,7 +98,7 @@ export function LocationsEditor() {
       </div>
 
       {/* Detail panel */}
-      <div className="flex-1 overflow-hidden">
+      <div className="">
         {selectedLocation ? (
           <ScrollArea className="h-full">
             <div className="max-w-2xl space-y-6 p-6">
@@ -114,14 +124,20 @@ export function LocationsEditor() {
                       entityType="location"
                       field="description"
                       universe={universe}
-                      currentEntity={selectedLocation as unknown as Record<string, unknown>}
+                      currentEntity={
+                        selectedLocation as unknown as Record<string, unknown>
+                      }
                       currentValue={selectedLocation.description}
-                      onValueChange={(value) => handleUpdate({ description: value })}
+                      onValueChange={(value) =>
+                        handleUpdate({ description: value })
+                      }
                     >
                       <Textarea
                         id="description"
                         value={selectedLocation.description}
-                        onChange={(e) => handleUpdate({ description: e.target.value })}
+                        onChange={(e) =>
+                          handleUpdate({ description: e.target.value })
+                        }
                         placeholder="Describe this location..."
                         rows={4}
                       />
@@ -141,7 +157,9 @@ export function LocationsEditor() {
                       id="background"
                       value={selectedLocation.background || ""}
                       onChange={(e) =>
-                        handleUpdate({ background: e.target.value || undefined })
+                        handleUpdate({
+                          background: e.target.value || undefined,
+                        })
                       }
                       placeholder="https://..."
                     />
@@ -152,7 +170,8 @@ export function LocationsEditor() {
                           alt="Background preview"
                           className="h-40 w-full object-cover"
                           onError={(e) => {
-                            (e.target as HTMLImageElement).style.display = "none";
+                            (e.target as HTMLImageElement).style.display =
+                              "none";
                           }}
                         />
                       </div>
@@ -177,7 +196,9 @@ export function LocationsEditor() {
                       id="ambientSound"
                       value={selectedLocation.ambientSound || ""}
                       onChange={(e) =>
-                        handleUpdate({ ambientSound: e.target.value || undefined })
+                        handleUpdate({
+                          ambientSound: e.target.value || undefined,
+                        })
                       }
                       placeholder="https://..."
                     />
@@ -205,7 +226,8 @@ Example: character.$player.stats.level >= 5"
                     rows={4}
                   />
                   <p className="mt-2 text-xs text-muted-foreground">
-                    Expression conditions that must be met to access this location (one per line)
+                    Expression conditions that must be met to access this
+                    location (one per line)
                   </p>
                 </CardContent>
               </Card>

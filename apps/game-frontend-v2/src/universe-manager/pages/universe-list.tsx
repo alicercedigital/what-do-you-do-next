@@ -1,10 +1,28 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
-import { Plus, Upload, Trash2, Copy, Play, Edit, Loader2, Download, Globe, Lock, Eye } from "lucide-react";
+import {
+  Plus,
+  Upload,
+  Trash2,
+  Copy,
+  Play,
+  Edit,
+  Loader2,
+  Download,
+  Globe,
+  Lock,
+  Eye,
+} from "lucide-react";
 
 import { Button } from "@/shared/components/ui/button";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/shared/components/ui/card";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/shared/components/ui/card";
 import { Input } from "@/shared/components/ui/input";
 import { Label } from "@/shared/components/ui/label";
 import { Badge } from "@/shared/components/ui/badge";
@@ -48,7 +66,13 @@ interface UniverseSummary {
   owner_id?: string;
 }
 
-function VisibilityBadge({ visibility, isPublished }: { visibility?: string; isPublished?: boolean }) {
+function VisibilityBadge({
+  visibility,
+  isPublished,
+}: {
+  visibility?: string;
+  isPublished?: boolean;
+}) {
   if (isPublished && visibility === "public") {
     return (
       <Badge variant="default" className="gap-1">
@@ -75,7 +99,8 @@ function VisibilityBadge({ visibility, isPublished }: { visibility?: string; isP
 
 export function UniverseListPage() {
   const navigate = useNavigate();
-  const { createUniverse, deleteUniverse, duplicateUniverse } = useUniverseEditorStore();
+  const { createUniverse, deleteUniverse, duplicateUniverse } =
+    useUniverseEditorStore();
   const user = useAuthStore((state) => state.user);
 
   const [universes, setUniverses] = useState<UniverseSummary[]>([]);
@@ -90,7 +115,9 @@ export function UniverseListPage() {
   const [isCreating, setIsCreating] = useState(false);
 
   // Delete dialog state
-  const [deleteTarget, setDeleteTarget] = useState<UniverseSummary | null>(null);
+  const [deleteTarget, setDeleteTarget] = useState<UniverseSummary | null>(
+    null
+  );
   const [isDeleting, setIsDeleting] = useState(false);
 
   // Import state
@@ -130,7 +157,9 @@ export function UniverseListPage() {
       setNewTheme("fantasy");
       navigate(`/universes/${universeId}`);
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Failed to create universe");
+      setError(
+        err instanceof Error ? err.message : "Failed to create universe"
+      );
     } finally {
       setIsCreating(false);
     }
@@ -145,7 +174,9 @@ export function UniverseListPage() {
       setUniverses((prev) => prev.filter((u) => u.id !== deleteTarget.id));
       setDeleteTarget(null);
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Failed to delete universe");
+      setError(
+        err instanceof Error ? err.message : "Failed to delete universe"
+      );
     } finally {
       setIsDeleting(false);
     }
@@ -157,7 +188,9 @@ export function UniverseListPage() {
       await loadUniverses();
       navigate(`/universes/${newId}`);
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Failed to duplicate universe");
+      setError(
+        err instanceof Error ? err.message : "Failed to duplicate universe"
+      );
     }
   };
 
@@ -193,7 +226,9 @@ export function UniverseListPage() {
         navigate(`/universes/${result.universeId}`);
       }
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Failed to import universe");
+      setError(
+        err instanceof Error ? err.message : "Failed to import universe"
+      );
     } finally {
       setIsImporting(false);
       // Reset file input
@@ -209,7 +244,9 @@ export function UniverseListPage() {
       const data = await response.json();
 
       // Create download
-      const blob = new Blob([JSON.stringify(data, null, 2)], { type: "application/json" });
+      const blob = new Blob([JSON.stringify(data, null, 2)], {
+        type: "application/json",
+      });
       const url = URL.createObjectURL(blob);
       const a = document.createElement("a");
       a.href = url;
@@ -219,7 +256,9 @@ export function UniverseListPage() {
       document.body.removeChild(a);
       URL.revokeObjectURL(url);
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Failed to export universe");
+      setError(
+        err instanceof Error ? err.message : "Failed to export universe"
+      );
     }
   };
 
@@ -242,9 +281,11 @@ export function UniverseListPage() {
         {/* Header */}
         <div className="mb-8 flex items-center justify-between">
           <div>
-            <h1 className="text-3xl font-bold tracking-tight">Universe Manager</h1>
+            <h1 className="text-3xl font-bold tracking-tight">
+              Universe Manager
+            </h1>
             <p className="mt-1 text-muted-foreground">
-              Create and manage your interactive fiction universes
+              Create and manage your interactive game universes
             </p>
           </div>
           <div className="flex items-center gap-2">
@@ -321,8 +362,13 @@ export function UniverseListPage() {
                   >
                     Cancel
                   </Button>
-                  <Button onClick={handleCreate} disabled={!newName.trim() || isCreating}>
-                    {isCreating && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                  <Button
+                    onClick={handleCreate}
+                    disabled={!newName.trim() || isCreating}
+                  >
+                    {isCreating && (
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    )}
                     Create
                   </Button>
                 </DialogFooter>
@@ -370,7 +416,9 @@ export function UniverseListPage() {
                   <CardHeader>
                     <div className="flex items-start justify-between">
                       <div className="min-w-0 flex-1">
-                        <CardTitle className="truncate">{universe.name}</CardTitle>
+                        <CardTitle className="truncate">
+                          {universe.name}
+                        </CardTitle>
                         <CardDescription className="mt-1 line-clamp-2">
                           {universe.description || "No description"}
                         </CardDescription>
@@ -410,11 +458,15 @@ export function UniverseListPage() {
                           </Button>
                         </DropdownMenuTrigger>
                         <DropdownMenuContent align="end">
-                          <DropdownMenuItem onClick={() => handleDuplicate(universe)}>
+                          <DropdownMenuItem
+                            onClick={() => handleDuplicate(universe)}
+                          >
                             <Copy className="mr-2 h-4 w-4" />
                             Duplicate
                           </DropdownMenuItem>
-                          <DropdownMenuItem onClick={() => handleExport(universe)}>
+                          <DropdownMenuItem
+                            onClick={() => handleExport(universe)}
+                          >
                             <Download className="mr-2 h-4 w-4" />
                             Export
                           </DropdownMenuItem>
@@ -445,13 +497,16 @@ export function UniverseListPage() {
       </div>
 
       {/* Delete confirmation dialog */}
-      <AlertDialog open={!!deleteTarget} onOpenChange={() => setDeleteTarget(null)}>
+      <AlertDialog
+        open={!!deleteTarget}
+        onOpenChange={() => setDeleteTarget(null)}
+      >
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle>Delete Universe</AlertDialogTitle>
             <AlertDialogDescription>
-              Are you sure you want to delete "{deleteTarget?.name}"? This action
-              cannot be undone.
+              Are you sure you want to delete "{deleteTarget?.name}"? This
+              action cannot be undone.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>

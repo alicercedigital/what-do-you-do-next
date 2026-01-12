@@ -1,6 +1,11 @@
 import * as React from "react";
 import type { v2 } from "@wdydn/shared";
-import { Card, CardContent, CardHeader, CardTitle } from "@/shared/components/ui/card";
+import {
+  Card,
+  CardContent,
+  CardHeader,
+  CardTitle,
+} from "@/shared/components/ui/card";
 import { Input } from "@/shared/components/ui/input";
 import { Label } from "@/shared/components/ui/label";
 import { Textarea } from "@/shared/components/ui/textarea";
@@ -17,7 +22,10 @@ import { EntityList } from "@/shared/components/ui/entity-list";
 import { EntityIdBadge } from "@/shared/components/ui/entity-id-badge";
 import { Package, Sword, Sparkles as SparklesIcon, Box } from "lucide-react";
 
-import { useUniverseEditorStore, generateEntityId } from "../store/universe-editor-store";
+import {
+  useUniverseEditorStore,
+  generateEntityId,
+} from "../store/universe-editor-store";
 import { AIFieldWrapper } from "./ai-field-wrapper";
 import { ItemGenerator } from "./entity-generator";
 
@@ -121,7 +129,7 @@ export function ItemsEditor() {
       </div>
 
       {/* Detail panel */}
-      <div className="flex-1 overflow-hidden">
+      <div className="">
         {selectedItem ? (
           <ScrollArea className="h-full">
             <div className="max-w-2xl space-y-6 p-6">
@@ -147,14 +155,20 @@ export function ItemsEditor() {
                       entityType="item"
                       field="description"
                       universe={universe}
-                      currentEntity={selectedItem as unknown as Record<string, unknown>}
+                      currentEntity={
+                        selectedItem as unknown as Record<string, unknown>
+                      }
                       currentValue={selectedItem.description || ""}
-                      onValueChange={(value) => handleUpdate({ description: value || undefined })}
+                      onValueChange={(value) =>
+                        handleUpdate({ description: value || undefined })
+                      }
                     >
                       <Textarea
                         id="description"
                         value={selectedItem.description}
-                        onChange={(e) => handleUpdate({ description: e.target.value })}
+                        onChange={(e) =>
+                          handleUpdate({ description: e.target.value })
+                        }
                         placeholder="Describe this item..."
                         rows={3}
                       />
@@ -263,18 +277,24 @@ export function ItemsEditor() {
                                   type="number"
                                   value={bonus?.amount || 0}
                                   onChange={(e) => {
-                                    const amount = parseFloat(e.target.value) || 0;
+                                    const amount =
+                                      parseFloat(e.target.value) || 0;
                                     const existing =
                                       selectedItem.whileEquipped || [];
                                     const filtered = existing.filter(
                                       (b) => b.statId !== stat.id
                                     );
                                     if (amount !== 0) {
-                                      filtered.push({ statId: stat.id, amount });
+                                      filtered.push({
+                                        statId: stat.id,
+                                        amount,
+                                      });
                                     }
                                     handleUpdate({
                                       whileEquipped:
-                                        filtered.length > 0 ? filtered : undefined,
+                                        filtered.length > 0
+                                          ? filtered
+                                          : undefined,
                                     });
                                   }}
                                   className="w-24"

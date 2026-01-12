@@ -18,13 +18,8 @@ export function UniverseEditorPage() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
 
-  const {
-    universe,
-    activeTab,
-    isLoading,
-    error,
-    loadUniverse,
-  } = useUniverseEditorStore();
+  const { universe, activeTab, isLoading, error, loadUniverse } =
+    useUniverseEditorStore();
 
   useEffect(() => {
     if (id) {
@@ -96,12 +91,10 @@ export function UniverseEditorPage() {
   };
 
   return (
-    <div className="flex min-h-screen flex-col bg-background">
+    <div className="bg-background">
       <EditorHeader />
       <EditorTabs />
-      <main className="flex-1 overflow-hidden">
-        {renderEditor()}
-      </main>
+      <main className="">{renderEditor()}</main>
     </div>
   );
 }

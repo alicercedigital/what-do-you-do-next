@@ -1,7 +1,12 @@
 import * as React from "react";
 import type { v2 } from "@wdydn/shared";
 import { Badge } from "@/shared/components/ui/badge";
-import { Card, CardContent, CardHeader, CardTitle } from "@/shared/components/ui/card";
+import {
+  Card,
+  CardContent,
+  CardHeader,
+  CardTitle,
+} from "@/shared/components/ui/card";
 import { Input } from "@/shared/components/ui/input";
 import { Label } from "@/shared/components/ui/label";
 import { Textarea } from "@/shared/components/ui/textarea";
@@ -18,7 +23,10 @@ import { EntityList } from "@/shared/components/ui/entity-list";
 import { EntityIdBadge } from "@/shared/components/ui/entity-id-badge";
 import { ColorPicker } from "@/shared/components/ui/color-picker";
 
-import { useUniverseEditorStore, generateEntityId } from "../store/universe-editor-store";
+import {
+  useUniverseEditorStore,
+  generateEntityId,
+} from "../store/universe-editor-store";
 import { ExpressionBuilder } from "./expression-builder";
 import { AIFieldWrapper } from "./ai-field-wrapper";
 import { StatGenerator } from "./entity-generator";
@@ -98,7 +106,7 @@ export function StatsEditor() {
       </div>
 
       {/* Detail panel */}
-      <div className="flex-1 overflow-hidden">
+      <div className="">
         {selectedStat ? (
           <ScrollArea className="h-full">
             <div className="max-w-2xl space-y-6 p-6">
@@ -124,7 +132,9 @@ export function StatsEditor() {
                       <Input
                         id="short"
                         value={selectedStat.short || ""}
-                        onChange={(e) => handleUpdate({ short: e.target.value || undefined })}
+                        onChange={(e) =>
+                          handleUpdate({ short: e.target.value || undefined })
+                        }
                         placeholder="STR, DEX, etc."
                       />
                     </div>
@@ -139,7 +149,15 @@ export function StatsEditor() {
                     <Select
                       value={selectedStat.type}
                       onValueChange={(value: "number" | "boolean" | "text") =>
-                        handleUpdate({ type: value, base: value === "number" ? 0 : value === "boolean" ? false : "" })
+                        handleUpdate({
+                          type: value,
+                          base:
+                            value === "number"
+                              ? 0
+                              : value === "boolean"
+                                ? false
+                                : "",
+                        })
                       }
                     >
                       <SelectTrigger>
@@ -159,14 +177,22 @@ export function StatsEditor() {
                       entityType="stat"
                       field="description"
                       universe={universe}
-                      currentEntity={selectedStat as unknown as Record<string, unknown>}
+                      currentEntity={
+                        selectedStat as unknown as Record<string, unknown>
+                      }
                       currentValue={selectedStat.description || ""}
-                      onValueChange={(value) => handleUpdate({ description: value || undefined })}
+                      onValueChange={(value) =>
+                        handleUpdate({ description: value || undefined })
+                      }
                     >
                       <Textarea
                         id="description"
                         value={selectedStat.description || ""}
-                        onChange={(e) => handleUpdate({ description: e.target.value || undefined })}
+                        onChange={(e) =>
+                          handleUpdate({
+                            description: e.target.value || undefined,
+                          })
+                        }
                         placeholder="What does this stat represent?"
                         rows={2}
                       />
@@ -188,9 +214,15 @@ export function StatsEditor() {
                           <Input
                             id="base"
                             type="number"
-                            value={typeof selectedStat.base === "number" ? selectedStat.base : 0}
+                            value={
+                              typeof selectedStat.base === "number"
+                                ? selectedStat.base
+                                : 0
+                            }
                             onChange={(e) =>
-                              handleUpdate({ base: parseFloat(e.target.value) || 0 })
+                              handleUpdate({
+                                base: parseFloat(e.target.value) || 0,
+                              })
                             }
                           />
                         </div>
@@ -199,7 +231,9 @@ export function StatsEditor() {
                           <Label htmlFor="formula">Formula (optional)</Label>
                           <ExpressionBuilder
                             value={selectedStat.formula || ""}
-                            onChange={(value) => handleUpdate({ formula: value || undefined })}
+                            onChange={(value) =>
+                              handleUpdate({ formula: value || undefined })
+                            }
                             mode="formula"
                             universe={universe}
                             placeholder="$base + stats.strength / 2"
@@ -218,7 +252,9 @@ export function StatsEditor() {
                             onChange={(e) =>
                               handleUpdate({
                                 range: {
-                                  min: e.target.value ? parseFloat(e.target.value) : 0,
+                                  min: e.target.value
+                                    ? parseFloat(e.target.value)
+                                    : 0,
                                   max: selectedStat.range?.max ?? 100,
                                 },
                               })
@@ -237,7 +273,9 @@ export function StatsEditor() {
                               handleUpdate({
                                 range: {
                                   min: selectedStat.range?.min ?? 0,
-                                  max: e.target.value ? parseFloat(e.target.value) : 100,
+                                  max: e.target.value
+                                    ? parseFloat(e.target.value)
+                                    : 100,
                                 },
                               })
                             }
@@ -259,7 +297,9 @@ export function StatsEditor() {
                       <Switch
                         id="boolBase"
                         checked={selectedStat.base === true}
-                        onCheckedChange={(checked) => handleUpdate({ base: checked })}
+                        onCheckedChange={(checked) =>
+                          handleUpdate({ base: checked })
+                        }
                       />
                     </div>
                   )}
@@ -269,7 +309,11 @@ export function StatsEditor() {
                       <Label htmlFor="textBase">Default Value</Label>
                       <Input
                         id="textBase"
-                        value={typeof selectedStat.base === "string" ? selectedStat.base : ""}
+                        value={
+                          typeof selectedStat.base === "string"
+                            ? selectedStat.base
+                            : ""
+                        }
                         onChange={(e) => handleUpdate({ base: e.target.value })}
                         placeholder="Default text value"
                       />
@@ -288,7 +332,9 @@ export function StatsEditor() {
                       <Label htmlFor="displayStyle">Display Style</Label>
                       <Select
                         value={selectedStat.display?.style || "number"}
-                        onValueChange={(value: "number" | "bar" | "badge" | "hidden") =>
+                        onValueChange={(
+                          value: "number" | "bar" | "badge" | "hidden"
+                        ) =>
                           handleUpdate({
                             display: { ...selectedStat.display, style: value },
                           })
@@ -312,7 +358,10 @@ export function StatsEditor() {
                         value={selectedStat.display?.color || ""}
                         onChange={(color) =>
                           handleUpdate({
-                            display: { ...selectedStat.display, color: color || undefined },
+                            display: {
+                              ...selectedStat.display,
+                              color: color || undefined,
+                            },
                           })
                         }
                         placeholder="Select color"
@@ -328,7 +377,10 @@ export function StatsEditor() {
                         value={selectedStat.display?.icon || ""}
                         onChange={(e) =>
                           handleUpdate({
-                            display: { ...selectedStat.display, icon: e.target.value || undefined },
+                            display: {
+                              ...selectedStat.display,
+                              icon: e.target.value || undefined,
+                            },
                           })
                         }
                         placeholder="https://..."
@@ -345,7 +397,9 @@ export function StatsEditor() {
                           handleUpdate({
                             display: {
                               ...selectedStat.display,
-                              order: e.target.value ? parseInt(e.target.value) : undefined,
+                              order: e.target.value
+                                ? parseInt(e.target.value)
+                                : undefined,
                             },
                           })
                         }
@@ -361,11 +415,16 @@ export function StatsEditor() {
                         checked={selectedStat.display?.showInSheet !== false}
                         onCheckedChange={(checked) =>
                           handleUpdate({
-                            display: { ...selectedStat.display, showInSheet: checked },
+                            display: {
+                              ...selectedStat.display,
+                              showInSheet: checked,
+                            },
                           })
                         }
                       />
-                      <Label htmlFor="showInSheet">Show in Character Sheet</Label>
+                      <Label htmlFor="showInSheet">
+                        Show in Character Sheet
+                      </Label>
                     </div>
 
                     <div className="flex items-center gap-2">
@@ -374,7 +433,10 @@ export function StatsEditor() {
                         checked={selectedStat.display?.showInCreator === true}
                         onCheckedChange={(checked) =>
                           handleUpdate({
-                            display: { ...selectedStat.display, showInCreator: checked },
+                            display: {
+                              ...selectedStat.display,
+                              showInCreator: checked,
+                            },
                           })
                         }
                       />
