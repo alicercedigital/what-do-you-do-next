@@ -2,7 +2,7 @@
 /**
  * Worktree Manager for Claude Code
  *
- * Usage: bun worktree-manager.ts <command> [worker]
+ * Usage: bun worktree-manager.ts <command> [worker] [options]
  */
 
 import { $ } from "bun";
@@ -30,9 +30,24 @@ function getWorktreePath(mainRepo: string, worker: Worker): string {
   return resolve(mainRepo, "..", worker);
 }
 
-async function getCurrentBranch(): Promise<string> {
-  const result = await $`git branch --show-current`.text();
-  return result.trim();
+async function getCurrentBranch(): Promise<string | null> {
+  try {
+    const result = await $`git branch --show-current`.text();
+    const branch = result.trim();
+    // Empty string means detached HEAD
+    return branch || null;
+  } catch {
+    return null;
+  }
+}
+
+async function branchExists(branch: string): Promise<boolean> {
+  try {
+    await $`git rev-parse --verify ${branch}`.quiet();
+    return true;
+  } catch {
+    return false;
+  }
 }
 
 async function worktreeExists(
@@ -48,29 +63,143 @@ async function worktreeExists(
   return normalizedList.includes(normalizedPath);
 }
 
-async function createWorktree(mainRepo: string, worker: Worker): Promise<void> {
+/**
+ * Check if a worktree has uncommitted changes (staged, unstaged, or untracked)
+ */
+async function hasUncommittedChanges(worktreePath: string): Promise<boolean> {
+  const status = await $`git -C ${worktreePath} status --porcelain`.text();
+  return status.trim().length > 0;
+}
+
+/**
+ * Check if main repo has uncommitted changes
+ */
+async function mainRepoHasChanges(): Promise<boolean> {
+  const status = await $`git status --porcelain`.text();
+  return status.trim().length > 0;
+}
+
+/**
+ * Check if a worker branch has commits not yet merged into target branch
+ */
+async function hasUnmergedCommits(
+  worker: Worker,
+  targetBranch: string
+): Promise<boolean> {
+  try {
+    const commits =
+      await $`git log ${targetBranch}..${worker} --oneline`.text();
+    return commits.trim().length > 0;
+  } catch {
+    return false;
+  }
+}
+
+/**
+ * Get a summary of uncommitted changes for display
+ */
+async function getChangesSummary(worktreePath: string): Promise<string> {
+  const status = await $`git -C ${worktreePath} status --short`.text();
+  return status.trim();
+}
+
+/**
+ * Auto-commit all changes in a worktree
+ * Returns { success: boolean, error?: string }
+ */
+async function autoCommitChanges(
+  worktreePath: string,
+  worker: Worker
+): Promise<{ success: boolean; error?: string }> {
+  try {
+    await $`git -C ${worktreePath} add -A`;
+
+    // Check if there's actually something to commit after staging
+    const staged =
+      await $`git -C ${worktreePath} diff --cached --quiet`.nothrow();
+    if (staged.exitCode === 0) {
+      return {
+        success: false,
+        error: "No changes to commit after staging (files may be gitignored)",
+      };
+    }
+
+    const result =
+      await $`git -C ${worktreePath} commit -m ${"Auto-commit from " + worker}`.nothrow();
+    if (result.exitCode !== 0) {
+      return {
+        success: false,
+        error: result.stderr.toString() || "Commit failed (check git hooks?)",
+      };
+    }
+
+    return { success: true };
+  } catch (e: any) {
+    return {
+      success: false,
+      error: e.message || "Unknown error during commit",
+    };
+  }
+}
+
+async function createWorktree(
+  mainRepo: string,
+  worker: Worker
+): Promise<boolean> {
   const path = getWorktreePath(mainRepo, worker);
 
   if (await worktreeExists(mainRepo, worker)) {
     console.log(`⏭️  Worktree ${worker} already exists at ${path}`);
-    return;
+    return true;
   }
 
   console.log(`📁 Creating worktree ${worker} at ${path}...`);
-  await $`git worktree add ${path} -b ${worker}`.quiet();
-  console.log(`✅ Created ${worker}`);
+
+  // Check if branch already exists (from a previous removed worktree)
+  const branchAlreadyExists = await branchExists(worker);
+
+  try {
+    if (branchAlreadyExists) {
+      // Branch exists, create worktree using existing branch
+      await $`git worktree add ${path} ${worker}`;
+      console.log(`✅ Created ${worker} (using existing branch)`);
+    } else {
+      // Create new branch with worktree
+      await $`git worktree add ${path} -b ${worker}`;
+      console.log(`✅ Created ${worker}`);
+    }
+    return true;
+  } catch (e: any) {
+    console.log(`❌ Failed to create ${worker}: ${e.message}`);
+    return false;
+  }
 }
 
 async function openWorker(mainRepo: string, worker: Worker): Promise<void> {
   const path = getWorktreePath(mainRepo, worker);
 
   if (!(await worktreeExists(mainRepo, worker))) {
-    await createWorktree(mainRepo, worker);
+    const created = await createWorktree(mainRepo, worker);
+    if (!created) {
+      console.log(`❌ Cannot open ${worker} - worktree creation failed`);
+      return;
+    }
   }
 
-  console.log(`🚀 Opening VS Code terminal for ${worker}...`);
-  await $`code --new-window ${path}`.quiet();
-  console.log(`✅ Opened ${worker} in VS Code`);
+  console.log(`🚀 Opening VS Code for ${worker}...`);
+
+  try {
+    const result = await $`code --new-window ${path}`.nothrow();
+    if (result.exitCode !== 0) {
+      console.log(`❌ Failed to open VS Code. Is 'code' command available?`);
+      console.log(`   You can manually open: ${path}`);
+      return;
+    }
+    console.log(`✅ Opened ${worker} in VS Code`);
+  } catch (e: any) {
+    console.log(`❌ Failed to open VS Code: ${e.message}`);
+    console.log(`   You can manually open: ${path}`);
+  }
 }
 
 async function mergeWorker(
@@ -85,33 +214,89 @@ async function mergeWorker(
     return false;
   }
 
-  console.log(`\n🔀 Merging ${worker} into ${mainBranch}...`);
+  // Safety check: make sure we're not on the worker branch
+  const currentBranch = await getCurrentBranch();
+  if (currentBranch === worker) {
+    console.log(`❌ Cannot merge ${worker}: you are currently on this branch!`);
+    console.log(
+      `   Switch to your main branch first: git checkout ${mainBranch}`
+    );
+    return false;
+  }
 
-  // Check if there are any commits to merge
-  const diffResult = await $`git log ${mainBranch}..${worker} --oneline`.text();
+  // Safety check: warn if main repo has uncommitted changes
+  if (await mainRepoHasChanges()) {
+    console.log(`\n⚠️  Warning: Main repo has uncommitted changes.`);
+    console.log(
+      `   This might cause merge conflicts. Consider committing first.\n`
+    );
+  }
 
-  if (!diffResult.trim()) {
-    console.log(`⏭️  No new commits in ${worker}. Skipping merge.`);
-  } else {
-    console.log(`📋 Commits to merge:\n${diffResult}`);
+  console.log(`\n🔀 Processing ${worker}...`);
+
+  // Step 1: Check for uncommitted changes
+  const hasChanges = await hasUncommittedChanges(worktreePath);
+  const hasCommits = await hasUnmergedCommits(worker, mainBranch);
+
+  if (!hasChanges && !hasCommits) {
+    console.log(`⏭️  No changes in ${worker}. Nothing to do.`);
+    return true; // Success - nothing to lose
+  }
+
+  // Step 2: Auto-commit uncommitted changes
+  if (hasChanges) {
+    console.log(`📝 Found uncommitted changes in ${worker}:`);
+    const summary = await getChangesSummary(worktreePath);
+    console.log(
+      summary
+        .split("\n")
+        .map((l) => `   ${l}`)
+        .join("\n")
+    );
+
+    console.log(`\n   Auto-committing...`);
+    const commitResult = await autoCommitChanges(worktreePath, worker);
+
+    if (!commitResult.success) {
+      console.log(`❌ Failed to auto-commit changes in ${worker}.`);
+      console.log(`   Reason: ${commitResult.error}`);
+      console.log(`   Please commit manually and try again.`);
+      return false;
+    }
+    console.log(`   ✅ Changes committed`);
+  }
+
+  // Step 3: Merge the worker branch
+  // Re-check for commits (including the one we just made)
+  const commitsToMerge =
+    await $`git log ${mainBranch}..${worker} --oneline`.text();
+
+  if (commitsToMerge.trim()) {
+    console.log(`\n📋 Commits to merge:`);
+    console.log(
+      commitsToMerge
+        .split("\n")
+        .map((l) => `   ${l}`)
+        .join("\n")
+    );
 
     try {
       const commitMsg = `Merge ${worker} into ${mainBranch}`;
       await $`git merge ${worker} -m ${commitMsg}`;
-      console.log(`✅ Merged ${worker}`);
+      console.log(`\n   ✅ Merged ${worker} into ${mainBranch}`);
     } catch (e) {
-      console.log(`⚠️  Merge conflict detected. Please resolve manually.`);
-      console.log(
-        `   After resolving, run: bun worktree-manager.ts reset ${worker}`
-      );
+      console.log(`\n⚠️  Merge conflict detected!`);
+      console.log(`   Your changes are SAFE in the ${worker} branch.`);
+      console.log(`   Resolve conflicts manually, then run:`);
+      console.log(`   bun worktree-manager.ts reset ${worker}`);
       return false;
     }
   }
 
-  // Reset the worker branch to main (from inside the worktree)
-  console.log(`🔄 Resetting ${worker} to ${mainBranch}...`);
-  await $`git -C ${worktreePath} reset --hard ${mainBranch}`.quiet();
-  console.log(`✅ Reset ${worker} to ${mainBranch}`);
+  // Step 4: Reset the worker to main (only after successful merge)
+  console.log(`\n🔄 Resetting ${worker} to ${mainBranch}...`);
+  await $`git -C ${worktreePath} reset --hard ${mainBranch}`;
+  console.log(`   ✅ ${worker} is ready for new tasks`);
 
   return true;
 }
@@ -128,61 +313,209 @@ async function resetWorker(
     return;
   }
 
+  // SAFETY: Check for uncommitted changes
+  const hasChanges = await hasUncommittedChanges(worktreePath);
+  if (hasChanges) {
+    console.log(
+      `\n⚠️  WARNING: ${worker} has uncommitted changes that will be LOST:`
+    );
+    const summary = await getChangesSummary(worktreePath);
+    console.log(
+      summary
+        .split("\n")
+        .map((l) => `   ${l}`)
+        .join("\n")
+    );
+    console.log(
+      `\n   Use 'merge' instead to save changes, or add --force to discard.`
+    );
+    console.log(`   Example: bun worktree-manager.ts reset ${worker} --force`);
+    return;
+  }
+
+  // SAFETY: Check for unmerged commits
+  const hasCommits = await hasUnmergedCommits(worker, mainBranch);
+  if (hasCommits) {
+    const commits = await $`git log ${mainBranch}..${worker} --oneline`.text();
+    console.log(
+      `\n⚠️  WARNING: ${worker} has commits not merged into ${mainBranch}:`
+    );
+    console.log(
+      commits
+        .split("\n")
+        .map((l) => `   ${l}`)
+        .join("\n")
+    );
+    console.log(
+      `\n   Use 'merge' instead to save changes, or add --force to discard.`
+    );
+    console.log(`   Example: bun worktree-manager.ts reset ${worker} --force`);
+    return;
+  }
+
   console.log(`🔄 Resetting ${worker} to ${mainBranch}...`);
-  await $`git -C ${worktreePath} reset --hard ${mainBranch}`.quiet();
+  await $`git -C ${worktreePath} reset --hard ${mainBranch}`;
   console.log(`✅ Reset ${worker}`);
 }
 
-async function statusWorkers(mainRepo: string): Promise<void> {
-  const currentBranch = await getCurrentBranch();
-  console.log(`📍 Main repo branch: ${currentBranch}\n`);
-
-  console.log("📊 Worktree status:\n");
-
-  for (const worker of WORKERS) {
-    const exists = await worktreeExists(mainRepo, worker);
-    const path = getWorktreePath(mainRepo, worker);
-
-    if (!exists) {
-      console.log(`   ${worker}: ❌ Not created`);
-      continue;
-    }
-
-    try {
-      const commits =
-        await $`git log ${currentBranch}..${worker} --oneline`.text();
-      const commitCount = commits.trim()
-        ? commits.trim().split("\n").length
-        : 0;
-
-      console.log(`   ${worker}: ✅ Active at ${path}`);
-      console.log(
-        `            ${commitCount} commit(s) ahead of ${currentBranch}`
-      );
-    } catch {
-      console.log(`   ${worker}: ✅ Active at ${path}`);
-      console.log(`            Unable to count commits`);
-    }
-  }
-}
-
-async function removeWorker(mainRepo: string, worker: Worker): Promise<void> {
-  const path = getWorktreePath(mainRepo, worker);
+async function forceResetWorker(
+  mainRepo: string,
+  worker: Worker,
+  mainBranch: string
+): Promise<void> {
+  const worktreePath = getWorktreePath(mainRepo, worker);
 
   if (!(await worktreeExists(mainRepo, worker))) {
     console.log(`❌ Worktree ${worker} does not exist.`);
     return;
   }
 
-  console.log(`🗑️  Removing worktree ${worker}...`);
-  await $`git worktree remove ${path} --force`.quiet();
+  console.log(`⚠️  Force resetting ${worker} to ${mainBranch}...`);
+  await $`git -C ${worktreePath} reset --hard ${mainBranch}`;
+  console.log(`✅ Reset ${worker} (changes discarded)`);
+}
 
-  try {
-    await $`git branch -D ${worker}`.quiet();
-    console.log(`✅ Removed ${worker} worktree and branch`);
-  } catch {
-    console.log(`✅ Removed ${worker} worktree (branch may still exist)`);
+async function statusWorkers(
+  mainRepo: string,
+  mainBranch: string | null
+): Promise<void> {
+  if (mainBranch) {
+    console.log(`📍 Main repo branch: ${mainBranch}\n`);
+  } else {
+    console.log(`📍 Main repo: DETACHED HEAD (not on a branch)\n`);
   }
+
+  console.log("📊 Worker status:\n");
+
+  for (const worker of WORKERS) {
+    const exists = await worktreeExists(mainRepo, worker);
+    const path = getWorktreePath(mainRepo, worker);
+
+    if (!exists) {
+      const branchOnly = await branchExists(worker);
+      if (branchOnly) {
+        console.log(`   ${worker}: ⚠️  Branch exists but no worktree`);
+        console.log(`            Run 'setup' to recreate worktree`);
+      } else {
+        console.log(`   ${worker}: ❌ Not created`);
+      }
+      continue;
+    }
+
+    // Check for uncommitted changes
+    const hasChanges = await hasUncommittedChanges(path);
+
+    // Check for unmerged commits
+    let commitCount = 0;
+    if (mainBranch) {
+      try {
+        const commits =
+          await $`git log ${mainBranch}..${worker} --oneline`.text();
+        commitCount = commits.trim() ? commits.trim().split("\n").length : 0;
+      } catch {}
+    }
+
+    console.log(`   ${worker}: ✅ Active`);
+    console.log(`            📁 ${path}`);
+    if (mainBranch) {
+      console.log(
+        `            📝 ${commitCount} commit(s) ahead of ${mainBranch}`
+      );
+    } else {
+      console.log(`            📝 Cannot compare (main is in detached HEAD)`);
+    }
+    if (hasChanges) {
+      console.log(`            ⚠️  Has uncommitted changes!`);
+    }
+  }
+}
+
+async function removeWorker(
+  mainRepo: string,
+  worker: Worker,
+  mainBranch: string | null,
+  force: boolean
+): Promise<void> {
+  const path = getWorktreePath(mainRepo, worker);
+  const worktreeIsPresent = await worktreeExists(mainRepo, worker);
+  const branchIsPresent = await branchExists(worker);
+
+  if (!worktreeIsPresent && !branchIsPresent) {
+    console.log(`❌ Worker ${worker} does not exist (no worktree or branch).`);
+    return;
+  }
+
+  // SAFETY: Check for uncommitted changes (only if worktree exists)
+  if (worktreeIsPresent) {
+    const hasChanges = await hasUncommittedChanges(path);
+
+    // SAFETY: Check for unmerged commits
+    let hasCommits = false;
+    if (mainBranch) {
+      hasCommits = await hasUnmergedCommits(worker, mainBranch);
+    }
+
+    if ((hasChanges || hasCommits) && !force) {
+      console.log(`\n⚠️  WARNING: ${worker} has unsaved work:`);
+
+      if (hasChanges) {
+        console.log(`\n   Uncommitted changes:`);
+        const summary = await getChangesSummary(path);
+        console.log(
+          summary
+            .split("\n")
+            .map((l) => `      ${l}`)
+            .join("\n")
+        );
+      }
+
+      if (hasCommits && mainBranch) {
+        const commits =
+          await $`git log ${mainBranch}..${worker} --oneline`.text();
+        console.log(`\n   Unmerged commits:`);
+        console.log(
+          commits
+            .split("\n")
+            .map((l) => `      ${l}`)
+            .join("\n")
+        );
+      }
+
+      console.log(
+        `\n   Use 'merge' first to save changes, or add --force to discard.`
+      );
+      console.log(
+        `   Example: bun worktree-manager.ts remove ${worker} --force`
+      );
+      return;
+    }
+  }
+
+  // Remove worktree if it exists
+  if (worktreeIsPresent) {
+    console.log(`🗑️  Removing worktree ${worker}...`);
+    try {
+      await $`git worktree remove ${path} --force`;
+      console.log(`   ✅ Worktree removed`);
+    } catch (e: any) {
+      console.log(`   ❌ Failed to remove worktree: ${e.message}`);
+      return;
+    }
+  }
+
+  // Remove branch if it exists
+  if (branchIsPresent) {
+    try {
+      await $`git branch -D ${worker}`;
+      console.log(`   ✅ Branch removed`);
+    } catch {
+      console.log(
+        `   ⚠️  Could not remove branch (may be checked out elsewhere)`
+      );
+    }
+  }
+
+  console.log(`✅ Removed ${worker}`);
 }
 
 function parseWorkerArg(arg: string | undefined): Worker[] {
@@ -201,15 +534,15 @@ function printHelp(): void {
   console.log(`
 🛠️  Worktree Manager for Claude Code
 
-Usage: bun worktree-manager.ts <command> [worker]
+Usage: bun worktree-manager.ts <command> [worker] [options]
 
 Commands:
+  setup             Create all worker worktrees
   open [worker]     Open VS Code window(s) for worker(s)
-  merge [worker]    Merge worker(s) into main and reset them
-  reset [worker]    Reset worker(s) to main branch (no merge)
+  merge [worker]    Merge worker(s) into current branch and reset them
+  reset [worker]    Reset worker(s) to current branch (no merge)
   status            Show status of all workers
   remove [worker]   Remove worker worktree(s) and branch(es)
-  setup             Create all worker worktrees
 
 Worker argument:
   all               All workers (default)
@@ -217,20 +550,30 @@ Worker argument:
   worker-2          Specific worker
   worker-3          Specific worker
 
+Options:
+  --force           Skip safety checks (for reset/remove only)
+
+Safety features:
+  • 'merge' auto-commits uncommitted changes before merging
+  • 'reset' and 'remove' warn if there are unsaved changes
+  • Use --force to override safety checks (data will be lost!)
+
 Examples:
-  bun worktree-manager.ts setup           # Create all worktrees
-  bun worktree-manager.ts open            # Open all workers in VS Code
-  bun worktree-manager.ts open worker-1   # Open just worker-1
-  bun worktree-manager.ts merge           # Merge all workers
-  bun worktree-manager.ts merge worker-2  # Merge just worker-2
-  bun worktree-manager.ts status          # Check worker status
+  bun worktree-manager.ts setup              # Create all worktrees
+  bun worktree-manager.ts open               # Open all workers in VS Code
+  bun worktree-manager.ts open worker-1      # Open just worker-1
+  bun worktree-manager.ts merge              # Merge all workers
+  bun worktree-manager.ts merge worker-2     # Merge just worker-2
+  bun worktree-manager.ts status             # Check worker status
+  bun worktree-manager.ts reset worker-1 --force  # Force reset (discard changes)
 `);
 }
 
 async function main() {
   const args = process.argv.slice(2);
   const command = args[0];
-  const workerArg = args[1];
+  const workerArg = args.find((a) => a.startsWith("worker-") || a === "all");
+  const forceFlag = args.includes("--force");
 
   if (!command || command === "help" || command === "--help") {
     printHelp();
@@ -248,13 +591,42 @@ async function main() {
   const mainRepo = await getGitRoot();
   const mainBranch = await getCurrentBranch();
 
+  // Safety: Block destructive operations in detached HEAD
+  if (mainBranch === null && ["merge", "reset"].includes(command)) {
+    console.error(
+      "❌ Cannot run this command: You are in detached HEAD state."
+    );
+    console.error("   Please checkout a branch first: git checkout main");
+    process.exit(1);
+  }
+
+  // Safety: warn if on a worker branch
+  if (
+    mainBranch &&
+    WORKERS.includes(mainBranch as Worker) &&
+    command !== "status"
+  ) {
+    console.log(`⚠️  Warning: You are currently on branch '${mainBranch}'`);
+    console.log(
+      `   Consider switching to 'main' before running this command.\n`
+    );
+  }
+
   switch (command) {
     case "setup": {
       console.log("🏗️  Setting up worker worktrees...\n");
+      let allSuccess = true;
       for (const worker of WORKERS) {
-        await createWorktree(mainRepo, worker);
+        const success = await createWorktree(mainRepo, worker);
+        if (!success) allSuccess = false;
       }
-      console.log("\n✅ All worktrees ready!");
+      if (allSuccess) {
+        console.log("\n✅ All worktrees ready!");
+      } else {
+        console.log(
+          "\n⚠️  Some worktrees failed to create. Check output above."
+        );
+      }
       break;
     }
 
@@ -268,6 +640,10 @@ async function main() {
     }
 
     case "merge": {
+      if (!mainBranch) {
+        // Already blocked above, but TypeScript doesn't know
+        process.exit(1);
+      }
       const workers = parseWorkerArg(workerArg);
       console.log(
         `🔀 Merging ${workers.length} worker(s) into ${mainBranch}...`
@@ -281,28 +657,37 @@ async function main() {
 
       if (allSucceeded) {
         console.log(
-          "\n✅ All merges complete! Workers reset and ready for new tasks."
+          "\n✅ All done! Workers are reset and ready for new tasks."
         );
       } else {
-        console.log("\n⚠️  Some merges had issues. Check the output above.");
+        console.log(
+          "\n⚠️  Some operations had issues. Check the output above."
+        );
       }
       break;
     }
 
     case "reset": {
+      if (!mainBranch) {
+        // Already blocked above, but TypeScript doesn't know
+        process.exit(1);
+      }
       const workers = parseWorkerArg(workerArg);
       console.log(
         `🔄 Resetting ${workers.length} worker(s) to ${mainBranch}...`
       );
       for (const worker of workers) {
-        await resetWorker(mainRepo, worker, mainBranch);
+        if (forceFlag) {
+          await forceResetWorker(mainRepo, worker, mainBranch);
+        } else {
+          await resetWorker(mainRepo, worker, mainBranch);
+        }
       }
-      console.log("\n✅ Workers reset!");
       break;
     }
 
     case "status": {
-      await statusWorkers(mainRepo);
+      await statusWorkers(mainRepo, mainBranch);
       break;
     }
 
@@ -310,7 +695,7 @@ async function main() {
       const workers = parseWorkerArg(workerArg);
       console.log(`🗑️  Removing ${workers.length} worker(s)...`);
       for (const worker of workers) {
-        await removeWorker(mainRepo, worker);
+        await removeWorker(mainRepo, worker, mainBranch, forceFlag);
       }
       break;
     }
