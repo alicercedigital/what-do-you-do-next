@@ -19,16 +19,16 @@ bun run check-types  # Type-check all packages
 bun run format       # Format code with Prettier
 
 # Run a single package
-bun run --filter @wdydn/game-api-v2 dev
+bun run --filter @wdydn/api dev
 bun run --filter @wdydn/game-frontend-v2 dev
 
 # Run a single test file (in a package directory)
-cd apps/game-api-v2 && bun run test -- path/to/test.spec.ts
+cd apps/api && bun run test -- path/to/test.spec.ts
 ```
 
 ## Monorepo Structure
 
-- **apps/game-api-v2** - Express API server with AI integration (Anthropic/OpenAI via Vercel AI SDK)
+- **apps/api** - Express API server with AI integration (Anthropic/OpenAI via Vercel AI SDK)
 - **apps/game-frontend-v2** - React frontend (Vite, Tailwind v4, Zustand, shadcn/ui components)
 - **packages/shared** - Shared types (Universe, GameState, Moment, Character, etc.)
 - **packages/config** - Shared ESLint, TypeScript, and Jest configurations
@@ -90,7 +90,7 @@ transitions: {
 
 ## Architecture Notes
 
-### API Routes (game-api-v2)
+### API Routes (api)
 - `/api/game/*` - Game session management
 - `/api/moments/*` - Moment operations
 - `/api/challenges/*` - Challenge execution

@@ -12,7 +12,7 @@ This folder contains the Supabase configuration and migrations for the WDYDN dat
 ### 1. Login to Supabase
 
 ```bash
-cd apps/game-api-v2
+cd apps/api
 npx supabase login
 ```
 
