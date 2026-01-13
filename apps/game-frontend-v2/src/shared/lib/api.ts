@@ -96,7 +96,7 @@ function getErrorMessage(error: unknown): string {
 }
 
 /**
- * API Client for game-api-v2
+ * API Client for WDYDN backend
  */
 class ApiClient {
   private baseUrl: string;

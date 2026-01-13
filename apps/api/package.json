@@ -1,5 +1,5 @@
 {
-  "name": "@wdydn/game-api-v2",
+  "name": "@wdydn/api",
   "version": "0.0.0",
   "type": "module",
   "private": true,
