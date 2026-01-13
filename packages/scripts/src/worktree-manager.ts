@@ -3,9 +3,6 @@
  * Worktree Manager for Claude Code
  *
  * Usage: bun worktree-manager.ts <command> [worker]
- *
- * Place this file in your project root or in scripts/worktree-manager.ts
- * Then use with the /workers slash command
  */
 
 import { $ } from "bun";
@@ -15,20 +12,22 @@ import { resolve } from "path";
 const WORKERS = ["worker-1", "worker-2", "worker-3"] as const;
 type Worker = (typeof WORKERS)[number];
 
-// Get the main repo directory - find git root
+// Normalize path separators for cross-platform comparison
+function normalizePath(p: string): string {
+  return p.replace(/\\/g, "/").toLowerCase();
+}
+
 async function getGitRoot(): Promise<string> {
   try {
-    const root = await $`git rev-parse --show-toplevel`.text();
-    return root.trim();
+    const result = await $`git rev-parse --show-toplevel`.text();
+    return result.trim();
   } catch {
     return process.cwd();
   }
 }
 
-const MAIN_REPO = await getGitRoot();
-
-function getWorktreePath(worker: Worker): string {
-  return resolve(MAIN_REPO, "..", worker);
+function getWorktreePath(mainRepo: string, worker: Worker): string {
+  return resolve(mainRepo, "..", worker);
 }
 
 async function getCurrentBranch(): Promise<string> {
@@ -36,18 +35,23 @@ async function getCurrentBranch(): Promise<string> {
   return result.trim();
 }
 
-async function worktreeExists(worker: Worker): Promise<boolean> {
-  const path = getWorktreePath(worker);
+async function worktreeExists(
+  mainRepo: string,
+  worker: Worker
+): Promise<boolean> {
+  const path = getWorktreePath(mainRepo, worker);
   if (!existsSync(path)) return false;
 
-  const list = await $`git worktree list --porcelain`.text();
-  return list.includes(path);
+  const list = await $`git worktree list`.text();
+  const normalizedPath = normalizePath(path);
+  const normalizedList = normalizePath(list);
+  return normalizedList.includes(normalizedPath);
 }
 
-async function createWorktree(worker: Worker): Promise<void> {
-  const path = getWorktreePath(worker);
+async function createWorktree(mainRepo: string, worker: Worker): Promise<void> {
+  const path = getWorktreePath(mainRepo, worker);
 
-  if (await worktreeExists(worker)) {
+  if (await worktreeExists(mainRepo, worker)) {
     console.log(`⏭️  Worktree ${worker} already exists at ${path}`);
     return;
   }
@@ -57,29 +61,26 @@ async function createWorktree(worker: Worker): Promise<void> {
   console.log(`✅ Created ${worker}`);
 }
 
-async function openWorker(worker: Worker): Promise<void> {
-  const path = getWorktreePath(worker);
+async function openWorker(mainRepo: string, worker: Worker): Promise<void> {
+  const path = getWorktreePath(mainRepo, worker);
 
-  if (!(await worktreeExists(worker))) {
-    await createWorktree(worker);
+  if (!(await worktreeExists(mainRepo, worker))) {
+    await createWorktree(mainRepo, worker);
   }
 
   console.log(`🚀 Opening VS Code terminal for ${worker}...`);
-
-  // Open a new VS Code terminal in the worktree directory
-  // Using the `code` CLI with --folder-uri and integrated terminal
   await $`code --new-window ${path}`.quiet();
-
   console.log(`✅ Opened ${worker} in VS Code`);
 }
 
 async function mergeWorker(
+  mainRepo: string,
   worker: Worker,
   mainBranch: string
 ): Promise<boolean> {
-  const worktreePath = getWorktreePath(worker);
+  const worktreePath = getWorktreePath(mainRepo, worker);
 
-  if (!(await worktreeExists(worker))) {
+  if (!(await worktreeExists(mainRepo, worker))) {
     console.log(`❌ Worktree ${worker} does not exist. Skipping.`);
     return false;
   }
@@ -95,7 +96,8 @@ async function mergeWorker(
     console.log(`📋 Commits to merge:\n${diffResult}`);
 
     try {
-      await $`git merge ${worker} -m ${"Merge " + worker + " into " + mainBranch}`;
+      const commitMsg = `Merge ${worker} into ${mainBranch}`;
+      await $`git merge ${worker} -m ${commitMsg}`;
       console.log(`✅ Merged ${worker}`);
     } catch (e) {
       console.log(`⚠️  Merge conflict detected. Please resolve manually.`);
@@ -108,17 +110,20 @@ async function mergeWorker(
 
   // Reset the worker branch to main (from inside the worktree)
   console.log(`🔄 Resetting ${worker} to ${mainBranch}...`);
-
   await $`git -C ${worktreePath} reset --hard ${mainBranch}`.quiet();
   console.log(`✅ Reset ${worker} to ${mainBranch}`);
 
   return true;
 }
 
-async function resetWorker(worker: Worker, mainBranch: string): Promise<void> {
-  const worktreePath = getWorktreePath(worker);
+async function resetWorker(
+  mainRepo: string,
+  worker: Worker,
+  mainBranch: string
+): Promise<void> {
+  const worktreePath = getWorktreePath(mainRepo, worker);
 
-  if (!(await worktreeExists(worker))) {
+  if (!(await worktreeExists(mainRepo, worker))) {
     console.log(`❌ Worktree ${worker} does not exist.`);
     return;
   }
@@ -128,36 +133,43 @@ async function resetWorker(worker: Worker, mainBranch: string): Promise<void> {
   console.log(`✅ Reset ${worker}`);
 }
 
-async function statusWorkers(): Promise<void> {
+async function statusWorkers(mainRepo: string): Promise<void> {
   const currentBranch = await getCurrentBranch();
   console.log(`📍 Main repo branch: ${currentBranch}\n`);
 
   console.log("📊 Worktree status:\n");
 
   for (const worker of WORKERS) {
-    const exists = await worktreeExists(worker);
-    const path = getWorktreePath(worker);
+    const exists = await worktreeExists(mainRepo, worker);
+    const path = getWorktreePath(mainRepo, worker);
 
     if (!exists) {
       console.log(`   ${worker}: ❌ Not created`);
       continue;
     }
 
-    const commits =
-      await $`git log ${currentBranch}..${worker} --oneline`.text();
-    const commitCount = commits.trim() ? commits.trim().split("\n").length : 0;
+    try {
+      const commits =
+        await $`git log ${currentBranch}..${worker} --oneline`.text();
+      const commitCount = commits.trim()
+        ? commits.trim().split("\n").length
+        : 0;
 
-    console.log(`   ${worker}: ✅ Active at ${path}`);
-    console.log(
-      `            ${commitCount} commit(s) ahead of ${currentBranch}`
-    );
+      console.log(`   ${worker}: ✅ Active at ${path}`);
+      console.log(
+        `            ${commitCount} commit(s) ahead of ${currentBranch}`
+      );
+    } catch {
+      console.log(`   ${worker}: ✅ Active at ${path}`);
+      console.log(`            Unable to count commits`);
+    }
   }
 }
 
-async function removeWorker(worker: Worker): Promise<void> {
-  const path = getWorktreePath(worker);
+async function removeWorker(mainRepo: string, worker: Worker): Promise<void> {
+  const path = getWorktreePath(mainRepo, worker);
 
-  if (!(await worktreeExists(worker))) {
+  if (!(await worktreeExists(mainRepo, worker))) {
     console.log(`❌ Worktree ${worker} does not exist.`);
     return;
   }
@@ -165,7 +177,6 @@ async function removeWorker(worker: Worker): Promise<void> {
   console.log(`🗑️  Removing worktree ${worker}...`);
   await $`git worktree remove ${path} --force`.quiet();
 
-  // Also delete the branch
   try {
     await $`git branch -D ${worker}`.quiet();
     console.log(`✅ Removed ${worker} worktree and branch`);
@@ -234,13 +245,14 @@ async function main() {
     process.exit(1);
   }
 
+  const mainRepo = await getGitRoot();
   const mainBranch = await getCurrentBranch();
 
   switch (command) {
     case "setup": {
       console.log("🏗️  Setting up worker worktrees...\n");
       for (const worker of WORKERS) {
-        await createWorktree(worker);
+        await createWorktree(mainRepo, worker);
       }
       console.log("\n✅ All worktrees ready!");
       break;
@@ -250,7 +262,7 @@ async function main() {
       const workers = parseWorkerArg(workerArg);
       console.log(`🚀 Opening ${workers.length} worker(s)...\n`);
       for (const worker of workers) {
-        await openWorker(worker);
+        await openWorker(mainRepo, worker);
       }
       break;
     }
@@ -263,7 +275,7 @@ async function main() {
 
       let allSucceeded = true;
       for (const worker of workers) {
-        const success = await mergeWorker(worker, mainBranch);
+        const success = await mergeWorker(mainRepo, worker, mainBranch);
         if (!success) allSucceeded = false;
       }
 
@@ -283,14 +295,14 @@ async function main() {
         `🔄 Resetting ${workers.length} worker(s) to ${mainBranch}...`
       );
       for (const worker of workers) {
-        await resetWorker(worker, mainBranch);
+        await resetWorker(mainRepo, worker, mainBranch);
       }
       console.log("\n✅ Workers reset!");
       break;
     }
 
     case "status": {
-      await statusWorkers();
+      await statusWorkers(mainRepo);
       break;
     }
 
@@ -298,7 +310,7 @@ async function main() {
       const workers = parseWorkerArg(workerArg);
       console.log(`🗑️  Removing ${workers.length} worker(s)...`);
       for (const worker of workers) {
-        await removeWorker(worker);
+        await removeWorker(mainRepo, worker);
       }
       break;
     }
