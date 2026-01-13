@@ -43,12 +43,13 @@ function normalizePath(p: string): string {
 }
 
 async function getGitRoot(): Promise<string> {
-  try {
-    const result = await $`git rev-parse --show-toplevel`.text();
-    return result.trim();
-  } catch {
-    return process.cwd();
+  const result = await $`git rev-parse --show-toplevel`.nothrow();
+  if (result.exitCode !== 0) {
+    throw new Error(
+      "Failed to determine git root: " + result.stderr.toString()
+    );
   }
+  return result.stdout.toString().trim();
 }
 
 /**
@@ -922,6 +923,7 @@ async function main() {
 
     case "merge": {
       if (!mainBranch) {
+        console.error("❌ Unexpected: mainBranch is null in merge");
         process.exit(1);
       }
       const workers = parseWorkerArg(workerArg);
@@ -948,7 +950,15 @@ async function main() {
           mainBranch,
           dryRunFlag
         );
-        if (!result.success) allSucceeded = false;
+        if (!result.success) {
+          allSucceeded = false;
+          if (result.error === "Merge conflict") {
+            console.log(
+              `\n⛔ Stopping: Please resolve the conflict before continuing.`
+            );
+            break;
+          }
+        }
       }
 
       if (allSucceeded) {
