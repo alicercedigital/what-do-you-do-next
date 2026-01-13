@@ -7,7 +7,8 @@
     "gather-codebase": "./src/gather-codebase.ts"
   },
   "scripts": {
-    "gather": "bun run src/gather-codebase.ts"
+    "gather": "bun run src/gather-codebase.ts",
+    "workers": "bun run src/worktree-manager.ts"
   },
   "devDependencies": {
     "@wdydn/config": "*",
