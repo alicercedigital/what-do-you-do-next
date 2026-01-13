@@ -81,7 +81,7 @@ async function getCurrentBranch(): Promise<string | null> {
 
 async function branchExists(branch: string): Promise<boolean> {
   try {
-    await $`git rev-parse --verify ${branch}`.quiet();
+    await $`git rev-parse --verify refs/heads/${branch}`.quiet();
     return true;
   } catch {
     return false;
@@ -335,7 +335,7 @@ async function mergeWorker(
   if (currentBranch === worker) {
     console.log(`❌ Cannot merge ${worker}: you are currently on this branch!`);
     console.log(
-      `   Switch to your main branch first: git checkout ${mainBranch}`
+      `   Switch to your main development branch first (e.g., git checkout main)`
     );
     return {
       success: false,
@@ -556,38 +556,42 @@ async function statusWorkers(
   console.log("📊 Worker status:\n");
 
   for (const worker of WORKERS) {
-    const exists = await worktreeExists(mainRepo, worker);
-    const path = getWorktreePath(mainRepo, worker);
+    try {
+      const exists = await worktreeExists(mainRepo, worker);
+      const path = getWorktreePath(mainRepo, worker);
 
-    if (!exists) {
-      const branchOnly = await branchExists(worker);
-      if (branchOnly) {
-        console.log(`   ${worker}: ⚠️  Branch exists but no worktree`);
-        console.log(`            Run 'setup' to recreate worktree`);
-      } else {
-        console.log(`   ${worker}: ❌ Not created`);
+      if (!exists) {
+        const branchOnly = await branchExists(worker);
+        if (branchOnly) {
+          console.log(`   ${worker}: ⚠️  Branch exists but no worktree`);
+          console.log(`            Run 'setup' to recreate worktree`);
+        } else {
+          console.log(`   ${worker}: ❌ Not created`);
+        }
+        continue;
       }
-      continue;
-    }
 
-    const hasChanges = await hasUncommittedChanges(path);
+      const hasChanges = await hasUncommittedChanges(path);
 
-    let commitCount = 0;
-    if (mainBranch) {
-      commitCount = await getCommitCountAhead(worker, mainBranch);
-    }
+      let commitCount = 0;
+      if (mainBranch) {
+        commitCount = await getCommitCountAhead(worker, mainBranch);
+      }
 
-    console.log(`   ${worker}: ✅ Active`);
-    console.log(`            📁 ${path}`);
-    if (mainBranch) {
-      console.log(
-        `            📝 ${commitCount} commit(s) ahead of ${mainBranch}`
-      );
-    } else {
-      console.log(`            📝 Cannot compare (main is in detached HEAD)`);
-    }
-    if (hasChanges) {
-      console.log(`            ⚠️  Has uncommitted changes!`);
+      console.log(`   ${worker}: ✅ Active`);
+      console.log(`            📁 ${path}`);
+      if (mainBranch) {
+        console.log(
+          `            📝 ${commitCount} commit(s) ahead of ${mainBranch}`
+        );
+      } else {
+        console.log(`            📝 Cannot compare (main is in detached HEAD)`);
+      }
+      if (hasChanges) {
+        console.log(`            ⚠️  Has uncommitted changes!`);
+      }
+    } catch (e: any) {
+      console.log(`   ${worker}: ❓ Error checking status: ${e.message}`);
     }
   }
 }
@@ -741,7 +745,7 @@ function parseWorkerArg(arg: string | undefined): Worker[] {
   const worker = arg as Worker;
   if (!WORKERS.includes(worker)) {
     console.error(`❌ Invalid worker: ${arg}`);
-    console.error(`   Valid workers: ${WORKERS.join(", ")}`);
+    console.error(`   Valid options: all, ${WORKERS.join(", ")}`);
     process.exit(1);
   }
   return [worker];
@@ -802,7 +806,24 @@ Examples:
 async function main() {
   const args = process.argv.slice(2);
   const command = parseCommand(args[0]);
-  const workerArg = args.find((a) => a.startsWith("worker-") || a === "all");
+
+  // Find worker argument - must be a valid worker name or "all"
+  const potentialWorkerArg = args.find(
+    (a) => !a.startsWith("--") && a !== args[0]
+  );
+
+  // Validate worker argument if provided
+  if (
+    potentialWorkerArg &&
+    potentialWorkerArg !== "all" &&
+    !WORKERS.includes(potentialWorkerArg as Worker)
+  ) {
+    console.error(`❌ Invalid worker: ${potentialWorkerArg}`);
+    console.error(`   Valid options: all, ${WORKERS.join(", ")}`);
+    process.exit(1);
+  }
+
+  const workerArg = potentialWorkerArg;
   const forceFlag = args.includes("--force");
   const dryRunFlag = args.includes("--dry-run");
 
@@ -854,7 +875,9 @@ async function main() {
     console.error(
       "❌ Cannot run this command: You are in detached HEAD state."
     );
-    console.error("   Please checkout a branch first: git checkout main");
+    console.error(
+      "   Please checkout a branch first (e.g., git checkout main)"
+    );
     process.exit(1);
   }
 
@@ -866,7 +889,7 @@ async function main() {
   ) {
     console.log(`⚠️  Warning: You are currently on branch '${mainBranch}'`);
     console.log(
-      `   Consider switching to 'main' before running this command.\n`
+      `   Consider switching to your main development branch before running this command.\n`
     );
   }
 
