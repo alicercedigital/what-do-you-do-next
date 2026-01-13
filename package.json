@@ -12,6 +12,7 @@
     "gather": "bun run --filter @wdydn/scripts gather"
   },
   "devDependencies": {
+    "@types/bun": "^1.3.5",
     "prettier": "^3.6.0",
     "turbo": "^2.7.3"
   },

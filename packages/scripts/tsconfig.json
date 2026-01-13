@@ -1,6 +1,7 @@
 {
   "extends": "@wdydn/config/typescript/base.json",
   "compilerOptions": {
+    "target": "esnext",
     "outDir": "dist",
     "rootDir": "src"
   },
