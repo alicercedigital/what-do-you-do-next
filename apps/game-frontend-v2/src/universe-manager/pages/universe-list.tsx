@@ -23,18 +23,7 @@ import {
   CardHeader,
   CardTitle,
 } from "@/shared/components/ui/card";
-import { Input } from "@/shared/components/ui/input";
-import { Label } from "@/shared/components/ui/label";
 import { Badge } from "@/shared/components/ui/badge";
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger,
-} from "@/shared/components/ui/dialog";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -107,11 +96,7 @@ export function UniverseListPage() {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  // Create dialog state
-  const [isCreateOpen, setIsCreateOpen] = useState(false);
-  const [newName, setNewName] = useState("");
-  const [newDescription, setNewDescription] = useState("");
-  const [newTheme, setNewTheme] = useState("fantasy");
+  // Create state
   const [isCreating, setIsCreating] = useState(false);
 
   // Delete dialog state
@@ -142,19 +127,13 @@ export function UniverseListPage() {
   }, []);
 
   const handleCreate = async () => {
-    if (!newName.trim()) return;
-
     setIsCreating(true);
     try {
       const universeId = await createUniverse({
-        name: newName.trim(),
-        description: newDescription.trim(),
-        theme: newTheme,
+        name: "Untitled Universe",
+        description: "",
+        theme: "fantasy",
       });
-      setIsCreateOpen(false);
-      setNewName("");
-      setNewDescription("");
-      setNewTheme("fantasy");
       navigate(`/universes/${universeId}`);
     } catch (err) {
       setError(
@@ -311,69 +290,14 @@ export function UniverseListPage() {
             </label>
 
             {/* Create button */}
-            <Dialog open={isCreateOpen} onOpenChange={setIsCreateOpen}>
-              <DialogTrigger asChild>
-                <Button>
-                  <Plus className="mr-2 h-4 w-4" />
-                  Create Universe
-                </Button>
-              </DialogTrigger>
-              <DialogContent>
-                <DialogHeader>
-                  <DialogTitle>Create New Universe</DialogTitle>
-                  <DialogDescription>
-                    Start with a blank universe and add content in the editor.
-                  </DialogDescription>
-                </DialogHeader>
-                <div className="grid gap-4 py-4">
-                  <div className="grid gap-2">
-                    <Label htmlFor="name">Name</Label>
-                    <Input
-                      id="name"
-                      value={newName}
-                      onChange={(e) => setNewName(e.target.value)}
-                      placeholder="My Universe"
-                    />
-                  </div>
-                  <div className="grid gap-2">
-                    <Label htmlFor="description">Description</Label>
-                    <Input
-                      id="description"
-                      value={newDescription}
-                      onChange={(e) => setNewDescription(e.target.value)}
-                      placeholder="A brief description..."
-                    />
-                  </div>
-                  <div className="grid gap-2">
-                    <Label htmlFor="theme">Theme</Label>
-                    <Input
-                      id="theme"
-                      value={newTheme}
-                      onChange={(e) => setNewTheme(e.target.value)}
-                      placeholder="fantasy, sci-fi, horror..."
-                    />
-                  </div>
-                </div>
-                <DialogFooter>
-                  <Button
-                    variant="outline"
-                    onClick={() => setIsCreateOpen(false)}
-                    disabled={isCreating}
-                  >
-                    Cancel
-                  </Button>
-                  <Button
-                    onClick={handleCreate}
-                    disabled={!newName.trim() || isCreating}
-                  >
-                    {isCreating && (
-                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                    )}
-                    Create
-                  </Button>
-                </DialogFooter>
-              </DialogContent>
-            </Dialog>
+            <Button onClick={handleCreate} disabled={isCreating}>
+              {isCreating ? (
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+              ) : (
+                <Plus className="mr-2 h-4 w-4" />
+              )}
+              Create Universe
+            </Button>
           </div>
         </div>
 
@@ -397,8 +321,12 @@ export function UniverseListPage() {
           <Card className="border-dashed">
             <CardContent className="flex flex-col items-center justify-center py-12">
               <p className="mb-4 text-muted-foreground">No universes yet</p>
-              <Button onClick={() => setIsCreateOpen(true)}>
-                <Plus className="mr-2 h-4 w-4" />
+              <Button onClick={handleCreate} disabled={isCreating}>
+                {isCreating ? (
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                ) : (
+                  <Plus className="mr-2 h-4 w-4" />
+                )}
                 Create Your First Universe
               </Button>
             </CardContent>

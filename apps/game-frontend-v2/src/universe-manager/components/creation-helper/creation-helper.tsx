@@ -72,12 +72,7 @@ export function CreationHelper() {
 
     const timeout = setTimeout(loadAiOptions, 500);
     return () => clearTimeout(timeout);
-  }, [
-    helper.currentStep,
-    helper.currentStepState.selectedValues,
-    universe?.name,
-    universe?.theme,
-  ]);
+  }, [helper.currentStep, helper.currentStepState.selectedValues, universe]);
 
   const handleRequestMoreOptions = async () => {
     helper.setLoadingOptions(true);
@@ -274,15 +269,6 @@ export function CreationHelper() {
 
   return (
     <div className="flex h-[calc(100vh-10em)] flex-col">
-      {/* Progress bar */}
-      <div className="border-b bg-card/50 px-6 py-4">
-        <HelperProgress
-          currentStep={helper.currentStep}
-          completedSteps={helper.completedSteps}
-          onStepClick={helper.goToStep}
-        />
-      </div>
-
       {/* Main content */}
       <div className="flex flex-1 min-h-0">
         {/* Left: Input area */}
@@ -327,7 +313,13 @@ export function CreationHelper() {
               Previous
             </Button>
             <span className="text-sm text-muted-foreground">
-              Step {helper.stepIndex + 1} of {helper.totalSteps}
+              <div>
+                <HelperProgress
+                  currentStep={helper.currentStep}
+                  completedSteps={helper.completedSteps}
+                  onStepClick={helper.goToStep}
+                />
+              </div>
             </span>
             <Button
               variant="ghost"
