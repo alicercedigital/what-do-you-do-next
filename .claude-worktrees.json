@@ -1,0 +1,10 @@
+{
+  "version": 1,
+  "worktrees": {
+    "run-init-codebase-wnug": {
+      "path": "G:\\code\\projects\\what-do-you-do-next\\run-init-codebase-wnug",
+      "branch": "run-init-codebase-wnug",
+      "createdAt": "2026-01-13T22:55:19.236Z"
+    }
+  }
+}
