@@ -1,5 +1,5 @@
 {
-  "name": "kitchen-sink",
+  "name": "wdydn",
   "private": true,
   "scripts": {
     "build": "turbo run build",
