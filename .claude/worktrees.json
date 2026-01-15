@@ -1,0 +1,21 @@
+{
+  "version": 1,
+  "worktrees": {
+    "undefined": {
+      "createdAt": "2026-01-14T23:27:23.349Z",
+      "claudeSession": {
+        "id": "cbfa5399-730c-4bdf-bd66-202effa60c51",
+        "lastActive": "2026-01-15T00:03:13.317Z"
+      }
+    },
+    "change-name-package-kkeb": {
+      "path": "G:\\code\\projects\\what-do-you-do-next\\change-name-package-kkeb",
+      "branch": "change-name-package-kkeb",
+      "createdAt": "2026-01-14T23:57:33.635Z",
+      "claudeSession": {
+        "id": "1c2f2e5c-9b74-4af1-892e-cfdf2a4f3eee",
+        "lastActive": "2026-01-14T23:57:33.635Z"
+      }
+    }
+  }
+}
