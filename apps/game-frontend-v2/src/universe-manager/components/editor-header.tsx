@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { ArrowLeft, Save, Download, Play, Loader2, Check, AlertCircle, Globe, GlobeLock } from "lucide-react";
+import { ArrowLeft, Save, Download, Play, Loader2, Check, AlertCircle, Globe, GlobeLock, Pencil } from "lucide-react";
 
 import { Button } from "@/shared/components/ui/button";
 import {
@@ -13,12 +13,15 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/shared/components/ui/alert-dialog";
+import { Input } from "@/shared/components/ui/input";
 import { useUniverseEditorStore, useUniverseMetadata, useIsPublishing } from "../store/universe-editor-store";
 import { VersionSelector } from "./version-selector";
 
 export function EditorHeader() {
   const navigate = useNavigate();
   const [showPublishDialog, setShowPublishDialog] = useState(false);
+  const [isEditingName, setIsEditingName] = useState(false);
+  const [editedName, setEditedName] = useState("");
 
   const {
     universe,
@@ -30,6 +33,7 @@ export function EditorHeader() {
     validate,
     publishUniverse,
     unpublishUniverse,
+    updateUniverse,
   } = useUniverseEditorStore();
 
   const metadata = useUniverseMetadata();
@@ -82,6 +86,32 @@ export function EditorHeader() {
     return `${Math.floor(diff / 3600000)}h ago`;
   };
 
+  const handleStartEditName = () => {
+    setEditedName(universe.name);
+    setIsEditingName(true);
+  };
+
+  const handleSaveName = () => {
+    const trimmedName = editedName.trim();
+    if (trimmedName && trimmedName !== universe.name) {
+      updateUniverse({ name: trimmedName });
+    }
+    setIsEditingName(false);
+  };
+
+  const handleCancelEditName = () => {
+    setIsEditingName(false);
+    setEditedName("");
+  };
+
+  const handleNameKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === "Enter") {
+      handleSaveName();
+    } else if (e.key === "Escape") {
+      handleCancelEditName();
+    }
+  };
+
   return (
     <header className="flex h-14 items-center justify-between border-b bg-card px-4">
       <div className="flex items-center gap-4">
@@ -93,7 +123,28 @@ export function EditorHeader() {
           <ArrowLeft className="h-4 w-4" />
         </Button>
         <div className="flex items-center gap-2">
-          <h1 className="text-lg font-semibold">{universe.name}</h1>
+          {isEditingName ? (
+            <Input
+              value={editedName}
+              onChange={(e) => setEditedName(e.target.value)}
+              onBlur={handleSaveName}
+              onKeyDown={handleNameKeyDown}
+              autoFocus
+              className="h-8 w-64 text-lg font-semibold"
+            />
+          ) : (
+            <>
+              <h1 className="text-lg font-semibold">{universe.name}</h1>
+              <Button
+                variant="ghost"
+                size="icon"
+                className="h-6 w-6"
+                onClick={handleStartEditName}
+              >
+                <Pencil className="h-3 w-3" />
+              </Button>
+            </>
+          )}
           {isDirty && (
             <span className="rounded-full bg-amber-500/20 px-2 py-0.5 text-xs text-amber-500">
               Unsaved
