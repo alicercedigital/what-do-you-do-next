@@ -1,9 +1,55 @@
 {
   "permissions": {
-    "allow": ["Bash"]
+    "allow": [
+      "Bash"
+    ]
   },
   "statusLine": {
     "type": "command",
     "command": "node .claude/statusline.js"
+  },
+  "hooks": {
+    "Stop": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node \"G:/code/projects/what-do-you-do-next/wdydn/.claude/worktree-status-hook.cjs\" waiting_for_user"
+          }
+        ]
+      }
+    ],
+    "UserPromptSubmit": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node \"G:/code/projects/what-do-you-do-next/wdydn/.claude/worktree-status-hook.cjs\" working"
+          }
+        ]
+      }
+    ],
+    "PreToolUse": [
+      {
+        "matcher": ".*",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node \"G:/code/projects/what-do-you-do-next/wdydn/.claude/worktree-status-hook.cjs\" working"
+          }
+        ]
+      }
+    ],
+    "Notification": [
+      {
+        "matcher": "permission_prompt",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node \"G:/code/projects/what-do-you-do-next/wdydn/.claude/worktree-status-hook.cjs\" waiting_for_user"
+          }
+        ]
+      }
+    ]
   }
 }
