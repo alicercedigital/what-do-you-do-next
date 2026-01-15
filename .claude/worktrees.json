@@ -1,0 +1,42 @@
+{
+  "version": 1,
+  "worktrees": {
+    "worker-a": {
+      "path": "G:/code/projects/what-do-you-do-next/worker-a",
+      "branch": "worker-a",
+      "createdAt": "2026-01-15T18:33:34.436Z",
+      "claudeSession": {
+        "id": "ea83df6a-46fb-491f-b294-ffbd5ae91742",
+        "lastActive": "2026-01-15T18:34:36.552Z"
+      }
+    },
+    "worker-b": {
+      "path": "G:/code/projects/what-do-you-do-next/worker-b",
+      "branch": "worker-b",
+      "createdAt": "2026-01-15T18:33:41.085Z",
+      "claudeSession": {
+        "id": "fa10b91d-85f1-4a86-94a5-059e851a9a19",
+        "lastActive": "2026-01-15T18:41:18.253Z",
+        "status": "waiting_for_user"
+      }
+    },
+    "worker-c": {
+      "path": "G:/code/projects/what-do-you-do-next/worker-c",
+      "branch": "worker-c",
+      "createdAt": "2026-01-15T18:34:02.892Z",
+      "claudeSession": {
+        "id": "362556a4-68dc-418d-b261-3158a0e5e4be",
+        "lastActive": "2026-01-15T18:34:36.555Z"
+      }
+    },
+    "worker-d": {
+      "path": "G:/code/projects/what-do-you-do-next/worker-d",
+      "branch": "worker-d",
+      "createdAt": "2026-01-15T18:34:27.796Z",
+      "claudeSession": {
+        "id": "83a5751d-de63-45b6-8b2a-65a909745882",
+        "lastActive": "2026-01-15T18:34:36.556Z"
+      }
+    }
+  }
+}
