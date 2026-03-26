@@ -1,4 +1,4 @@
-import { BrowserRouter, Routes, Route } from "react-router-dom";
+import { HashRouter, Routes, Route } from "react-router-dom";
 import { Toaster } from "sonner";
 import { Header } from "@/components/Header";
 import { BookingPage } from "@/pages/BookingPage";
@@ -6,7 +6,7 @@ import { BookingsListPage } from "@/pages/BookingsListPage";
 
 export default function App() {
   return (
-    <BrowserRouter>
+    <HashRouter>
       <div className="min-h-screen bg-[#0f0f0f]">
         <Header />
         <main className="pb-24">
@@ -27,6 +27,6 @@ export default function App() {
           }}
         />
       </div>
-    </BrowserRouter>
+    </HashRouter>
   );
 }
