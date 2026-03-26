@@ -1,5 +1,4 @@
-import { useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { format, parseISO } from "date-fns";
 import { ptBR } from "date-fns/locale";
@@ -11,7 +10,7 @@ import {
   DollarSign,
   User,
   Phone,
-  CheckCircle2,
+  MessageCircle,
 } from "lucide-react";
 import { toast } from "sonner";
 import { useBookingStore } from "@/store/booking-store";
@@ -21,6 +20,7 @@ import { ProfessionalCard } from "@/components/ProfessionalCard";
 import { DatePicker } from "@/components/DatePicker";
 import { TimeSlots } from "@/components/TimeSlots";
 import { StepIndicator } from "@/components/StepIndicator";
+import { buildWhatsAppUrl } from "@/lib/whatsapp";
 import type { Service } from "@/types";
 
 const categories = [
@@ -31,26 +31,44 @@ const categories = [
 ] as const;
 
 export function BookingPage() {
-  const navigate = useNavigate();
   const store = useBookingStore();
-  const { services, professionals } = useAdminStore();
+  const { services, professionals, syncFromGithub } = useAdminStore();
   const step = store.currentStep();
   const [activeCategory, setActiveCategory] = useState<Service["category"]>("corte");
 
+  useEffect(() => {
+    syncFromGithub();
+  }, [syncFromGithub]);
+
   const filteredServices = services.filter((s) => s.category === activeCategory);
 
-  const handleConfirm = () => {
+  const handleWhatsApp = () => {
     if (!store.customerName.trim() || !store.customerPhone.trim()) {
       toast.error("Preencha seu nome e telefone");
       return;
     }
-    const booking = store.confirmBooking();
-    if (booking) {
-      toast.success("Agendamento confirmado!", {
-        description: `${booking.service.name} com ${booking.professional.name}`,
-      });
-      navigate("/bookings");
-    }
+    if (
+      !store.selectedService ||
+      !store.selectedProfessional ||
+      !store.selectedDate ||
+      !store.selectedTime
+    )
+      return;
+
+    const url = buildWhatsAppUrl(
+      store.selectedService,
+      store.selectedProfessional,
+      store.selectedDate,
+      store.selectedTime,
+      store.customerName,
+      store.customerPhone,
+    );
+
+    window.open(url, "_blank");
+    toast.success("Abrindo WhatsApp...", {
+      description: "Aguarde a confirmação do profissional",
+    });
+    store.resetFlow();
   };
 
   const goBack = () => {
@@ -82,7 +100,6 @@ export function BookingPage() {
               Selecione o serviço que deseja agendar
             </p>
 
-            {/* Category tabs */}
             <div className="mt-4 flex gap-2 overflow-x-auto scrollbar-hide">
               {categories.map((cat) => (
                 <button
@@ -100,14 +117,20 @@ export function BookingPage() {
             </div>
 
             <div className="mt-4 space-y-3">
-              {filteredServices.map((service) => (
-                <ServiceCard
-                  key={service.id}
-                  service={service}
-                  selected={store.selectedService?.id === service.id}
-                  onSelect={(s) => store.setService(s)}
-                />
-              ))}
+              {filteredServices.length === 0 ? (
+                <p className="py-8 text-center text-sm text-white/30">
+                  Nenhum serviço nesta categoria
+                </p>
+              ) : (
+                filteredServices.map((service) => (
+                  <ServiceCard
+                    key={service.id}
+                    service={service}
+                    selected={store.selectedService?.id === service.id}
+                    onSelect={(s) => store.setService(s)}
+                  />
+                ))
+              )}
             </div>
           </motion.div>
         )}
@@ -194,7 +217,7 @@ export function BookingPage() {
           </motion.div>
         )}
 
-        {/* Step 3: Confirm */}
+        {/* Step 3: Confirm via WhatsApp */}
         {step === 3 &&
           store.selectedService &&
           store.selectedProfessional &&
@@ -214,10 +237,10 @@ export function BookingPage() {
               </button>
               <h2 className="font-display text-2xl font-bold">Confirmar Agendamento</h2>
               <p className="mt-1 text-sm text-white/50">
-                Revise os detalhes e confirme
+                Revise e envie pelo WhatsApp para confirmar
               </p>
 
-              {/* Summary card */}
+              {/* Summary */}
               <div className="mt-6 space-y-4 rounded-2xl border border-white/10 bg-white/5 p-5">
                 <div className="flex items-center gap-3 border-b border-white/10 pb-4">
                   <span className="text-3xl">{store.selectedService.icon}</span>
@@ -299,17 +322,21 @@ export function BookingPage() {
               <motion.button
                 whileHover={{ scale: 1.01 }}
                 whileTap={{ scale: 0.99 }}
-                onClick={handleConfirm}
-                className="mt-6 flex w-full items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-salon-600 to-salon-500 py-4 text-sm font-bold text-white shadow-lg shadow-salon-500/30 transition-all hover:shadow-xl hover:shadow-salon-500/40"
+                onClick={handleWhatsApp}
+                className="mt-6 flex w-full items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-green-600 to-green-500 py-4 text-sm font-bold text-white shadow-lg shadow-green-500/30 transition-all hover:shadow-xl hover:shadow-green-500/40"
               >
-                <CheckCircle2 className="h-5 w-5" />
-                Confirmar Agendamento
+                <MessageCircle className="h-5 w-5" />
+                Confirmar via WhatsApp
               </motion.button>
+
+              <p className="mt-3 text-center text-xs text-white/30">
+                Você será redirecionado para o WhatsApp para confirmar o agendamento
+              </p>
             </motion.div>
           )}
       </AnimatePresence>
 
-      {/* Floating next button for steps 0-1 */}
+      {/* Floating bar */}
       {step === 0 && store.selectedService && (
         <motion.div
           initial={{ opacity: 0, y: 20 }}

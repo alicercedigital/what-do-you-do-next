@@ -3,12 +3,12 @@ import { format, parseISO } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { Calendar, Clock, User, X, Scissors } from "lucide-react";
 import { toast } from "sonner";
-import { useBookingStore } from "@/store/booking-store";
+import { useAdminStore } from "@/store/admin-store";
 import { Link } from "react-router-dom";
 
 export function BookingsListPage() {
-  const bookings = useBookingStore((s) => s.bookings);
-  const cancelBooking = useBookingStore((s) => s.cancelBooking);
+  const bookings = useAdminStore((s) => s.bookings);
+  const cancelBooking = useAdminStore((s) => s.cancelBooking);
 
   const handleCancel = (id: string) => {
     cancelBooking(id);
@@ -32,7 +32,7 @@ export function BookingsListPage() {
           Nenhum agendamento
         </h2>
         <p className="mt-2 text-sm text-white/40">
-          Você ainda não fez nenhum agendamento
+          Os agendamentos confirmados aparecerão aqui
         </p>
         <Link
           to="/"
@@ -46,7 +46,7 @@ export function BookingsListPage() {
 
   return (
     <div className="mx-auto max-w-3xl px-4 py-6">
-      <h2 className="font-display text-2xl font-bold">Meus Agendamentos</h2>
+      <h2 className="font-display text-2xl font-bold">Agendamentos</h2>
       <p className="mt-1 text-sm text-white/50">
         {bookings.filter((b) => b.status === "confirmed").length} agendamento(s) ativo(s)
       </p>
@@ -71,7 +71,9 @@ export function BookingsListPage() {
                   <span className="text-2xl">{booking.service.icon}</span>
                   <div>
                     <h3 className="font-semibold">{booking.service.name}</h3>
-                    <span className={`mt-1 inline-block rounded-full px-2 py-0.5 text-[10px] font-medium ${status.color}`}>
+                    <span
+                      className={`mt-1 inline-block rounded-full px-2 py-0.5 text-[10px] font-medium ${status.color}`}
+                    >
                       {status.text}
                     </span>
                   </div>
@@ -80,7 +82,7 @@ export function BookingsListPage() {
                   <button
                     onClick={() => handleCancel(booking.id)}
                     className="rounded-lg p-1.5 text-white/30 transition-colors hover:bg-red-500/10 hover:text-red-400"
-                    title="Cancelar agendamento"
+                    title="Cancelar"
                   >
                     <X className="h-4 w-4" />
                   </button>
@@ -90,9 +92,7 @@ export function BookingsListPage() {
               <div className="mt-3 grid grid-cols-3 gap-3">
                 <div className="flex items-center gap-1.5">
                   <User className="h-3 w-3 text-salon-400" />
-                  <span className="text-xs text-white/60">
-                    {booking.professional.name}
-                  </span>
+                  <span className="text-xs text-white/60">{booking.professional.name}</span>
                 </div>
                 <div className="flex items-center gap-1.5">
                   <Calendar className="h-3 w-3 text-salon-400" />
@@ -104,6 +104,10 @@ export function BookingsListPage() {
                   <Clock className="h-3 w-3 text-salon-400" />
                   <span className="text-xs text-white/60">{booking.time}</span>
                 </div>
+              </div>
+
+              <div className="mt-2 text-xs text-white/30">
+                {booking.customerName} · {booking.customerPhone}
               </div>
             </motion.div>
           );
