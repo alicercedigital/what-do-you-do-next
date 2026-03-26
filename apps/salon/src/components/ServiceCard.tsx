@@ -33,7 +33,7 @@ export function ServiceCard({ service, selected, onSelect }: ServiceCardProps) {
             </span>
             <span className="flex items-center gap-1 text-sm font-semibold text-gold-400">
               <DollarSign className="h-3 w-3" />
-              R$ {service.price.toFixed(2)}
+              {service.price > 0 ? `R$ ${service.price.toFixed(2)}` : "Consulte"}
             </span>
           </div>
         </div>

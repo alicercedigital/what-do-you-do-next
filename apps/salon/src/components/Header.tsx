@@ -1,5 +1,5 @@
 import { Link, useLocation } from "react-router-dom";
-import { Scissors, Calendar, Clock } from "lucide-react";
+import { Scissors, Calendar, Clock, Settings } from "lucide-react";
 import { useBookingStore } from "@/store/booking-store";
 
 export function Header() {
@@ -15,9 +15,9 @@ export function Header() {
             <Scissors className="h-5 w-5 text-white" />
           </div>
           <div>
-            <h1 className="font-display text-lg font-bold leading-tight">BarberShop</h1>
+            <h1 className="font-display text-lg font-bold leading-tight">Barbearia</h1>
             <p className="text-[10px] uppercase tracking-widest text-salon-400">
-              Studio Premium
+              Heber Eustáquio
             </p>
           </div>
         </Link>
@@ -49,6 +49,17 @@ export function Header() {
                 {activeBookings}
               </span>
             )}
+          </Link>
+          <Link
+            to="/admin"
+            className={`rounded-lg px-3 py-2 text-sm font-medium transition-colors ${
+              location.pathname === "/admin"
+                ? "bg-white/10 text-white"
+                : "text-white/60 hover:text-white"
+            }`}
+          >
+            <span className="hidden sm:inline">Admin</span>
+            <Settings className="h-5 w-5 sm:hidden" />
           </Link>
         </nav>
       </div>

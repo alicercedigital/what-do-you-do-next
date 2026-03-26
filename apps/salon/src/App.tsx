@@ -3,6 +3,7 @@ import { Toaster } from "sonner";
 import { Header } from "@/components/Header";
 import { BookingPage } from "@/pages/BookingPage";
 import { BookingsListPage } from "@/pages/BookingsListPage";
+import { AdminPage } from "@/pages/AdminPage";
 
 export default function App() {
   return (
@@ -13,6 +14,7 @@ export default function App() {
           <Routes>
             <Route path="/" element={<BookingPage />} />
             <Route path="/bookings" element={<BookingsListPage />} />
+            <Route path="/admin" element={<AdminPage />} />
           </Routes>
         </main>
         <Toaster

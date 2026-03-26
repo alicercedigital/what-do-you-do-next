@@ -15,8 +15,7 @@ import {
 } from "lucide-react";
 import { toast } from "sonner";
 import { useBookingStore } from "@/store/booking-store";
-import { services } from "@/data/services";
-import { professionals } from "@/data/professionals";
+import { useAdminStore } from "@/store/admin-store";
 import { ServiceCard } from "@/components/ServiceCard";
 import { ProfessionalCard } from "@/components/ProfessionalCard";
 import { DatePicker } from "@/components/DatePicker";
@@ -34,6 +33,7 @@ const categories = [
 export function BookingPage() {
   const navigate = useNavigate();
   const store = useBookingStore();
+  const { services, professionals } = useAdminStore();
   const step = store.currentStep();
   const [activeCategory, setActiveCategory] = useState<Service["category"]>("corte");
 
@@ -262,7 +262,9 @@ export function BookingPage() {
                     <div>
                       <p className="text-[10px] uppercase text-white/30">Valor</p>
                       <p className="text-sm font-semibold text-gold-400">
-                        R$ {store.selectedService.price.toFixed(2)}
+                        {store.selectedService.price > 0
+                          ? `R$ ${store.selectedService.price.toFixed(2)}`
+                          : "Consulte"}
                       </p>
                     </div>
                   </div>
@@ -318,8 +320,10 @@ export function BookingPage() {
             <div>
               <p className="text-sm font-medium">{store.selectedService.name}</p>
               <p className="text-xs text-gold-400">
-                R$ {store.selectedService.price.toFixed(2)} &middot;{" "}
-                {store.selectedService.duration} min
+                {store.selectedService.price > 0
+                  ? `R$ ${store.selectedService.price.toFixed(2)}`
+                  : "Consulte"}{" "}
+                &middot; {store.selectedService.duration} min
               </p>
             </div>
             <button
